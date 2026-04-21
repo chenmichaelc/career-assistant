@@ -1,6 +1,10 @@
 // scripts/list-roles.js
-// Career Assistant — List Roles
-// Usage: node scripts/list-roles.js [--status <status>] [--company <name>]
+// Career Assistant — List Roles (CSV output)
+// Usage:
+//   node scripts/list-roles.js
+//   node scripts/list-roles.js --status Applied
+//   node scripts/list-roles.js --company Akamai
+//   node scripts/list-roles.js --status Skipped > skipped.csv
 
 const Database = require('better-sqlite3');
 const path = require('path');
@@ -13,7 +17,7 @@ for (let i = 0; i < args.length; i += 2) {
   flags[args[i].replace('--', '')] = args[i + 1];
 }
 
-let query = `SELECT id, company, title, role_status, candidacy, applied_date, salary_min, salary_max FROM roles WHERE 1=1`;
+let query = `SELECT id, company, title, role_status, candidacy, applied_date, salary_min, salary_max, notes FROM roles WHERE 1=1`;
 const params = [];
 
 if (flags.status) {
@@ -31,30 +35,26 @@ query += ` ORDER BY applied_date DESC, company ASC`;
 const roles = db.prepare(query).all(...params);
 
 if (roles.length === 0) {
-  console.log('No roles found.');
+  process.stderr.write('No roles found.\n');
   db.close();
   process.exit(0);
 }
 
-const col = (str, width) => (str ?? '—').toString().slice(0, width).padEnd(width);
+const escape = (val) => {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
 
-const header = `${'ID'.padEnd(4)}  ${'Company'.padEnd(30)}  ${'Title'.padEnd(40)}  ${'Status'.padEnd(20)}  ${'Candidacy'.padEnd(12)}  ${'Applied'.padEnd(12)}  ${'Salary Range'}`;
-const divider = '─'.repeat(header.length);
+const headers = ['id', 'company', 'title', 'role_status', 'candidacy', 'applied_date', 'salary_min', 'salary_max', 'notes'];
 
-console.log('\n' + header);
-console.log(divider);
+console.log(headers.join(','));
 
 for (const r of roles) {
-  const salary = r.salary_min || r.salary_max
-    ? `$${r.salary_min ? (r.salary_min / 1000).toFixed(0) + 'K' : '?'}–$${r.salary_max ? (r.salary_max / 1000).toFixed(0) + 'K' : '?'}`
-    : '—';
-
-  console.log(
-    `${col(r.id, 4)}  ${col(r.company, 30)}  ${col(r.title, 40)}  ${col(r.role_status, 20)}  ${col(r.candidacy, 12)}  ${col(r.applied_date, 12)}  ${salary}`
-  );
+  console.log(headers.map(h => escape(r[h])).join(','));
 }
-
-console.log(divider);
-console.log(`${roles.length} role(s) found.\n`);
 
 db.close();
