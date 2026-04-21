@@ -35,7 +35,7 @@ const seed = db.transaction(() => {
 
   r = insertRole.run({ company: 'Termius', title: 'QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: 'Cross-platform SSH client; comp TBD' });
 
-  r = insertRole.run({ company: 'Symetra', title: null, url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Symetra', title: 'Test Automation Engineer Lead', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: null });
 
   r = insertRole.run({ company: 'Harris School Solutions', title: 'QA Manager', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-22', salary_min: null, salary_max: null, notes: null });
 
@@ -55,19 +55,19 @@ const seed = db.transaction(() => {
 
   // ─── APPLIED — ACTIVE: PRESUMED FILTERED ─────────────────────────────────
 
-  r = insertRole.run({ company: 'Proof', title: null, url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Proof', title: 'Senior Software QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
   r = insertRole.run({ company: 'Expansion', title: 'Construction Tech (unnamed client)', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Groundtruth / UP.Labs', title: null, url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Groundtruth / UP.Labs', title: 'Sr. AI Quality Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
   r = insertRole.run({ company: 'Deepgram', title: 'QA Engineering Manager', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: 'First application; presumed filtered' });
 
   r = insertRole.run({ company: 'Deepgram', title: 'QA Engineering Manager', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Second application; presumed filtered' });
 
-  r = insertRole.run({ company: 'Gradient AI', title: null, url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Gradient AI', title: 'Senior QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Natera', title: null, url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Natera', title: 'Sr. Software Quality Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
   r = insertRole.run({ company: 'Caterpillar', title: 'Software QA Specialist, Cat Digital', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
@@ -114,10 +114,10 @@ const seed = db.transaction(() => {
   r = insertRole.run({ company: 'Virtuous', title: 'Sr. Software Engineer in Test', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'Crowe', title: null, url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Crowe', title: 'Senior Quality Analyst', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'Teali', title: null, url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Teali', title: 'Unknown', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
   // ─── APPLIED — RESOLVED: FILLED OR CANCELLED ─────────────────────────────
@@ -136,7 +136,7 @@ const seed = db.transaction(() => {
 
   // ─── APPLIED — RESOLVED: OTHER ────────────────────────────────────────────
 
-  r = insertRole.run({ company: 'FIS/Amount', title: null, url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: 'Role too junior' });
+  r = insertRole.run({ company: 'FIS/Amount', title: 'QA Engineer (Core Integrations - Banks)', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: 'Role too junior' });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Withdrew - Other', note: 'Role too junior' });
 
   r = insertRole.run({ company: 'Speechify', title: 'Manual QA Engineer, Web Core Product', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Not proceeding but unfilled; homework + reading list; reapply ~May 2026' });
@@ -153,41 +153,41 @@ const seed = db.transaction(() => {
   // ─── SKIPPED ──────────────────────────────────────────────────────────────
 
   const skipped = [
-    { company: 'Ethos', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'ECP', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Cint', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Scopely', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Hirobe', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Qualitest', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Blockskye', title: null, reasons: [{ reason: 'Ethics - Other', note: 'Blockchain/DeFi' }], notes: null },
-    { company: 'Anaconda', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Grow Therapy', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Mattermost', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Ocient', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Digitas', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Solace', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'Signify Technology', title: null, reasons: [{ reason: 'Unknown', note: null }], notes: null },
-    { company: 'BRG / Second Sight Solutions', title: null, reasons: [{ reason: 'Other', note: 'Terminated without applying' }], notes: null },
-    { company: 'UBC', title: null, reasons: [{ reason: 'Wrong Industry', note: 'Call center QA' }], notes: null },
-    { company: 'Dover / traceability platform', title: null, reasons: [{ reason: 'Ethics - Other', note: 'Anti-AI culture' }, { reason: 'Compensation', note: 'Comp risk' }], notes: null },
-    { company: 'Wrapbook', title: null, reasons: [{ reason: 'Wrong Industry', note: 'Entertainment payroll domain' }], notes: null },
-    { company: 'Loftware', title: null, reasons: [{ reason: 'Wrong Industry', note: 'QMS/compliance' }], notes: null },
-    { company: 'Wing Assistant', title: null, reasons: [{ reason: 'Culture', note: 'Glassdoor flag' }, { reason: 'Skills Gap', note: 'Selenium' }], notes: null },
-    { company: 'Assured', title: null, reasons: [{ reason: 'Culture', note: null }], notes: null },
+    { company: 'Ethos', title: 'Manager, CX Quality', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'ECP', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Cint', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Scopely', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Hirobe', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Qualitest', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Blockskye', title: 'Unknown', reasons: [{ reason: 'Ethics - Other', note: 'Blockchain/DeFi' }], notes: null },
+    { company: 'Anaconda', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Grow Therapy', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Mattermost', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Ocient', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Digitas', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Solace', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'Signify Technology', title: 'Unknown', reasons: [{ reason: 'Unknown', note: null }], notes: null },
+    { company: 'BRG / Second Sight Solutions', title: 'Unknown', reasons: [{ reason: 'Other', note: 'Terminated without applying' }], notes: null },
+    { company: 'UBC', title: 'Unknown', reasons: [{ reason: 'Wrong Industry', note: 'Call center QA' }], notes: null },
+    { company: 'Dover / traceability platform', title: 'Unknown', reasons: [{ reason: 'Ethics - Other', note: 'Anti-AI culture' }, { reason: 'Compensation', note: 'Comp risk' }], notes: null },
+    { company: 'Wrapbook', title: 'Unknown', reasons: [{ reason: 'Wrong Industry', note: 'Entertainment payroll domain' }], notes: null },
+    { company: 'Loftware', title: 'Unknown', reasons: [{ reason: 'Wrong Industry', note: 'QMS/compliance' }], notes: null },
+    { company: 'Wing Assistant', title: 'Unknown', reasons: [{ reason: 'Culture', note: 'Glassdoor flag' }, { reason: 'Skills Gap', note: 'Selenium' }], notes: null },
+    { company: 'Assured', title: 'Unknown', reasons: [{ reason: 'Culture', note: null }], notes: null },
     { company: 'GE Healthcare', title: 'Network Software Dev QA Specialist', reasons: [{ reason: 'Wrong Industry', note: 'Networking domain' }, { reason: 'Skills Gap', note: 'Python/PowerShell' }], notes: null },
     { company: 'Bestow', title: 'Quality Engineering Manager', reasons: [{ reason: 'Wrong Industry', note: 'SDET production coding scope' }], notes: null },
     { company: 'Veritone', title: 'Staff QA Automation Engineer', reasons: [{ reason: 'Ethics - Surveillance', note: 'Facial recognition — DoD/intelligence; mass surveillance' }], notes: null },
-    { company: 'EagleView', title: null, reasons: [{ reason: 'Wrong Industry', note: 'Geospatial/GIS' }, { reason: 'Compensation', note: '$72K-$89.5K' }], notes: null, salary_min: 72000, salary_max: 89500 },
-    { company: 'Thrive Global', title: null, reasons: [{ reason: 'Culture', note: 'Toxic CEO' }], notes: null },
-    { company: 'One Call Care Management', title: null, reasons: [{ reason: 'Wrong Industry', note: 'Ops-adjacent discipline' }], notes: null },
-    { company: 'FINVI', title: null, reasons: [{ reason: 'Compensation', note: 'Below floor' }], notes: null },
-    { company: 'tvScientific', title: null, reasons: [{ reason: 'Culture', note: 'Toxic leadership' }], notes: null },
-    { company: 'Doximity', title: null, reasons: [{ reason: 'Wrong Industry', note: 'Native mobile' }], notes: null },
-    { company: 'Skylight', title: null, reasons: [{ reason: 'Wrong Industry', note: 'Native iOS/Android' }], notes: null },
-    { company: 'Grocery TV', title: null, reasons: [{ reason: 'Location', note: 'Austin in-office' }], notes: null },
-    { company: 'JetBrains No Pressure team', title: null, reasons: [{ reason: 'Location', note: 'EU-only' }], notes: null },
-    { company: 'Filevine', title: null, reasons: [{ reason: 'Culture', note: '2.8/5; 42% recommend; toxic leadership' }], notes: null },
-    { company: 'CareDx', title: null, reasons: [{ reason: 'Culture', note: 'Regime-change pattern' }, { reason: 'Compensation', note: 'Ceiling $128K' }], notes: null, salary_max: 128000 },
+    { company: 'EagleView', title: 'Unknown', reasons: [{ reason: 'Wrong Industry', note: 'Geospatial/GIS' }, { reason: 'Compensation', note: '$72K-$89.5K' }], notes: null, salary_min: 72000, salary_max: 89500 },
+    { company: 'Thrive Global', title: 'Unknown', reasons: [{ reason: 'Culture', note: 'Toxic CEO' }], notes: null },
+    { company: 'One Call Care Management', title: 'Unknown', reasons: [{ reason: 'Wrong Industry', note: 'Ops-adjacent discipline' }], notes: null },
+    { company: 'FINVI', title: 'Unknown', reasons: [{ reason: 'Compensation', note: 'Below floor' }], notes: null },
+    { company: 'tvScientific', title: 'Unknown', reasons: [{ reason: 'Culture', note: 'Toxic leadership' }], notes: null },
+    { company: 'Doximity', title: 'Unknown', reasons: [{ reason: 'Wrong Industry', note: 'Native mobile' }], notes: null },
+    { company: 'Skylight', title: 'Unknown', reasons: [{ reason: 'Wrong Industry', note: 'Native iOS/Android' }], notes: null },
+    { company: 'Grocery TV', title: 'Unknown', reasons: [{ reason: 'Location', note: 'Austin in-office' }], notes: null },
+    { company: 'JetBrains No Pressure team', title: 'Unknown', reasons: [{ reason: 'Location', note: 'EU-only' }], notes: null },
+    { company: 'Filevine', title: 'Unknown', reasons: [{ reason: 'Culture', note: '2.8/5; 42% recommend; toxic leadership' }], notes: null },
+    { company: 'CareDx', title: 'Unknown', reasons: [{ reason: 'Culture', note: 'Regime-change pattern' }, { reason: 'Compensation', note: 'Ceiling $128K' }], notes: null, salary_max: 128000 },
     { company: 'Delos Data', title: 'SDET-AI', reasons: [{ reason: 'Skills Gap', note: 'Python/Docker/K8s' }, { reason: 'Wrong Industry', note: 'Systems infra' }, { reason: 'Other', note: 'Hard CS degree' }], notes: null },
     { company: 'Bellese Technologies', title: 'Engineer II QA', reasons: [{ reason: 'Skills Gap', note: 'Salesforce/Copado' }, { reason: 'Compensation', note: 'Ceiling $125K' }], notes: null, salary_max: 125000 },
     { company: 'Pano AI', title: 'Staff Quality Engineer, Design', reasons: [{ reason: 'Wrong Industry', note: 'Embedded/hardware' }], notes: null },
