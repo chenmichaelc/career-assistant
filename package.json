@@ -1,13 +1,17 @@
 {
   "name": "career-assistant",
   "version": "1.0.0",
-  "description": "",
+  "description": "Local job search state management and career tooling.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "init": "node db/init.js",
+    "seed": "node db/seed.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^9.4.3"
+  }
 }
