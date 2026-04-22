@@ -9,8 +9,8 @@ const path = require('path');
 const db = new Database(path.join(__dirname, 'jobsearch.sqlite'));
 
 const insertRole = db.prepare(`
-  INSERT INTO roles (company, title, url, source, role_status, candidacy, applied_date, salary_min, salary_max, notes)
-  VALUES (@company, @title, @url, @source, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
+  INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
+  VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
 `);
 
 const insertSkipReason = db.prepare(`
@@ -29,126 +29,126 @@ const seed = db.transaction(() => {
 
   let r;
 
-  r = insertRole.run({ company: 'Circle.so', title: 'Senior Quality Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: 120000, salary_max: 130000, notes: null });
+  r = insertRole.run({ company: 'Circle.so', title: 'Senior Quality Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: 120000, salary_max: 130000, notes: null });
 
-  r = insertRole.run({ company: 'GovWorx', title: 'QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: '911/public safety AI; FBI background check; law enforcement adjacency acknowledged' });
+  r = insertRole.run({ company: 'GovWorx', title: 'QA Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: '911/public safety AI; FBI background check; law enforcement adjacency acknowledged' });
 
-  r = insertRole.run({ company: 'Termius', title: 'QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: 'Cross-platform SSH client; comp TBD' });
+  r = insertRole.run({ company: 'Termius', title: 'QA Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: 'Cross-platform SSH client; comp TBD' });
 
-  r = insertRole.run({ company: 'Symetra', title: 'Test Automation Engineer Lead', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Symetra', title: 'Test Automation Engineer Lead', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: null });
 
-  r = insertRole.run({ company: 'Harris School Solutions', title: 'QA Manager', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-22', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Harris School Solutions', title: 'QA Manager', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-22', salary_min: null, salary_max: null, notes: null });
 
-  r = insertRole.run({ company: 'Murmuration', title: 'Senior QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-22', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Murmuration', title: 'Senior QA Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-22', salary_min: null, salary_max: null, notes: null });
 
-  r = insertRole.run({ company: 'Equip', title: 'Senior SDET', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-22', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Equip', title: 'Senior SDET', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-22', salary_min: null, salary_max: null, notes: null });
 
-  r = insertRole.run({ company: 'ClassWallet', title: 'QA Automation Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-29', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'ClassWallet', title: 'QA Automation Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-29', salary_min: null, salary_max: null, notes: null });
 
-  r = insertRole.run({ company: 'TherapyNotes', title: 'Senior QA Automation Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-29', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'TherapyNotes', title: 'Senior QA Automation Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-29', salary_min: null, salary_max: null, notes: null });
 
-  r = insertRole.run({ company: 'Sogeti', title: 'Senior Quality Assurance Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-30', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Sogeti', title: 'Senior Quality Assurance Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-30', salary_min: null, salary_max: null, notes: null });
 
-  r = insertRole.run({ company: 'STERIS', title: 'Senior Manager, Test and Validation Engineering', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-10', salary_min: 150000, salary_max: 178000, notes: 'Base + bonus + LTI; hard CS degree noted' });
+  r = insertRole.run({ company: 'STERIS', title: 'Senior Manager, Test and Validation Engineering', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-10', salary_min: 150000, salary_max: 178000, notes: 'Base + bonus + LTI; hard CS degree noted' });
 
-  r = insertRole.run({ company: 'Cleerly', title: 'Senior Quality Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-10', salary_min: 137000, salary_max: 160000, notes: '15% bonus (TTC $157K-$184K); manual-heavy scope' });
+  r = insertRole.run({ company: 'Cleerly', title: 'Senior Quality Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-04-10', salary_min: 137000, salary_max: 160000, notes: '15% bonus (TTC $157K-$184K); manual-heavy scope' });
 
   // ─── APPLIED — ACTIVE: PRESUMED FILTERED ─────────────────────────────────
 
-  r = insertRole.run({ company: 'Proof', title: 'Senior Software QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Proof', title: 'Senior Software QA Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Expansion', title: 'Construction Tech (unnamed client)', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Expansion', title: 'Construction Tech (unnamed client)', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Groundtruth / UP.Labs', title: 'Sr. AI Quality Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Groundtruth / UP.Labs', title: 'Sr. AI Quality Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Deepgram', title: 'QA Engineering Manager', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: 'First application; presumed filtered' });
+  r = insertRole.run({ company: 'Deepgram', title: 'QA Engineering Manager', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: 'First application; presumed filtered' });
 
-  r = insertRole.run({ company: 'Deepgram', title: 'QA Engineering Manager', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Second application; presumed filtered' });
+  r = insertRole.run({ company: 'Deepgram', title: 'QA Engineering Manager', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Second application; presumed filtered' });
 
-  r = insertRole.run({ company: 'Gradient AI', title: 'Senior QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Gradient AI', title: 'Senior QA Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Natera', title: 'Sr. Software Quality Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Natera', title: 'Sr. Software Quality Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Caterpillar', title: 'Software QA Specialist, Cat Digital', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Caterpillar', title: 'Software QA Specialist, Cat Digital', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'MDCalc', title: 'QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'MDCalc', title: 'QA Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Resilience', title: 'QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Resilience', title: 'QA Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'DroneDeploy', title: 'Lead QA Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'DroneDeploy', title: 'Lead QA Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Jobgether', title: 'Senior Quality Engineer', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Jobgether', title: 'Senior Quality Engineer', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Jobgether', title: 'Manager, Quality Engineering Enablement', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Jobgether', title: 'Manager, Quality Engineering Enablement', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'Clearpath', title: 'QA Lead', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'Clearpath', title: 'QA Lead', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
-  r = insertRole.run({ company: 'RadarFirst', title: 'Lead SDET', url: null, source: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
+  r = insertRole.run({ company: 'RadarFirst', title: 'Lead SDET', url: null, role_status: 'Applied', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Presumed filtered' });
 
   // ─── APPLIED — RESOLVED: DECLINED ────────────────────────────────────────
 
-  r = insertRole.run({ company: 'Elsevier', title: 'Senior QA Test Engineer II', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Elsevier', title: 'Senior QA Test Engineer II', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'ServiceUp', title: 'QA Engineer', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'ServiceUp', title: 'QA Engineer', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'Walker & Dunlop / WDTech', title: 'Senior QA Engineer', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Walker & Dunlop / WDTech', title: 'Senior QA Engineer', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'The Nature Conservancy', title: 'Sr. Quality Management Analyst', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'The Nature Conservancy', title: 'Sr. Quality Management Analyst', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'Group 1001 / Onyx', title: 'Senior QA Automation Engineer', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Group 1001 / Onyx', title: 'Senior QA Automation Engineer', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'RegScale', title: 'Senior Software Quality Engineer', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'DoD adjacency acknowledged' });
+  r = insertRole.run({ company: 'RegScale', title: 'Senior Software Quality Engineer', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'DoD adjacency acknowledged' });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'PwC', title: 'Quality Engineer, Senior Manager', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'PwC', title: 'Quality Engineer, Senior Manager', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'Machinify', title: 'Staff Automation Engineer', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Machinify', title: 'Staff Automation Engineer', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'Virtuous', title: 'Sr. Software Engineer in Test', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Virtuous', title: 'Sr. Software Engineer in Test', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'Crowe', title: 'Senior Quality Analyst', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Crowe', title: 'Senior Quality Analyst', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
-  r = insertRole.run({ company: 'Teali', title: 'Unknown', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Teali', title: 'Unknown', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-04-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Screened Out', note: null });
 
   // ─── APPLIED — RESOLVED: FILLED OR CANCELLED ─────────────────────────────
 
-  r = insertRole.run({ company: 'Imagine Pediatrics', title: 'QA Engineer', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Imagine Pediatrics', title: 'QA Engineer', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Filled', note: null });
 
-  r = insertRole.run({ company: 'Reality Defender', title: 'QA Lead', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Reality Defender', title: 'QA Lead', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-02-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Filled', note: null });
 
-  r = insertRole.run({ company: 'Calendly', title: 'QA Engineer III', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-20', salary_min: 127000, salary_max: 154000, notes: null });
+  r = insertRole.run({ company: 'Calendly', title: 'QA Engineer III', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-20', salary_min: 127000, salary_max: 154000, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Filled', note: null });
 
-  r = insertRole.run({ company: 'Gravie', title: 'AI Test Automation Engineer', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
+  r = insertRole.run({ company: 'Gravie', title: 'AI Test Automation Engineer', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: null });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Cancelled', note: 'Unfilled' });
 
   // ─── APPLIED — RESOLVED: OTHER ────────────────────────────────────────────
 
-  r = insertRole.run({ company: 'FIS/Amount', title: 'QA Engineer (Core Integrations - Banks)', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: 'Role too junior' });
+  r = insertRole.run({ company: 'FIS/Amount', title: 'QA Engineer (Core Integrations - Banks)', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-01-15', salary_min: null, salary_max: null, notes: 'Role too junior' });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Withdrew - Other', note: 'Role too junior' });
 
-  r = insertRole.run({ company: 'Speechify', title: 'Manual QA Engineer, Web Core Product', url: null, source: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Not proceeding but unfilled; homework + reading list; reapply ~May 2026' });
+  r = insertRole.run({ company: 'Speechify', title: 'Manual QA Engineer, Web Core Product', url: null, role_status: 'Closed', candidacy: null, applied_date: '2026-03-15', salary_min: null, salary_max: null, notes: 'Not proceeding but unfilled; homework + reading list; reapply ~May 2026' });
   insertTerminationReason.run({ role_id: r.lastInsertRowid, reason: 'Withdrew - Other', note: 'Not proceeding but unfilled; reapply ~May 2026' });
 
   // ─── ON HOLD ──────────────────────────────────────────────────────────────
 
-  r = insertRole.run({ company: 'Unanet', title: 'Lead QA Automation Engineer', url: null, source: null, role_status: 'On Hold', candidacy: null, applied_date: '2025-12-15', salary_min: null, salary_max: null, notes: 'GovCon ERP flag acknowledged. Completed most rounds; positive feedback. Role filled internally. Follow-up requested for Q2 2026. Monitor.' });
+  r = insertRole.run({ company: 'Unanet', title: 'Lead QA Automation Engineer', url: null, role_status: 'On Hold', candidacy: null, applied_date: '2025-12-15', salary_min: null, salary_max: null, notes: 'GovCon ERP flag acknowledged. Completed most rounds; positive feedback. Role filled internally. Follow-up requested for Q2 2026. Monitor.' });
 
   // ─── RESUME NEEDED (formerly Bookmarked) ─────────────────────────────────
 
-  r = insertRole.run({ company: 'CSG Systems', title: 'Scrum Master / Lead Test Engineer', url: 'https://csgi.wd5.myworkdayjobs.com/CSGCareers/job/United-States-Remote/Scrum-Master--Lead-Test-Engineer_31770', source: null, role_status: 'Applied', candidacy: 'Competitive', applied_date: '2026-04-14', salary_min: 90000, salary_max: 144000, notes: 'Tool-agnostic JD; AI tool leverage called out explicitly — LLM/prompt testing experience is differentiator; dual Scrum Master + Lead QA scope covered honestly; anchor high on comp' });
+  r = insertRole.run({ company: 'CSG Systems', title: 'Scrum Master / Lead Test Engineer', url: 'https://csgi.wd5.myworkdayjobs.com/CSGCareers/job/United-States-Remote/Scrum-Master--Lead-Test-Engineer_31770', role_status: 'Applied', candidacy: 'Competitive', applied_date: '2026-04-14', salary_min: 90000, salary_max: 144000, notes: 'Tool-agnostic JD; AI tool leverage called out explicitly — LLM/prompt testing experience is differentiator; dual Scrum Master + Lead QA scope covered honestly; anchor high on comp' });
 
   // ─── SKIPPED ──────────────────────────────────────────────────────────────
 
@@ -255,7 +255,6 @@ const seed = db.transaction(() => {
       company: role.company,
       title: role.title ?? null,
       url: null,
-      source: null,
       role_status: 'Skipped',
       candidacy: null,
       applied_date: null,
