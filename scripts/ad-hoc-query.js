@@ -17,7 +17,7 @@ for (let i = 0; i < args.length; i += 2) {
   flags[args[i].replace('--', '')] = args[i + 1];
 }
 
-let query = `SELECT * FROM termination_reasons WHERE 1=1`;
+let query = `SELECT * FROM roles WHERE 1=1 AND source IS NOT NULL`;
 
 const params = [];
 

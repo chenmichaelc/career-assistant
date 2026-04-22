@@ -11,7 +11,8 @@ const path = require('path');
 
 const VALID_STATUSES = [
   'Resume Needed', 'Resume Ready', 'Applied', 'Callback',
-  'In Interview', 'Offer Accepted', 'Offer Declined', 'Skipped', 'Closed', 'On Hold'
+  'In Interview', 'Offer Accepted', 'Offer Declined', 'Skipped', 'Closed', 'On Hold',
+  'Pending Triage'
 ];
 
 const VALID_SKIP_REASONS = [

@@ -13,7 +13,6 @@ db.exec(`
     company       TEXT NOT NULL,
     title         TEXT NOT NULL,
     url           TEXT,
-    source        TEXT,
     role_status   TEXT NOT NULL CHECK(role_status IN (
                     'Resume Needed',
                     'Resume Ready',
@@ -24,7 +23,8 @@ db.exec(`
                     'Offer Declined',
                     'Skipped',
                     'Closed',
-                    'On Hold'
+                    'On Hold',
+                    'Pending Triage'
                   )),
     candidacy     TEXT CHECK(candidacy IN (
                     'Slam Dunk',
