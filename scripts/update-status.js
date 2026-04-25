@@ -3,51 +3,30 @@
 //
 // Usage:
 //   node scripts/update-status.js --id <id> --status <status>
-//   node scripts/update-status.js --id <id> --status Skipped --reasons "Wrong Industry" "Compensation" --notes "Below floor"
+//   node scripts/update-status.js --id <id> --status Skipped --reasons "Wrong Industry" "Compensation" --note "Below floor"
 //   node scripts/update-status.js --id <id> --status Closed --termination "Screened Out"
 
 const Database = require('better-sqlite3');
-const path = require('path');
-
-const VALID_STATUSES = [
-  'Resume Needed', 'Resume Ready', 'Applied', 'Callback',
-  'In Interview', 'Offer Accepted', 'Offer Declined', 'Skipped', 'Closed', 'On Hold',
-  'Pending Triage'
-];
-
-const VALID_SKIP_REASONS = [
-  'Wrong Industry', 'Culture', 'Ethics - Exploitative Industry/Product',
-  'Ethics - Defense/Military', 'Ethics - Surveillance', 'Ethics - Other',
-  'Location', 'Compensation', 'Skills Gap', 'Other', 'Unknown'
-];
-
-const VALID_TERMINATION_REASONS = [
-  'Screened Out', 'Filled', 'Cancelled', 'Abandoned',
-  'Withdrew - Ethics - Exploitative Industry/Product',
-  'Withdrew - Ethics - Defense/Military',
-  'Withdrew - Ethics - Surveillance',
-  'Withdrew - Ethics - Other',
-  'Withdrew - Culture',
-  'Withdrew - Compensation',
-  'Withdrew - Skills Gap',
-  'Withdrew - Location',
-  'Withdrew - Other'
-];
+const path     = require('path');
 
 // ─── Parse args ───────────────────────────────────────────────────────────────
 
-const args = process.argv.slice(2);
+const args  = process.argv.slice(2);
 const flags = { reasons: [], termination: [] };
+
 let i = 0;
 
 while (i < args.length) {
-  const flag = args[i].replace('--', '');
-  i++;
+  const flag   = args[i].replace('--', '');
   const values = [];
+
+  i++;
+
   while (i < args.length && !args[i].startsWith('--')) {
     values.push(args[i]);
     i++;
   }
+
   if (flag === 'reasons' || flag === 'termination') {
     flags[flag] = values;
   } else {
@@ -55,72 +34,102 @@ while (i < args.length) {
   }
 }
 
-// ─── Validate ─────────────────────────────────────────────────────────────────
+// ─── Validate args ────────────────────────────────────────────────────────────
 
 if (!flags.id || !flags.status) {
-  console.error('Usage: node scripts/update-status.js --id <id> --status <status> [--reasons ...] [--termination ...] [--note <text>]');
+  process.stderr.write('Usage: node scripts/update-status.js --id <id> --status <status> [--reasons ...] [--termination ...] [--note <text>]\n');
   process.exit(1);
 }
 
-if (!VALID_STATUSES.includes(flags.status)) {
-  console.error(`Invalid status: "${flags.status}"`);
-  console.error(`Valid statuses: ${VALID_STATUSES.join(', ')}`);
-  process.exit(1);
-}
-
-for (const r of flags.reasons) {
-  if (!VALID_SKIP_REASONS.includes(r)) {
-    console.error(`Invalid skip reason: "${r}"`);
-    console.error(`Valid reasons: ${VALID_SKIP_REASONS.join(', ')}`);
-    process.exit(1);
-  }
-}
-
-for (const t of flags.termination) {
-  if (!VALID_TERMINATION_REASONS.includes(t)) {
-    console.error(`Invalid termination reason: "${t}"`);
-    console.error(`Valid reasons: ${VALID_TERMINATION_REASONS.join(', ')}`);
-    process.exit(1);
-  }
-}
-
-// ─── Execute ──────────────────────────────────────────────────────────────────
+// ─── Open DB ──────────────────────────────────────────────────────────────────
 
 const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
 
-const role = db.prepare(`SELECT id, company, title, role_status FROM roles WHERE id = ?`).get(flags.id);
+// ─── Fetch role ───────────────────────────────────────────────────────────────
+
+const fetchRole = db.prepare(`
+  SELECT id, company, title, role_status
+  FROM roles
+  WHERE id = ?
+`);
+
+const role = fetchRole.get(flags.id);
 
 if (!role) {
-  console.error(`No role found with ID ${flags.id}`);
+  process.stderr.write(`Error: No role found with ID ${flags.id}\n`);
   db.close();
   process.exit(1);
 }
 
-const update = db.transaction(() => {
-  db.prepare(`
-    UPDATE roles SET role_status = ?, updated_at = datetime('now') WHERE id = ?
-  `).run(flags.status, flags.id);
+// ─── Prepare statements ───────────────────────────────────────────────────────
+
+const updateRoleStatus = db.prepare(`
+  UPDATE roles
+  SET role_status = @role_status,
+      updated_at  = datetime('now')
+  WHERE id = @id
+`);
+
+const insertSkipReason = db.prepare(`
+  INSERT INTO skip_reasons (role_id, reason, note)
+  VALUES (@role_id, @reason, @note)
+`);
+
+const insertTerminationReason = db.prepare(`
+  INSERT INTO termination_reasons (role_id, reason, note)
+  VALUES (@role_id, @reason, @note)
+`);
+
+// ─── Execute ──────────────────────────────────────────────────────────────────
+
+const run = db.transaction(() => {
+  updateRoleStatus.run({
+    role_status: flags.status,
+    id:          flags.id,
+  });
 
   for (const reason of flags.reasons) {
-    db.prepare(`
-      INSERT INTO skip_reasons (role_id, reason, note) VALUES (?, ?, ?)
-    `).run(flags.id, reason, flags.note ?? null);
+    insertSkipReason.run({
+      role_id: flags.id,
+      reason:  reason,
+      note:    flags.note ?? null,
+    });
   }
 
   for (const reason of flags.termination) {
-    db.prepare(`
-      INSERT INTO termination_reasons (role_id, reason, note) VALUES (?, ?, ?)
-    `).run(flags.id, reason, flags.note ?? null);
+    insertTerminationReason.run({
+      role_id: flags.id,
+      reason:  reason,
+      note:    flags.note ?? null,
+    });
   }
 });
 
-update();
+try {
+  run();
+} catch (err) {
+  process.stderr.write(`Error: ${err.message}\n`);
+  db.close();
+  process.exit(1);
+}
 
-console.log(`\n✓ Updated: ${role.company}${role.title ? ' — ' + role.title : ''}`);
-console.log(`  ${role.role_status} → ${flags.status}`);
-if (flags.reasons.length) console.log(`  Skip reasons: ${flags.reasons.join(', ')}`);
-if (flags.termination.length) console.log(`  Termination reasons: ${flags.termination.join(', ')}`);
-if (flags.note) console.log(`  Note: ${flags.note}`);
-console.log();
+// ─── Output ───────────────────────────────────────────────────────────────────
+
+process.stdout.write(`\n✓ Updated: ${role.company} — ${role.title}\n`);
+process.stdout.write(`  ${role.role_status} → ${flags.status}\n`);
+
+if (flags.reasons.length) {
+  process.stdout.write(`  Skip reasons: ${flags.reasons.join(', ')}\n`);
+}
+
+if (flags.termination.length) {
+  process.stdout.write(`  Termination reasons: ${flags.termination.join(', ')}\n`);
+}
+
+if (flags.note) {
+  process.stdout.write(`  Note: ${flags.note}\n`);
+}
+
+process.stdout.write('\n');
 
 db.close();

@@ -1,5 +1,6 @@
 // scripts/list-roles.js
 // Career Assistant — List Roles (CSV output)
+//
 // Usage:
 //   node scripts/list-roles.js
 //   node scripts/list-roles.js --status Applied
@@ -7,17 +8,29 @@
 //   node scripts/list-roles.js --status Skipped > skipped.csv
 
 const Database = require('better-sqlite3');
-const path = require('path');
+const path     = require('path');
 
 const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'), { readonly: true });
 
-const args = process.argv.slice(2);
+// ─── Parse args ───────────────────────────────────────────────────────────────
+
+const args  = process.argv.slice(2);
 const flags = {};
+
 for (let i = 0; i < args.length; i += 2) {
-  flags[args[i].replace('--', '')] = args[i + 1];
+  const flag  = args[i].replace('--', '');
+  const value = args[i + 1];
+  flags[flag] = value;
 }
 
-let query = `SELECT id, company, title, role_status, candidacy, applied_date, salary_min, salary_max, notes FROM roles WHERE 1=1`;
+// ─── Build query ──────────────────────────────────────────────────────────────
+
+let query = `
+  SELECT id, company, title, role_status, candidacy, applied_date, salary_min, salary_max, notes
+  FROM roles
+  WHERE 1=1
+`;
+
 const params = [];
 
 if (flags.status) {
@@ -32,7 +45,10 @@ if (flags.company) {
 
 query += ` ORDER BY applied_date DESC, company ASC`;
 
-const roles = db.prepare(query).all(...params);
+// ─── Execute ──────────────────────────────────────────────────────────────────
+
+const statement = db.prepare(query);
+const roles     = statement.all(...params);
 
 if (roles.length === 0) {
   process.stderr.write('No roles found.\n');
@@ -40,21 +56,31 @@ if (roles.length === 0) {
   process.exit(0);
 }
 
-const escape = (val) => {
-  if (val === null || val === undefined) return '';
-  const str = String(val);
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
+// ─── CSV output ───────────────────────────────────────────────────────────────
+
+function escapeCSV(val) {
+  if (val === null || val === undefined) {
+    return '';
   }
+
+  const str = String(val);
+  const needsQuoting = str.includes(',') || str.includes('"') || str.includes('\n');
+
+  if (needsQuoting) {
+    const escaped = str.replace(/"/g, '""');
+    return `"${escaped}"`;
+  }
+
   return str;
-};
+}
 
 const headers = ['id', 'company', 'title', 'role_status', 'candidacy', 'applied_date', 'salary_min', 'salary_max', 'notes'];
 
-console.log(headers.join(','));
+process.stdout.write(headers.join(',') + '\n');
 
-for (const r of roles) {
-  console.log(headers.map(h => escape(r[h])).join(','));
+for (const role of roles) {
+  const row = headers.map(header => escapeCSV(role[header]));
+  process.stdout.write(row.join(',') + '\n');
 }
 
 db.close();
