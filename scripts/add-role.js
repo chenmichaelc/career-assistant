@@ -7,7 +7,7 @@
 //   echo '{"company":"Acme",...}' | node scripts/add-role.js
 
 const Database = require('better-sqlite3');
-const path = require('path');
+const path     = require('path');
 const { addRole } = require('../lib/roles');
 
 const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
@@ -26,19 +26,19 @@ process.stdin.on('end', () => {
   try {
     fields = JSON.parse(raw);
   } catch (err) {
-    process.stderr.write('Invalid JSON input.\n');
+    process.stderr.write('Error: Invalid JSON input.\n');
     db.close();
     process.exit(1);
   }
-
   try {
     const id = addRole(db, fields);
     process.stdout.write(`${id}\n`);
   } catch (err) {
-    process.stderr.write(`${err.message}\n`);
+    process.stderr.write(`Error: ${err.message}\n`);
     db.close();
     process.exit(1);
   }
 
+  process.stdout.write(`${id}\n`);
   db.close();
 });
