@@ -4,10 +4,10 @@
 //
 // Usage:
 //   cat role.json | node scripts/add-role.js
-//   echo '{"company":"Acme",...}' | node scripts/add-role.js
+//   node scripts/add-role.js < role.json
 
-const Database = require('better-sqlite3');
-const path     = require('path');
+const Database    = require('better-sqlite3');
+const path        = require('path');
 const { addRole } = require('../lib/roles');
 
 const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
@@ -30,6 +30,7 @@ process.stdin.on('end', () => {
     db.close();
     process.exit(1);
   }
+
   try {
     const id = addRole(db, fields);
     process.stdout.write(`${id}\n`);
@@ -39,6 +40,5 @@ process.stdin.on('end', () => {
     process.exit(1);
   }
 
-  process.stdout.write(`${id}\n`);
   db.close();
 });

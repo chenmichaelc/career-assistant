@@ -6,46 +6,18 @@
 //   node scripts/update-status.js --id <id> --status Skipped --reasons "Wrong Industry" "Compensation" --note "Below floor"
 //   node scripts/update-status.js --id <id> --status Closed --termination "Screened Out"
 
-const Database = require('better-sqlite3');
-const path     = require('path');
+const Database      = require('better-sqlite3');
+const path          = require('path');
+const { parseArgs } = require('../lib/args/update-args');
 
-// ─── Parse args ───────────────────────────────────────────────────────────────
-
-const args  = process.argv.slice(2);
-const flags = { reasons: [], termination: [] };
-
-let i = 0;
-
-while (i < args.length) {
-  const flag   = args[i].replace('--', '');
-  const values = [];
-
-  i++;
-
-  while (i < args.length && !args[i].startsWith('--')) {
-    values.push(args[i]);
-    i++;
-  }
-
-  if (flag === 'reasons' || flag === 'termination') {
-    flags[flag] = values;
-  } else {
-    flags[flag] = values[0];
-  }
-}
-
-// ─── Validate args ────────────────────────────────────────────────────────────
+const db    = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
+const flags = parseArgs(process.argv.slice(2));
 
 if (!flags.id || !flags.status) {
   process.stderr.write('Usage: node scripts/update-status.js --id <id> --status <status> [--reasons ...] [--termination ...] [--note <text>]\n');
+  db.close();
   process.exit(1);
 }
-
-// ─── Open DB ──────────────────────────────────────────────────────────────────
-
-const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
-
-// ─── Fetch role ───────────────────────────────────────────────────────────────
 
 const fetchRole = db.prepare(`
   SELECT id, company, title, role_status
@@ -60,8 +32,6 @@ if (!role) {
   db.close();
   process.exit(1);
 }
-
-// ─── Prepare statements ───────────────────────────────────────────────────────
 
 const updateRoleStatus = db.prepare(`
   UPDATE roles
@@ -79,8 +49,6 @@ const insertTerminationReason = db.prepare(`
   INSERT INTO termination_reasons (role_id, reason, note)
   VALUES (@role_id, @reason, @note)
 `);
-
-// ─── Execute ──────────────────────────────────────────────────────────────────
 
 const run = db.transaction(() => {
   updateRoleStatus.run({
@@ -113,8 +81,6 @@ try {
   process.exit(1);
 }
 
-// ─── Output ───────────────────────────────────────────────────────────────────
-
 process.stdout.write(`\n✓ Updated: ${role.company} — ${role.title}\n`);
 process.stdout.write(`  ${role.role_status} → ${flags.status}\n`);
 
@@ -131,5 +97,4 @@ if (flags.note) {
 }
 
 process.stdout.write('\n');
-
 db.close();
