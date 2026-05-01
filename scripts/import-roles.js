@@ -4,6 +4,7 @@
 //
 // Usage:
 //   node scripts/import-roles.js < roles.txt
+//   node scripts/update-status.js --id 153 --status Applied
 //   cat roles.txt | node scripts/import-roles.js
 
 const Database          = require('better-sqlite3');

@@ -3,6 +3,7 @@
 //
 // Usage:
 //   node scripts/update-status.js --id <id> --status <status>
+//   node scripts/update-status.js --id 153  --status Applied
 //   node scripts/update-status.js --id <id> --status Skipped --reasons "Wrong Industry" "Compensation" --note "Below floor"
 //   node scripts/update-status.js --id <id> --status Closed --termination "Screened Out"
 
