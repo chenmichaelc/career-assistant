@@ -1,11 +1,3 @@
-// scripts/list-roles.js
-// Career Assistant — List Roles (CSV output)
-// Usage:
-//   node scripts/list-roles.js
-//   node scripts/list-roles.js --status Applied
-//   node scripts/list-roles.js --company Akamai
-//   node scripts/list-roles.js --status Skipped > skipped.csv
-
 const Database = require('better-sqlite3');
 const path = require('path');
 
@@ -18,7 +10,7 @@ for (let i = 0; i < args.length; i += 2) {
 }
 
 let query = `SELECT * FROM roles WHERE 1=1 AND (
-  company like '%heartbeat%'
+  company like '%Know%'
   )`;
 
 const params = [];
