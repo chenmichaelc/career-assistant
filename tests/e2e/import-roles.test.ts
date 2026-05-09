@@ -1,7 +1,6 @@
-// tests/e2e/import-roles.test.js
-// E2E tests for scripts/import-roles.js
-
-const { runScript } = require('../helpers/run-script');
+// tests/e2e/import-roles.test.ts
+import { describe, test, expect } from 'vitest';
+import { runScript }              from '../helpers/run-script';
 
 const validFile = `URL: https://example.com/job/1
 Company: Acme
@@ -34,17 +33,17 @@ Description:
 
 --`;
 
-describe('import-roles.js', () => {
+describe('import-roles.ts', () => {
 
   test('inserts valid records and outputs summary', () => {
-    const { stdout, exitCode } = runScript('import-roles.js', validFile);
+    const { stdout, exitCode } = runScript('import-roles.ts', validFile);
     expect(exitCode).toBe(0);
     expect(stdout).toContain('Inserted:');
     expect(stdout).toContain('Summary: 2 inserted, 0 skipped');
   });
 
   test('skips invalid records and reports them', () => {
-    const { stdout, exitCode } = runScript('import-roles.js', fileWithBlankRecord);
+    const { stdout, exitCode } = runScript('import-roles.ts', fileWithBlankRecord);
     expect(exitCode).toBe(0);
     expect(stdout).toContain('Inserted:');
     expect(stdout).toContain('Skipped:');
@@ -52,7 +51,7 @@ describe('import-roles.js', () => {
   });
 
   test('outputs line number for skipped records', () => {
-    const { stdout } = runScript('import-roles.js', fileWithBlankRecord);
+    const { stdout } = runScript('import-roles.ts', fileWithBlankRecord);
     expect(stdout).toMatch(/Skipped:.*line \d+/);
   });
 

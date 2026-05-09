@@ -1,15 +1,16 @@
-// scripts/list-roles.js
+// scripts/list-roles.ts
 // Career Assistant — List Roles (CSV output)
 //
 // Usage:
-//   node scripts/list-roles.js
-//   node scripts/list-roles.js --status Applied
-//   node scripts/list-roles.js --company Akamai
-//   node scripts/list-roles.js --status Skipped > skipped.csv
+//   ts-node scripts/list-roles.ts
+//   ts-node scripts/list-roles.ts --status Applied
+//   ts-node scripts/list-roles.ts --company Akamai
+//   ts-node scripts/list-roles.ts --status Skipped > skipped.csv
 
-const Database      = require('better-sqlite3');
-const path          = require('path');
-const { parseArgs } = require('../lib/args/list-args');
+import Database        from 'better-sqlite3';
+import path            from 'path';
+import { parseArgs }   from '../lib/args/list-args';
+import { RoleRow }     from '../lib/types';
 
 const db    = new Database(path.join(__dirname, '../db/jobsearch.sqlite'), { readonly: true });
 const flags = parseArgs(process.argv.slice(2));
@@ -20,7 +21,7 @@ let query = `
   WHERE 1=1
 `;
 
-const params = [];
+const params: string[] = [];
 
 if (flags.status) {
   query += ` AND role_status = ?`;
@@ -35,7 +36,7 @@ if (flags.company) {
 query += ` ORDER BY applied_date DESC, company ASC`;
 
 const statement = db.prepare(query);
-const roles     = statement.all(...params);
+const roles     = statement.all(...params) as RoleRow[];
 
 if (roles.length === 0) {
   process.stderr.write('No roles found.\n');
@@ -43,7 +44,7 @@ if (roles.length === 0) {
   process.exit(0);
 }
 
-function escapeCSV(val) {
+function escapeCSV(val: string | number | null | undefined): string {
   if (val === null || val === undefined) {
     return '';
   }
@@ -59,12 +60,12 @@ function escapeCSV(val) {
   return str;
 }
 
-const headers = ['id', 'company', 'title', 'role_status', 'candidacy', 'applied_date', 'salary_min', 'salary_max', 'notes'];
+const headers: (keyof RoleRow)[] = ['id', 'company', 'title', 'role_status', 'candidacy', 'applied_date', 'salary_min', 'salary_max', 'notes'];
 
 process.stdout.write(headers.join(',') + '\n');
 
 for (const role of roles) {
-  const row = headers.map(header => escapeCSV(role[header]));
+  const row = headers.map(header => escapeCSV(role[header] as string | number | null));
   process.stdout.write(row.join(',') + '\n');
 }
 

@@ -1,7 +1,6 @@
-// tests/unit/update-args.test.js
-// Unit tests for lib/args/update-args.js
-
-const { parseArgs } = require('../../lib/args/update-args');
+// tests/unit/update-args.test.ts
+import { describe, test, expect } from 'vitest';
+import { parseArgs }              from '../../lib/args/update-args';
 
 describe('parseArgs — update-status', () => {
 
@@ -37,7 +36,7 @@ describe('parseArgs — update-status', () => {
     expect(flags.termination).toEqual([]);
   });
 
-  test('returns empty object for empty argv', () => {
+  test('returns defaults for empty argv', () => {
     const flags = parseArgs([]);
     expect(flags.id).toBeUndefined();
     expect(flags.status).toBeUndefined();

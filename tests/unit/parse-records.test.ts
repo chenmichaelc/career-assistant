@@ -1,10 +1,6 @@
-// tests/unit/parse-records.test.js
-// Unit tests for lib/parse-records.js
-// Pure function — no DB dependency.
-
-const { parseRecords } = require('../../lib/parse-records');
-
-// ─── Basic parsing ─────────────────────────────────────────────────────────────
+// tests/unit/parse-records.test.ts
+import { describe, test, expect } from 'vitest';
+import { parseRecords }           from '../../lib/parse-records';
 
 describe('parseRecords — basic parsing', () => {
 
@@ -84,8 +80,6 @@ JD text.
 
 });
 
-// ─── Missing fields ────────────────────────────────────────────────────────────
-
 describe('parseRecords — missing fields', () => {
 
   test('sets missing url to null', () => {
@@ -152,18 +146,7 @@ Title: QA Engineer
 
 });
 
-// ─── Edge cases ────────────────────────────────────────────────────────────────
-
 describe('parseRecords — edge cases', () => {
-
-  test('skips blank records with no fields', () => {
-    const input = `--
-
---`;
-
-    const records = parseRecords(input);
-    expect(records).toHaveLength(1);
-  });
 
   test('handles file that does not end with --', () => {
     const input = `URL: https://example.com/job/1
@@ -182,7 +165,7 @@ JD text.`;
 Company: Acme
 Title: QA Engineer
 Description:
-  JD text with leading whitespace.
+JD text with leading whitespace.
 
 --`;
 

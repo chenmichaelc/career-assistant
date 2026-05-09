@@ -1,16 +1,31 @@
-// lib/parse-records.js
+// lib/parse-records.ts
 // Career Assistant — Notes file parser
 // Pure function: takes a raw notes file string, returns an array of role field objects.
 // No DB dependency. No I/O.
 
-function parseRecords(text) {
-  const lines   = text.split('\n');
-  const records = [];
+import { RoleStatus } from './types';
 
-  let current    = null;
-  let startLine  = 1;
-  let lineNumber = 0;
-  let inJd       = false;
+export interface ParsedRecord {
+  company:     string | null;
+  title:       string | null;
+  url:         string | null;
+  role_status: RoleStatus;
+  salary_min:  number | null;
+  salary_max:  number | null;
+  jd:          string | null;
+  candidacy:   null;
+  notes:       null;
+  _startLine:  number;
+}
+
+export function parseRecords(text: string): ParsedRecord[] {
+  const lines:   string[]        = text.split('\n');
+  const records: ParsedRecord[]  = [];
+
+  let current:   ParsedRecord | null = null;
+  let startLine: number              = 1;
+  let lineNumber: number             = 0;
+  let inJd:      boolean             = false;
 
   for (const line of lines) {
     lineNumber++;
@@ -30,16 +45,16 @@ function parseRecords(text) {
 
     if (current === null) {
       current = {
-        company:      null,
-        title:        null,
-        url:          null,
-        role_status:  'Pending Triage',
-        salary_min:   null,
-        salary_max:   null,
-        jd:           null,
-        candidacy:    null,
-        notes:        null,
-        _startLine:   startLine,
+        company:     null,
+        title:       null,
+        url:         null,
+        role_status: 'Pending Triage',
+        salary_min:  null,
+        salary_max:  null,
+        jd:          null,
+        candidacy:   null,
+        notes:       null,
+        _startLine:  startLine,
       };
     }
 
@@ -56,14 +71,14 @@ function parseRecords(text) {
     const descMatch      = line.match(/^Description:\s*$/i);
 
     if (urlMatch) {
-      const value = urlMatch[1].trim();
-      current.url = value !== '' ? value : null;
+      const value  = urlMatch[1].trim();
+      current.url  = value !== '' ? value : null;
     } else if (companyMatch) {
-      const value     = companyMatch[1].trim();
-      current.company = value !== '' ? value : null;
+      const value      = companyMatch[1].trim();
+      current.company  = value !== '' ? value : null;
     } else if (titleMatch) {
-      const value   = titleMatch[1].trim();
-      current.title = value !== '' ? value : null;
+      const value    = titleMatch[1].trim();
+      current.title  = value !== '' ? value : null;
     } else if (salaryMinMatch) {
       const value        = parseInt(salaryMinMatch[1].trim(), 10);
       current.salary_min = isNaN(value) ? null : value;
@@ -76,7 +91,6 @@ function parseRecords(text) {
     }
   }
 
-  // Handle file that doesn't end with --
   if (current !== null) {
     if (current.jd !== null) {
       current.jd = current.jd.trim();
@@ -86,5 +100,3 @@ function parseRecords(text) {
 
   return records;
 }
-
-module.exports = { parseRecords };
