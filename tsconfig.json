@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target":           "ES2020",
+    "module":           "commonjs",
+    "lib":              ["ES2020"],
+    "strict":           true,
+    "esModuleInterop":  true,
+    "skipLibCheck":     true,
+    "outDir":           "./dist",
+    "rootDir":          "./",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "db/**/*",
+    "lib/**/*",
+    "scripts/**/*",
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "db/seed.js"
+  ]
+}

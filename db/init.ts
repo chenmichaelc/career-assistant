@@ -1,10 +1,10 @@
-// db/init.js
+// db/init.ts
 // Career Assistant — Database Initialization
 // Run once to create the schema. Safe to re-run (uses IF NOT EXISTS).
 
-const Database  = require('better-sqlite3');
-const path      = require('path');
-const { schema } = require('./schema');
+import Database from 'better-sqlite3';
+import path     from 'path';
+import { schema } from './schema';
 
 const db = new Database(path.join(__dirname, 'jobsearch.sqlite'));
 

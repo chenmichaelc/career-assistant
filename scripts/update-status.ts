@@ -1,21 +1,21 @@
-// scripts/update-status.js
+// scripts/update-status.ts
 // Career Assistant — Update Role Status
 //
 // Usage:
-//   node scripts/update-status.js --id <id> --status <status>
-//   node scripts/update-status.js --id 153  --status Applied
-//   node scripts/update-status.js --id <id> --status Skipped --reasons "Wrong Industry" "Compensation" --note "Below floor"
-//   node scripts/update-status.js --id <id> --status Closed --termination "Screened Out"
+//   ts-node scripts/update-status.ts --id <id> --status <status>
+//   ts-node scripts/update-status.ts --id <id> --status Skipped --reasons "Wrong Industry" --note "Below floor"
+//   ts-node scripts/update-status.ts --id <id> --status Closed --termination "Screened Out"
 
-const Database      = require('better-sqlite3');
-const path          = require('path');
-const { parseArgs } = require('../lib/args/update-args');
+import Database        from 'better-sqlite3';
+import path            from 'path';
+import { parseArgs }   from '../lib/args/update-args';
+import { RoleRow }     from '../lib/types';
 
 const db    = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
 const flags = parseArgs(process.argv.slice(2));
 
 if (!flags.id || !flags.status) {
-  process.stderr.write('Usage: node scripts/update-status.js --id <id> --status <status> [--reasons ...] [--termination ...] [--note <text>]\n');
+  process.stderr.write('Usage: ts-node scripts/update-status.ts --id <id> --status <status> [--reasons ...] [--termination ...] [--note <text>]\n');
   db.close();
   process.exit(1);
 }
@@ -26,7 +26,7 @@ const fetchRole = db.prepare(`
   WHERE id = ?
 `);
 
-const role = fetchRole.get(flags.id);
+const role = fetchRole.get(flags.id) as RoleRow | undefined;
 
 if (!role) {
   process.stderr.write(`Error: No role found with ID ${flags.id}\n`);
@@ -77,7 +77,7 @@ const run = db.transaction(() => {
 try {
   run();
 } catch (err) {
-  process.stderr.write(`Error: ${err.message}\n`);
+  process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);
 }

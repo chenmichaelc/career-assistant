@@ -1,14 +1,15 @@
-// scripts/add-role.js
+// scripts/add-role.ts
 // Career Assistant — Add Role
 // Reads a JSON role object from stdin and inserts it into the database.
 //
 // Usage:
-//   cat role.json | node scripts/add-role.js
-//   node scripts/add-role.js < role.json
+//   cat role.json | ts-node scripts/add-role.ts
+//   ts-node scripts/add-role.ts < role.json
 
-const Database    = require('better-sqlite3');
-const path        = require('path');
-const { addRole } = require('../lib/roles');
+import Database        from 'better-sqlite3';
+import path            from 'path';
+import { addRole }     from '../lib/roles';
+import { RoleInput }   from '../lib/types';
 
 const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
 
@@ -16,15 +17,15 @@ let raw = '';
 
 process.stdin.setEncoding('utf8');
 
-process.stdin.on('data', (chunk) => {
+process.stdin.on('data', (chunk: string) => {
   raw += chunk;
 });
 
 process.stdin.on('end', () => {
-  let fields;
+  let role: RoleInput;
 
   try {
-    fields = JSON.parse(raw);
+    role = JSON.parse(raw) as RoleInput;
   } catch (err) {
     process.stderr.write('Error: Invalid JSON input.\n');
     db.close();
@@ -32,10 +33,10 @@ process.stdin.on('end', () => {
   }
 
   try {
-    const id = addRole(db, fields);
+    const id = addRole(db, role);
     process.stdout.write(`${id}\n`);
   } catch (err) {
-    process.stderr.write(`Error: ${err.message}\n`);
+    process.stderr.write(`Error: ${(err as Error).message}\n`);
     db.close();
     process.exit(1);
   }

@@ -1,11 +1,11 @@
-// tests/unit/roles.test.js
-// Unit tests for lib/roles.js
-// Uses an in-memory SQLite database via tests/helpers/db.js
+// tests/unit/roles.test.ts
+import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import Database          from 'better-sqlite3';
+import { createTestDb }  from '../helpers/db';
+import { addRole }       from '../../lib/roles';
+import { RoleInput }     from '../../lib/types';
 
-const { createTestDb } = require('../helpers/db');
-const { addRole }      = require('../../lib/roles');
-
-let db;
+let db: Database.Database;
 
 beforeEach(() => {
   db = createTestDb();
@@ -19,12 +19,12 @@ afterEach(() => {
 
 describe('addRole — valid insertion', () => {
 
-  const baseRole = {
-    company:    'Acme',
-    title:      'QA Engineer',
-    url:        'https://example.com/job/1',
+  const baseRole: RoleInput = {
+    company:     'Acme',
+    title:       'QA Engineer',
+    url:         'https://example.com/job/1',
     role_status: 'Pending Triage',
-    jd:         'This is a job description.',
+    jd:          'This is a job description.',
   };
 
   test('returns a numeric ID on success', () => {
@@ -35,7 +35,7 @@ describe('addRole — valid insertion', () => {
 
   test('inserts role into roles table', () => {
     const id   = addRole(db, baseRole);
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id);
+    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
 
     expect(role.company).toBe('Acme');
     expect(role.title).toBe('QA Engineer');
@@ -45,7 +45,7 @@ describe('addRole — valid insertion', () => {
 
   test('inserts JD into job_descriptions table', () => {
     const id = addRole(db, baseRole);
-    const jd = db.prepare('SELECT * FROM job_descriptions WHERE role_id = ?').get(id);
+    const jd = db.prepare('SELECT * FROM job_descriptions WHERE role_id = ?').get(id) as Record<string, unknown>;
 
     expect(jd).not.toBeUndefined();
     expect(jd.content).toBe('This is a job description.');
@@ -53,7 +53,7 @@ describe('addRole — valid insertion', () => {
 
   test('optional fields default to null when not provided', () => {
     const id   = addRole(db, baseRole);
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id);
+    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
 
     expect(role.candidacy).toBeNull();
     expect(role.applied_date).toBeNull();
@@ -72,7 +72,7 @@ describe('addRole — valid insertion', () => {
       notes:        'Strong match.',
     });
 
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id);
+    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
 
     expect(role.candidacy).toBe('Competitive');
     expect(role.applied_date).toBe('2026-04-27');
@@ -91,7 +91,7 @@ describe('addRole — valid insertion', () => {
       ],
     });
 
-    const reasons = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').all(id);
+    const reasons = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').all(id) as Record<string, unknown>[];
 
     expect(reasons).toHaveLength(2);
     expect(reasons[0].reason).toBe('Location');
@@ -103,11 +103,11 @@ describe('addRole — valid insertion', () => {
   test('inserts termination reasons when role_status is Closed', () => {
     const id = addRole(db, {
       ...baseRole,
-      role_status:           'Closed',
-      termination_reasons:   [{ reason: 'Screened Out', note: null }],
+      role_status:         'Closed',
+      termination_reasons: [{ reason: 'Screened Out', note: null }],
     });
 
-    const reasons = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').all(id);
+    const reasons = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').all(id) as Record<string, unknown>[];
 
     expect(reasons).toHaveLength(1);
     expect(reasons[0].reason).toBe('Screened Out');
@@ -120,7 +120,7 @@ describe('addRole — valid insertion', () => {
       applied_date: '2026-04-27',
     });
 
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id);
+    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
     expect(role.role_status).toBe('Applied');
     expect(role.applied_date).toBe('2026-04-27');
   });
@@ -131,7 +131,7 @@ describe('addRole — valid insertion', () => {
 
 describe('addRole — required field validation', () => {
 
-  const baseRole = {
+  const baseRole: RoleInput = {
     company:     'Acme',
     title:       'QA Engineer',
     url:         'https://example.com/job/1',
@@ -140,42 +140,42 @@ describe('addRole — required field validation', () => {
   };
 
   test('throws when company is missing', () => {
-    const fields = { ...baseRole, company: null };
-    expect(() => addRole(db, fields)).toThrow('company is required');
+    const role = { ...baseRole, company: null } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow('company is required');
   });
 
   test('throws when title is missing', () => {
-    const fields = { ...baseRole, title: null };
-    expect(() => addRole(db, fields)).toThrow('title is required');
+    const role = { ...baseRole, title: null } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow('title is required');
   });
 
   test('throws when url is missing', () => {
-    const fields = { ...baseRole, url: null };
-    expect(() => addRole(db, fields)).toThrow('url is required');
+    const role = { ...baseRole, url: null } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow('url is required');
   });
 
   test('throws when role_status is missing', () => {
-    const fields = { ...baseRole, role_status: null };
-    expect(() => addRole(db, fields)).toThrow('role_status is required');
+    const role = { ...baseRole, role_status: null } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow('role_status is required');
   });
 
   test('throws when jd is missing', () => {
-    const fields = { ...baseRole, jd: null };
-    expect(() => addRole(db, fields)).toThrow('jd is required');
+    const role = { ...baseRole, jd: null } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow('jd is required');
   });
 
   test('throws when required field is empty string', () => {
-    const fields = { ...baseRole, company: '' };
-    expect(() => addRole(db, fields)).toThrow('company is required');
+    const role = { ...baseRole, company: '' } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow('company is required');
   });
 
   test('throws when required field is whitespace only', () => {
-    const fields = { ...baseRole, title: '   ' };
-    expect(() => addRole(db, fields)).toThrow('title is required');
+    const role = { ...baseRole, title: '   ' } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow('title is required');
   });
 
   test('throws with all missing fields listed', () => {
-    expect(() => addRole(db, {})).toThrow('Validation failed');
+    expect(() => addRole(db, {} as unknown as RoleInput)).toThrow('Validation failed');
   });
 
 });
@@ -184,7 +184,7 @@ describe('addRole — required field validation', () => {
 
 describe('addRole — contextual validation', () => {
 
-  const baseRole = {
+  const baseRole: RoleInput = {
     company:     'Acme',
     title:       'QA Engineer',
     url:         'https://example.com/job/1',
@@ -193,28 +193,28 @@ describe('addRole — contextual validation', () => {
   };
 
   test('throws when role_status is Applied and applied_date is missing', () => {
-    const fields = { ...baseRole, role_status: 'Applied' };
-    expect(() => addRole(db, fields)).toThrow('applied_date is required when role_status is Applied');
+    const role = { ...baseRole, role_status: 'Applied' } as RoleInput;
+    expect(() => addRole(db, role)).toThrow('applied_date is required when role_status is Applied');
   });
 
   test('throws when role_status is Skipped and skip_reasons is null', () => {
-    const fields = { ...baseRole, role_status: 'Skipped', skip_reasons: null };
-    expect(() => addRole(db, fields)).toThrow('skip_reasons is required when role_status is Skipped');
+    const role = { ...baseRole, role_status: 'Skipped', skip_reasons: null } as RoleInput;
+    expect(() => addRole(db, role)).toThrow('skip_reasons is required when role_status is Skipped');
   });
 
   test('throws when role_status is Skipped and skip_reasons is empty array', () => {
-    const fields = { ...baseRole, role_status: 'Skipped', skip_reasons: [] };
-    expect(() => addRole(db, fields)).toThrow('skip_reasons is required when role_status is Skipped');
+    const role = { ...baseRole, role_status: 'Skipped', skip_reasons: [] } as RoleInput;
+    expect(() => addRole(db, role)).toThrow('skip_reasons is required when role_status is Skipped');
   });
 
   test('throws when role_status is Closed and termination_reasons is null', () => {
-    const fields = { ...baseRole, role_status: 'Closed', termination_reasons: null };
-    expect(() => addRole(db, fields)).toThrow('termination_reasons is required when role_status is Closed');
+    const role = { ...baseRole, role_status: 'Closed', termination_reasons: null } as RoleInput;
+    expect(() => addRole(db, role)).toThrow('termination_reasons is required when role_status is Closed');
   });
 
   test('throws when role_status is Closed and termination_reasons is empty array', () => {
-    const fields = { ...baseRole, role_status: 'Closed', termination_reasons: [] };
-    expect(() => addRole(db, fields)).toThrow('termination_reasons is required when role_status is Closed');
+    const role = { ...baseRole, role_status: 'Closed', termination_reasons: [] } as RoleInput;
+    expect(() => addRole(db, role)).toThrow('termination_reasons is required when role_status is Closed');
   });
 
 });
@@ -223,7 +223,7 @@ describe('addRole — contextual validation', () => {
 
 describe('addRole — SQLite constraint violations', () => {
 
-  const baseRole = {
+  const baseRole: RoleInput = {
     company:     'Acme',
     title:       'QA Engineer',
     url:         'https://example.com/job/1',
@@ -232,31 +232,31 @@ describe('addRole — SQLite constraint violations', () => {
   };
 
   test('throws on invalid role_status value', () => {
-    const fields = { ...baseRole, role_status: 'InvalidStatus' };
-    expect(() => addRole(db, fields)).toThrow();
+    const role = { ...baseRole, role_status: 'InvalidStatus' } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow();
   });
 
   test('throws on invalid candidacy value', () => {
-    const fields = { ...baseRole, candidacy: 'InvalidCandidacy' };
-    expect(() => addRole(db, fields)).toThrow();
+    const role = { ...baseRole, candidacy: 'InvalidCandidacy' } as unknown as RoleInput;
+    expect(() => addRole(db, role)).toThrow();
   });
 
   test('throws on invalid skip_reason value', () => {
-    const fields = {
+    const role: RoleInput = {
       ...baseRole,
       role_status:  'Skipped',
-      skip_reasons: [{ reason: 'InvalidReason', note: null }],
+      skip_reasons: [{ reason: 'InvalidReason' as never, note: null }],
     };
-    expect(() => addRole(db, fields)).toThrow();
+    expect(() => addRole(db, role)).toThrow();
   });
 
   test('throws on invalid termination_reason value', () => {
-    const fields = {
+    const role: RoleInput = {
       ...baseRole,
       role_status:         'Closed',
-      termination_reasons: [{ reason: 'InvalidReason', note: null }],
+      termination_reasons: [{ reason: 'InvalidReason' as never, note: null }],
     };
-    expect(() => addRole(db, fields)).toThrow();
+    expect(() => addRole(db, role)).toThrow();
   });
 
 });
@@ -265,17 +265,17 @@ describe('addRole — SQLite constraint violations', () => {
 
 describe('addRole — transaction integrity', () => {
 
-  const baseRole = {
-    company:     'Acme',
-    title:       'QA Engineer',
-    url:         'https://example.com/job/1',
-    role_status: 'Skipped',
-    jd:          'This is a job description.',
-    skip_reasons: [{ reason: 'InvalidReason', note: null }],
-  };
-
   test('rolls back role insert if skip_reason insert fails', () => {
-    expect(() => addRole(db, baseRole)).toThrow();
+    const role: RoleInput = {
+      company:     'Acme',
+      title:       'QA Engineer',
+      url:         'https://example.com/job/1',
+      role_status: 'Skipped',
+      jd:          'This is a job description.',
+      skip_reasons: [{ reason: 'InvalidReason' as never, note: null }],
+    };
+
+    expect(() => addRole(db, role)).toThrow();
 
     const roles = db.prepare('SELECT * FROM roles').all();
     expect(roles).toHaveLength(0);

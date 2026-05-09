@@ -1,9 +1,9 @@
-// db/schema.js
+// db/schema.ts
 // Career Assistant — Database Schema
 // Single source of truth for the SQLite schema.
-// Imported by db/init.js and tests/helpers/db.js.
+// Imported by db/init.ts and tests/helpers/db.ts.
 
-const schema = `
+export const schema: string = `
   CREATE TABLE IF NOT EXISTS roles (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     company       TEXT NOT NULL,
@@ -82,5 +82,3 @@ const schema = `
     content   TEXT NOT NULL
   );
 `;
-
-module.exports = { schema };

@@ -1,7 +1,6 @@
-// tests/unit/list-args.test.js
-// Unit tests for lib/args/list-args.js
-
-const { parseArgs } = require('../../lib/args/list-args');
+// tests/unit/list-args.test.ts
+import { describe, test, expect } from 'vitest';
+import { parseArgs }              from '../../lib/args/list-args';
 
 describe('parseArgs — list-roles', () => {
 

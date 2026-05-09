@@ -1,31 +1,39 @@
-// lib/roles.js
+// lib/roles.ts
 // Career Assistant — Role operations
 // All DB write logic lives here. Callers are responsible for opening and closing the DB connection.
 
+import Database from 'better-sqlite3';
+import { RoleInput, SkipReason, TerminationReason } from './types';
+
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-const REQUIRED_FIELDS = ['company', 'title', 'url', 'role_status', 'jd'];
+const REQUIRED_FIELDS: (keyof RoleInput)[] = ['company', 'title', 'url', 'role_status', 'jd'];
 
-const CONTEXTUAL_RULES = [
+interface ContextualRule {
+  condition: (role: RoleInput) => boolean;
+  message:   string;
+}
+
+const CONTEXTUAL_RULES: ContextualRule[] = [
   {
-    condition: (role) => role.role_status === 'Applied' && !role.applied_date, 
-    message:   'applied_date is required when role_status is Applied.'
+    condition: (role) => role.role_status === 'Applied' && !role.applied_date,
+    message:   'applied_date is required when role_status is Applied.',
   },
   {
-    condition: (role) => role.role_status === 'Skipped' && (!role.skip_reasons || role.skip_reasons.length === 0),
-    message:   'skip_reasons is required when role_status is Skipped.'
+    condition: (role) => role.role_status === 'Skipped' && (role.skip_reasons == null || role.skip_reasons.length === 0),
+    message:   'skip_reasons is required when role_status is Skipped.',
   },
   {
-    condition: (role) => role.role_status === 'Closed' && (!role.termination_reasons || role.termination_reasons.length === 0),
-    message:   'termination_reasons is required when role_status is Closed.'
-  }
+    condition: (role) => role.role_status === 'Closed' && (role.termination_reasons == null || role.termination_reasons.length === 0),
+    message:   'termination_reasons is required when role_status is Closed.',
+  },
 ];
 
-function validate(role) {
-  const errors = [];
+function validate(role: RoleInput): string[] {
+  const errors: string[] = [];
 
   for (const field of REQUIRED_FIELDS) {
-    const value = role[field];
+    const value     = role[field];
     const isMissing = value === null || value === undefined || String(value).trim() === '';
     if (isMissing) {
       errors.push(`${field} is required.`);
@@ -43,7 +51,7 @@ function validate(role) {
 
 // ─── addRole ──────────────────────────────────────────────────────────────────
 
-function addRole(db, role) {
+export function addRole(db: Database.Database, role: RoleInput): number {
   const errors = validate(role);
 
   if (errors.length > 0) {
@@ -51,7 +59,7 @@ function addRole(db, role) {
     throw new Error(`Validation failed:\n${errorList}`);
   }
 
-  let roleId;
+  let roleId: number;
 
   const insertRole = db.prepare(`
     INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
@@ -87,14 +95,14 @@ function addRole(db, role) {
     };
 
     const result = insertRole.run(roleData);
-    roleId = result.lastInsertRowid;
+    roleId = Number(result.lastInsertRowid);
 
     insertJd.run({
       role_id: roleId,
       content: role.jd,
     });
 
-    if (role.skip_reasons) {
+    if (role.skip_reasons != null) {
       for (const sr of role.skip_reasons) {
         insertSkipReason.run({
           role_id: roleId,
@@ -104,7 +112,7 @@ function addRole(db, role) {
       }
     }
 
-    if (role.termination_reasons) {
+    if (role.termination_reasons != null) {
       for (const tr of role.termination_reasons) {
         insertTerminationReason.run({
           role_id: roleId,
@@ -116,7 +124,5 @@ function addRole(db, role) {
   });
 
   run();
-  return roleId;
+  return roleId!;
 }
-
-module.exports = { addRole };
