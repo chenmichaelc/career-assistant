@@ -20,11 +20,14 @@ afterEach(() => {
 describe('addRole — valid insertion', () => {
 
   const baseRole: RoleInput = {
-    company:     'Acme',
-    title:       'QA Engineer',
-    url:         'https://example.com/job/1',
+    company:     'Acme/Turner & Sons',
+    title:       'QA Engineer (III), Part II',
+    url:         'https://example.com/job/1?i=2&ref=test',
     role_status: 'Pending Triage',
-    jd:          'This is a job description.',
+    jd:          `This is a job description.
+It has multiple lines.
+And special characters: &, /, (, ), comma, "quotes", 'apostrophes'.
+And a URL: https://example.com/job/1?i=2&ref=test.`,
   };
 
   test('returns a numeric ID on success', () => {
@@ -33,22 +36,22 @@ describe('addRole — valid insertion', () => {
     expect(id).toBeGreaterThan(0);
   });
 
-  test('inserts role into roles table', () => {
+  test('inserts required fields accurately into the roles table', () => {
     const id   = addRole(db, baseRole);
     const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
 
-    expect(role.company).toBe('Acme');
-    expect(role.title).toBe('QA Engineer');
-    expect(role.url).toBe('https://example.com/job/1');
-    expect(role.role_status).toBe('Pending Triage');
+    expect(role.company).toBe(baseRole.company);
+    expect(role.title).toBe(baseRole.title);
+    expect(role.url).toBe(baseRole.url);
+    expect(role.role_status).toBe(baseRole.role_status);
   });
 
-  test('inserts JD into job_descriptions table', () => {
+  test('inserts required fields accurately into the job_descriptions table', () => {
     const id = addRole(db, baseRole);
     const jd = db.prepare('SELECT * FROM job_descriptions WHERE role_id = ?').get(id) as Record<string, unknown>;
 
     expect(jd).not.toBeUndefined();
-    expect(jd.content).toBe('This is a job description.');
+    expect(jd.content).toBe(baseRole.jd);
   });
 
   test('optional fields default to null when not provided', () => {
@@ -63,22 +66,25 @@ describe('addRole — valid insertion', () => {
   });
 
   test('inserts optional fields when provided', () => {
-    const id = addRole(db, {
+
+    const roleExtendedWithOptionalFields: RoleInput = {
       ...baseRole,
       candidacy:    'Competitive',
       applied_date: '2026-04-27',
       salary_min:   110000,
       salary_max:   130000,
       notes:        'Strong match.',
-    });
+    }
+
+    const id = addRole(db, roleExtendedWithOptionalFields);
 
     const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
 
-    expect(role.candidacy).toBe('Competitive');
-    expect(role.applied_date).toBe('2026-04-27');
-    expect(role.salary_min).toBe(110000);
-    expect(role.salary_max).toBe(130000);
-    expect(role.notes).toBe('Strong match.');
+    expect(role.candidacy).toBe(roleExtendedWithOptionalFields.candidacy);
+    expect(role.applied_date).toBe(roleExtendedWithOptionalFields.applied_date);
+    expect(role.salary_min).toBe(roleExtendedWithOptionalFields.salary_min);
+    expect(role.salary_max).toBe(roleExtendedWithOptionalFields.salary_max);
+    expect(role.notes).toBe(roleExtendedWithOptionalFields.notes);
   });
 
   test('inserts skip reasons when role_status is Skipped', () => {
