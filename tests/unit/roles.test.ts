@@ -90,6 +90,7 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
   test('inserts skip reasons when role_status is Skipped', () => {
     const id = addRole(db, {
       ...baseRole,
+      //TODO: Fix this
       role_status:  'Skipped',
       skip_reasons: [
         { reason: 'Location', note: 'Austin in-office' },
