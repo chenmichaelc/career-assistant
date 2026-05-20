@@ -28,8 +28,14 @@ export function parseArgs(argv: string[]): UpdateArgs {
 
     if (flag === 'reasons' || flag === 'termination') {
       flags[flag] = values;
-    } else {
-      (flags as Record<string, string | string[]>)[flag] = values[0];
+    } else if (flag === 'termination') {
+      flags.termination = values;
+    } else if (flag === 'id') {
+      flags.id = values[0];
+    } else if (flag === 'status') {
+      flags.status = values[0];
+    } else if (flag === 'note') {
+      flags.note = values[0];
     }
   }
 
