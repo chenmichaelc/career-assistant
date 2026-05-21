@@ -176,19 +176,28 @@ describe('addRole — required field validation', () => {
 
   });
 
-  test('throws when title is missing', () => {
+  test('when required field title is missing, throw error and do not add role', () => {
     const role = { ...baseRole, title: null } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow('title is required');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
-  test('throws when url is missing', () => {
+  test('when required field url is missing, throw error and do not add role', () => {
     const role = { ...baseRole, url: null } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow('url is required');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
-  test('throws when role_status is missing', () => {
+  test('when required field role_status is missing, throw error and do not add role', () => {
     const role = { ...baseRole, role_status: null } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow('role_status is required');
+    
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
   test('throws when jd is missing', () => {
