@@ -88,48 +88,69 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
   });
 
   test('inserts skip reasons when role_status is Skipped', () => {
-    const id = addRole(db, {
+    const skipReason1 = 'Location'
+    const skipReason1Note = 'Austin in-office'
+    const skipReason2 = 'Compensation'
+    const skipReason2Note = null
+    
+    const roleExtendedWithFieldsForSkippedRoles: RoleInput = {
       ...baseRole,
-      //TODO: Fix this
       role_status:  'Skipped',
       skip_reasons: [
-        { reason: 'Location', note: 'Austin in-office' },
-        { reason: 'Compensation', note: null },
+        { reason: skipReason1, note: skipReason1Note },
+        { reason: skipReason2, note: skipReason2Note },
       ],
-    });
+    }
+
+    const id = addRole(db, roleExtendedWithFieldsForSkippedRoles);
 
     const reasons = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').all(id) as Record<string, unknown>[];
 
     expect(reasons).toHaveLength(2);
-    expect(reasons[0].reason).toBe('Location');
-    expect(reasons[0].note).toBe('Austin in-office');
-    expect(reasons[1].reason).toBe('Compensation');
-    expect(reasons[1].note).toBeNull();
+    expect(reasons[0].reason).toBe(skipReason1);
+    expect(reasons[0].note).toBe(skipReason1Note);
+    expect(reasons[1].reason).toBe(skipReason2);
+    expect(reasons[1].note).toBe(skipReason2Note);
   });
 
   test('inserts termination reasons when role_status is Closed', () => {
-    const id = addRole(db, {
+    const terminationReason1 = 'Screened Out'
+    const terminationReason1Note = null
+    const terminationReason2 = 'Withdrew - Ethics - Exploitative Industry/Product'
+    const terminationReason2Note = 'Payday lending'
+    
+    const roleExtendedWithFieldsForClosedRoles: RoleInput = {
       ...baseRole,
-      role_status:         'Closed',
-      termination_reasons: [{ reason: 'Screened Out', note: null }],
-    });
+      role_status:  'Closed',
+      termination_reasons: [
+        { reason: terminationReason1, note: terminationReason1Note },
+        { reason: terminationReason2, note: terminationReason2Note },
+      ],
+    }
+
+    const id = addRole(db, roleExtendedWithFieldsForClosedRoles);
 
     const reasons = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').all(id) as Record<string, unknown>[];
 
-    expect(reasons).toHaveLength(1);
-    expect(reasons[0].reason).toBe('Screened Out');
+    expect(reasons).toHaveLength(2);
+    expect(reasons[0].reason).toBe(terminationReason1);
+    expect(reasons[0].note).toBe(terminationReason1Note);
+    expect(reasons[1].reason).toBe(terminationReason2);
+    expect(reasons[1].note).toBe(terminationReason2Note);
   });
 
-  test('inserts role with Applied status and applied_date', () => {
+  test('inserts conditionally-required applied_date field for roles with Applied status', () => {
+    const roleStatus = 'Applied'
+    const appliedDate = '2026-04-27'    
     const id = addRole(db, {
       ...baseRole,
-      role_status:  'Applied',
-      applied_date: '2026-04-27',
+      role_status:  roleStatus,
+      applied_date: appliedDate,
     });
 
     const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-    expect(role.role_status).toBe('Applied');
-    expect(role.applied_date).toBe('2026-04-27');
+    expect(role.role_status).toBe(roleStatus);
+    expect(role.applied_date).toBe(appliedDate);
   });
 
 });
@@ -146,9 +167,13 @@ describe('addRole — required field validation', () => {
     jd:          'This is a job description.',
   };
 
-  test('throws when company is missing', () => {
+  test('when required field company is missing, throw error and do not add role', () => {
     const role = { ...baseRole, company: null } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow('company is required');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
+
   });
 
   test('throws when title is missing', () => {
