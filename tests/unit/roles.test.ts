@@ -200,23 +200,38 @@ describe('addRole — required field validation', () => {
     expect(roles).toHaveLength(0);
   });
 
-  test('throws when jd is missing', () => {
+  test('when required field jd is missing, throw error and do not add role or jd', () => {
     const role = { ...baseRole, jd: null } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow('jd is required');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
+
+    const jds = db.prepare('SELECT * FROM job_descriptions').all();
+    expect(roles).toHaveLength(0);
   });
 
-  test('throws when required field is empty string', () => {
+  test('when required field company is an empty string, throw error and do not add role', () => {
     const role = { ...baseRole, company: '' } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow('company is required');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
-  test('throws when required field is whitespace only', () => {
+  test('when required field title is whitespace field, throw error and do not add role', () => {
     const role = { ...baseRole, title: '   ' } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow('title is required');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
-  test('throws with all missing fields listed', () => {
+  test('when all fields are empty, throw error and do not add role', () => {
     expect(() => addRole(db, {} as unknown as RoleInput)).toThrow('Validation failed');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
 });
