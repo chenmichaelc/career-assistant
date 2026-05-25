@@ -2,20 +2,26 @@
 import { describe, test, expect } from 'vitest';
 import { parseArgs }              from '../../lib/args/list-args';
 
-describe('parseArgs — list-roles', () => {
+describe('list-roles parseArgs function', () => {
 
-  test('parses --status flag', () => {
+  test('parses --status flag correctly', () => {
     const flags = parseArgs(['--status', 'Applied']);
     expect(flags.status).toBe('Applied');
   });
 
-  test('parses --company flag', () => {
+  test('parses --company flag correctly', () => {
     const flags = parseArgs(['--company', 'Akamai']);
     expect(flags.company).toBe('Akamai');
   });
 
-  test('parses both flags together', () => {
+  test('parses --status and --company flags together properly', () => {
     const flags = parseArgs(['--status', 'Skipped', '--company', 'Acme']);
+    expect(flags.status).toBe('Skipped');
+    expect(flags.company).toBe('Acme');
+  });
+
+  test('parses --company and --status flags together properly', () => {
+    const flags = parseArgs(['--company', 'Acme', '--status', 'Skipped']);
     expect(flags.status).toBe('Skipped');
     expect(flags.company).toBe('Acme');
   });
@@ -25,5 +31,4 @@ describe('parseArgs — list-roles', () => {
     expect(flags.status).toBeUndefined();
     expect(flags.company).toBeUndefined();
   });
-
 });
