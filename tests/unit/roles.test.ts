@@ -248,29 +248,57 @@ describe('addRole — contextual validation', () => {
     jd:          'This is a job description.',
   };
 
-  test('throws when role_status is Applied and applied_date is missing', () => {
+  test('when role_status is Applied and applied_date is missing, throw error and do not add role', () => {
     const role = { ...baseRole, role_status: 'Applied' } as RoleInput;
     expect(() => addRole(db, role)).toThrow('applied_date is required when role_status is Applied');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
-  test('throws when role_status is Skipped and skip_reasons is null', () => {
+  test('when role_status is Skipped and skip_reasons is null, throw error and do not add role or skip_reason', () => {
     const role = { ...baseRole, role_status: 'Skipped', skip_reasons: null } as RoleInput;
     expect(() => addRole(db, role)).toThrow('skip_reasons is required when role_status is Skipped');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
+
+    const skipReasons = db.prepare('SELECT * FROM skip_reasons').all();
+    expect(skipReasons).toHaveLength(0);
+
   });
 
-  test('throws when role_status is Skipped and skip_reasons is empty array', () => {
+  test('when role_status is Skipped and skip_reasons is empty array, throw error and do not add role or skip_reason', () => {
     const role = { ...baseRole, role_status: 'Skipped', skip_reasons: [] } as RoleInput;
     expect(() => addRole(db, role)).toThrow('skip_reasons is required when role_status is Skipped');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
+
+    const skipReasons = db.prepare('SELECT * FROM skip_reasons').all();
+    expect(skipReasons).toHaveLength(0);
   });
 
-  test('throws when role_status is Closed and termination_reasons is null', () => {
+  test('when role_status is Closed and termination_reasons is null, throw error and do not add role or termination_reason', () => {
     const role = { ...baseRole, role_status: 'Closed', termination_reasons: null } as RoleInput;
     expect(() => addRole(db, role)).toThrow('termination_reasons is required when role_status is Closed');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
+
+    const terminationReasons = db.prepare('SELECT * FROM termination_reasons').all();
+    expect(terminationReasons).toHaveLength(0);
   });
 
-  test('throws when role_status is Closed and termination_reasons is empty array', () => {
+  test('when role_status is Closed and termination_reasons is empty array, throw error and do not add role or termination_reason', () => {
     const role = { ...baseRole, role_status: 'Closed', termination_reasons: [] } as RoleInput;
     expect(() => addRole(db, role)).toThrow('termination_reasons is required when role_status is Closed');
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
+
+    const terminationReasons = db.prepare('SELECT * FROM termination_reasons').all();
+    expect(terminationReasons).toHaveLength(0);
   });
 
 });
@@ -287,54 +315,51 @@ describe('addRole — SQLite constraint violations', () => {
     jd:          'This is a job description.',
   };
 
-  test('throws on invalid role_status value', () => {
+  test('on invalid role_status value, throw error and do not add role', () => {
     const role = { ...baseRole, role_status: 'InvalidStatus' } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow();
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
-  test('throws on invalid candidacy value', () => {
+  test('on invalid candidacy value, throw error and do not add role', () => {
     const role = { ...baseRole, candidacy: 'InvalidCandidacy' } as unknown as RoleInput;
     expect(() => addRole(db, role)).toThrow();
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
   });
 
-  test('throws on invalid skip_reason value', () => {
+  test('on invalid skip_reason value, throw error and do not add role or skip_reason', () => {
     const role: RoleInput = {
       ...baseRole,
       role_status:  'Skipped',
       skip_reasons: [{ reason: 'InvalidReason' as never, note: null }],
     };
     expect(() => addRole(db, role)).toThrow();
+
+
+    const roles = db.prepare('SELECT * FROM roles').all();
+    expect(roles).toHaveLength(0);
+
+    const skipReasons = db.prepare('SELECT * FROM skip_reasons').all();
+    expect(skipReasons).toHaveLength(0);
   });
 
-  test('throws on invalid termination_reason value', () => {
+  test('on invalid termination_reason value, throw error and do not add role or skip_reason', () => {
     const role: RoleInput = {
       ...baseRole,
       role_status:         'Closed',
       termination_reasons: [{ reason: 'InvalidReason' as never, note: null }],
     };
     expect(() => addRole(db, role)).toThrow();
-  });
-
-});
-
-// ─── Transaction integrity ─────────────────────────────────────────────────────
-
-describe('addRole — transaction integrity', () => {
-
-  test('rolls back role insert if skip_reason insert fails', () => {
-    const role: RoleInput = {
-      company:     'Acme',
-      title:       'QA Engineer',
-      url:         'https://example.com/job/1',
-      role_status: 'Skipped',
-      jd:          'This is a job description.',
-      skip_reasons: [{ reason: 'InvalidReason' as never, note: null }],
-    };
-
-    expect(() => addRole(db, role)).toThrow();
-
+    
     const roles = db.prepare('SELECT * FROM roles').all();
     expect(roles).toHaveLength(0);
+
+    const terminationReasons = db.prepare('SELECT * FROM termination_reasons').all();
+    expect(terminationReasons).toHaveLength(0);
   });
 
 });
