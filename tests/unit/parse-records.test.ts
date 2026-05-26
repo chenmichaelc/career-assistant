@@ -174,6 +174,7 @@ JD text.`;
     const records = parseRecords(input);
     expect(records).toHaveLength(1);
     expect(records[0].company).toBe('Acme');
+    expect(records[0].jd).toBe('JD text.');
   });
 
   test('trims whitespace from JD content', () => {
@@ -181,7 +182,7 @@ JD text.`;
 Company: Acme
 Title: QA Engineer
 Description:
-JD text with leading whitespace.
+ JD text with leading whitespace.
 
 --`;
 
@@ -203,9 +204,9 @@ JD text.
   });
 
   test('field matching is case-insensitive', () => {
-    const input = `url: https://example.com/job/1
-company: Acme
-title: QA Engineer
+    const input = `uRl: https://example.com/job/1
+coMpanY: Acme
+titLe: QA Engineer
 description:
 JD text.
 
