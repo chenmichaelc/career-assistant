@@ -18,11 +18,32 @@ export type RoleStatus =
   | 'On Hold'
   | 'Pending Triage';
 
+export const VALID_STATUSES: RoleStatus[] = [
+  'Resume Needed',
+  'Resume Ready',
+  'Applied',
+  'Callback',
+  'In Interview',
+  'Offer Accepted',
+  'Offer Declined',
+  'Skipped',
+  'Closed',
+  'On Hold',
+  'Pending Triage',
+];
+
 export type Candidacy =
   | 'Slam Dunk'
   | 'Competitive'
   | 'Reach'
   | 'Skip';
+
+export const VALID_CANDIDACIES: Candidacy[] = [
+  'Slam Dunk',
+  'Competitive',
+  'Reach',
+  'Skip',
+];
 
 export type SkipReasonType =
   | 'Wrong Industry'
@@ -36,6 +57,20 @@ export type SkipReasonType =
   | 'Skills Gap'
   | 'Other'
   | 'Unknown';
+
+export const VALID_SKIP_REASONS: SkipReasonType[] = [
+  'Wrong Industry',
+  'Culture',
+  'Ethics - Exploitative Industry/Product',
+  'Ethics - Defense/Military',
+  'Ethics - Surveillance',
+  'Ethics - Other',
+  'Location',
+  'Compensation',
+  'Skills Gap',
+  'Other',
+  'Unknown',
+];
 
 export type TerminationReasonType =
   | 'Screened Out'
@@ -51,6 +86,22 @@ export type TerminationReasonType =
   | 'Withdrew - Skills Gap'
   | 'Withdrew - Location'
   | 'Withdrew - Other';
+
+export const VALID_TERMINATION_REASONS: TerminationReasonType[] = [
+  'Screened Out',
+  'Filled',
+  'Cancelled',
+  'Abandoned',
+  'Withdrew - Ethics - Exploitative Industry/Product',
+  'Withdrew - Ethics - Defense/Military',
+  'Withdrew - Ethics - Surveillance',
+  'Withdrew - Ethics - Other',
+  'Withdrew - Culture',
+  'Withdrew - Compensation',
+  'Withdrew - Skills Gap',
+  'Withdrew - Location',
+  'Withdrew - Other',
+];
 
 // ─── Shared domain types ──────────────────────────────────────────────────────
 
