@@ -10,12 +10,15 @@ import { RoleInput }             from '../../lib/types';
 let db: Database.Database;
 
 const baseRole: RoleInput = {
-  company:     'Acme',
-  title:       'QA Engineer',
-  url:         'https://example.com/job/1',
-  role_status: 'Pending Triage',
-  jd:          'This is a job description.',
-};
+    company:     'Acme/Turner & Sons',
+    title:       'QA Engineer (III), Part II',
+    url:         'https://example.com/job/1?i=2&ref=test',
+    role_status: 'Pending Triage',
+    jd:          `This is a job description.
+It has multiple lines.
+And special characters: &, /, (, ), comma, "quotes", 'apostrophes'.
+And a URL: https://example.com/job/1?i=2&ref=test.`,
+  };
 
 beforeEach(() => {
   db = createTestDb();
