@@ -133,6 +133,7 @@ export interface RoleInput {
 // ─── DB row types ─────────────────────────────────────────────────────────────
 
 export interface RoleRow {
+  jd:           string;
   id:           number;
   company:      string;
   title:        string;
