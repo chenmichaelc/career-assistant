@@ -4,6 +4,8 @@
 // Imported by db/init.ts and tests/helpers/db.ts.
 
 export const schema: string = `
+  PRAGMA foreign_keys = ON;
+
   CREATE TABLE IF NOT EXISTS roles (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     company       TEXT NOT NULL,
@@ -79,6 +81,6 @@ export const schema: string = `
   CREATE TABLE IF NOT EXISTS job_descriptions (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     role_id   INTEGER NOT NULL REFERENCES roles(id),
-    content   TEXT NOT NULL
+    content   TEXT NOT NULL DEFAULT ''
   );
 `;
