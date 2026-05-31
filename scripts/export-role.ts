@@ -43,11 +43,10 @@ if (!VALID_FORMATS.includes(flags.format as ExportFormat)) {
 
 const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'), { readonly: true });
 
-
 // ─── Fetch role and JD ────────────────────────────────────────────────────────
 
 const row = db.prepare(`
-  SELECT r.*, jd.content AS jd
+  SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy, r.applied_date, r.salary_min, r.salary_max, r.notes, r.created_at, r.updated_at, jd.content AS jd
   FROM roles r
   LEFT JOIN job_descriptions jd ON jd.role_id = r.id
   WHERE r.id = ?
