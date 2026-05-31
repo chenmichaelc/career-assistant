@@ -80,7 +80,7 @@ export const schema: string = `
 
   CREATE TABLE IF NOT EXISTS job_descriptions (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    role_id   INTEGER NOT NULL REFERENCES roles(id),
+    role_id   INTEGER NOT NULL UNIQUE REFERENCES roles(id),
     content   TEXT NOT NULL DEFAULT ''
   );
 `;
