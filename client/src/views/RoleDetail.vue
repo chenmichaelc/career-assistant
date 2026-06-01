@@ -1,0 +1,263 @@
+<template>
+  <div v-if="loading" class="font-mono text-dim text-sm">loading...</div>
+  <div v-else-if="error" class="font-mono text-danger text-sm">{{ error }}</div>
+  <div v-else-if="role">
+
+    <!-- Back + Actions -->
+    <div class="flex items-center justify-between mb-6">
+      <router-link to="/" class="font-mono text-dim text-sm hover:text-text transition-colors">← roles</router-link>
+      <div class="flex gap-3">
+        <button @click="showExport = true" class="border border-border text-dim font-mono text-sm px-3 py-1.5 rounded hover:text-text transition-colors">export</button>
+        <button @click="showDelete = true" class="border border-danger text-danger font-mono text-sm px-3 py-1.5 rounded hover:bg-danger/10 transition-colors">delete</button>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-start gap-4">
+        <div class="flex-1">
+          <h1 class="font-mono text-2xl font-semibold text-text mb-1">{{ role.company }}</h1>
+          <p class="font-mono text-dim text-base">{{ role.title }}</p>
+        </div>
+        <span :class="statusClass(role.role_status)" class="px-3 py-1 rounded font-mono text-sm font-medium shrink-0">
+          {{ role.role_status }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Meta grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-panel border border-border rounded p-4">
+        <div class="font-mono text-xs text-dim mb-1">candidacy</div>
+        <div class="font-mono text-sm text-text">{{ role.candidacy ?? '—' }}</div>
+      </div>
+      <div class="bg-panel border border-border rounded p-4">
+        <div class="font-mono text-xs text-dim mb-1">applied</div>
+        <div class="font-mono text-sm text-text">{{ role.applied_date ?? '—' }}</div>
+      </div>
+      <div class="bg-panel border border-border rounded p-4">
+        <div class="font-mono text-xs text-dim mb-1">salary</div>
+        <div class="font-mono text-sm text-text">
+          {{ role.salary_min ? `$${(role.salary_min/1000).toFixed(0)}K` : '?' }}
+          –
+          {{ role.salary_max ? `$${(role.salary_max/1000).toFixed(0)}K` : '?' }}
+        </div>
+      </div>
+      <div class="bg-panel border border-border rounded p-4">
+        <div class="font-mono text-xs text-dim mb-1">url</div>
+        <a v-if="role.url" :href="role.url" target="_blank" class="font-mono text-xs text-accent hover:underline truncate block">{{ role.url }}</a>
+        <div v-else class="font-mono text-sm text-dim">—</div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div v-if="role.notes" class="bg-panel border border-border rounded p-4 mb-6">
+      <div class="font-mono text-xs text-dim mb-2">notes</div>
+      <div class="font-mono text-sm text-text whitespace-pre-wrap">{{ role.notes }}</div>
+    </div>
+
+    <!-- Update Status -->
+    <div class="bg-panel border border-border rounded p-4 mb-6">
+      <div class="font-mono text-xs text-dim mb-3">update status</div>
+      <div class="flex gap-3 flex-wrap">
+        <select v-model="newStatus" class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent">
+          <option value="">select status...</option>
+          <option v-for="s in VALID_STATUSES" :key="s" :value="s">{{ s }}</option>
+        </select>
+        <input v-model="statusNote" placeholder="note (optional)" class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent flex-1" />
+        <button @click="updateStatus" :disabled="!newStatus" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity">
+          update
+        </button>
+      </div>
+      <div v-if="statusError" class="font-mono text-danger text-xs mt-2">{{ statusError }}</div>
+      <div v-if="statusSuccess" class="font-mono text-success text-xs mt-2">{{ statusSuccess }}</div>
+    </div>
+
+    <!-- Skip Reasons -->
+    <div v-if="role.skip_reasons?.length" class="bg-panel border border-border rounded p-4 mb-6">
+      <div class="font-mono text-xs text-dim mb-3">skip reasons</div>
+      <div v-for="sr in role.skip_reasons" :key="sr.id" class="flex items-center justify-between py-2 border-b border-border last:border-0">
+        <div>
+          <span class="font-mono text-sm text-text">{{ sr.reason }}</span>
+          <span v-if="sr.note" class="font-mono text-xs text-dim ml-2">— {{ sr.note }}</span>
+        </div>
+        <button @click="deleteSkipReason(sr.id)" class="font-mono text-xs text-danger hover:opacity-80 transition-opacity ml-4">
+          [{{ sr.id }}] delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Termination Reasons -->
+    <div v-if="role.termination_reasons?.length" class="bg-panel border border-border rounded p-4 mb-6">
+      <div class="font-mono text-xs text-dim mb-3">termination reasons</div>
+      <div v-for="tr in role.termination_reasons" :key="tr.id" class="flex items-center justify-between py-2 border-b border-border last:border-0">
+        <div>
+          <span class="font-mono text-sm text-text">{{ tr.reason }}</span>
+          <span v-if="tr.note" class="font-mono text-xs text-dim ml-2">— {{ tr.note }}</span>
+        </div>
+        <button @click="deleteTerminationReason(tr.id)" class="font-mono text-xs text-danger hover:opacity-80 transition-opacity ml-4">
+          [{{ tr.id }}] delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Job Description -->
+    <div class="bg-panel border border-border rounded p-4 mb-6">
+      <div class="font-mono text-xs text-dim mb-3">job description</div>
+      <div v-if="role.jd" class="font-mono text-sm text-text whitespace-pre-wrap leading-relaxed">{{ role.jd }}</div>
+      <div v-else class="font-mono text-sm text-dim">No job description recorded.</div>
+    </div>
+
+    <!-- Export Modal -->
+    <div v-if="showExport" class="fixed inset-0 bg-surface/80 flex items-center justify-center z-50">
+      <div class="bg-panel border border-border rounded p-6 w-full max-w-2xl mx-4">
+        <div class="font-mono text-sm font-semibold text-text mb-4">export role</div>
+        <div class="flex gap-3 mb-4">
+          <button @click="exportFormat = 'simple'" :class="exportFormat === 'simple' ? 'bg-accent text-surface' : 'border border-border text-dim'" class="font-mono text-sm px-3 py-1.5 rounded transition-colors">simple</button>
+          <button @click="exportFormat = 'rich'"   :class="exportFormat === 'rich'   ? 'bg-accent text-surface' : 'border border-border text-dim'" class="font-mono text-sm px-3 py-1.5 rounded transition-colors">rich</button>
+        </div>
+        <pre class="bg-surface border border-border text-text font-mono text-xs p-4 rounded overflow-auto max-h-96 whitespace-pre-wrap">{{ exportContent }}</pre>
+        <div class="flex gap-3 mt-4">
+          <button @click="copyExport" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 transition-opacity">copy</button>
+          <button @click="showExport = false" class="border border-border text-dim font-mono text-sm px-4 py-2 rounded hover:text-text transition-colors">close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div v-if="showDelete" class="fixed inset-0 bg-surface/80 flex items-center justify-center z-50">
+      <div class="bg-panel border border-border rounded p-6 w-full max-w-lg mx-4">
+        <div class="font-mono text-sm font-semibold text-danger mb-4">delete role {{ role.id }}</div>
+        <div class="font-mono text-sm text-text mb-2">{{ role.company }} — {{ role.title }}</div>
+        <div class="font-mono text-xs text-dim mb-4">
+          Dependents: {{ role.skip_reasons?.length ?? 0 }} skip reasons,
+          {{ role.termination_reasons?.length ?? 0 }} termination reasons,
+          1 job description
+        </div>
+        <div class="flex gap-3">
+          <button @click="confirmDelete(false)" class="border border-danger text-danger font-mono text-sm px-4 py-2 rounded hover:bg-danger/10 transition-colors">delete if clean</button>
+          <button @click="confirmDelete(true)"  class="bg-danger text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 transition-opacity">force delete all</button>
+          <button @click="showDelete = false"   class="border border-border text-dim font-mono text-sm px-4 py-2 rounded hover:text-text transition-colors">cancel</button>
+        </div>
+        <div v-if="deleteError" class="font-mono text-danger text-xs mt-3">{{ deleteError }}</div>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter }   from 'vue-router';
+import { apiFetch }              from '@/composables/useApi';
+import { VALID_STATUSES }        from '@/constants';
+
+const route  = useRoute();
+const router = useRouter();
+
+const role          = ref<any>(null);
+const loading       = ref(false);
+const error         = ref('');
+const newStatus     = ref('');
+const statusNote    = ref('');
+const statusError   = ref('');
+const statusSuccess = ref('');
+const showExport    = ref(false);
+const showDelete    = ref(false);
+const deleteError   = ref('');
+const exportFormat  = ref<'simple' | 'rich'>('simple');
+const exportContent = ref('');
+
+async function load() {
+  loading.value = true;
+  error.value   = '';
+  try {
+    role.value = await apiFetch<any>(`/api/roles/${route.params.id}`);
+  } catch (err) {
+    error.value = (err as Error).message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function updateStatus() {
+  statusError.value   = '';
+  statusSuccess.value = '';
+  try {
+    await apiFetch(`/api/roles/${route.params.id}/status`, {
+      method: 'PATCH',
+      body:   JSON.stringify({ status: newStatus.value, note: statusNote.value || undefined }),
+    });
+    statusSuccess.value = `Status updated to "${newStatus.value}"`;
+    newStatus.value     = '';
+    statusNote.value    = '';
+    await load();
+  } catch (err) {
+    statusError.value = (err as Error).message;
+  }
+}
+
+async function deleteSkipReason(id: number) {
+  if (!confirm(`Delete skip reason ${id}?`)) return;
+  try {
+    await apiFetch(`/api/roles/skip-reasons/${id}`, { method: 'DELETE' });
+    await load();
+  } catch (err) {
+    error.value = (err as Error).message;
+  }
+}
+
+async function deleteTerminationReason(id: number) {
+  if (!confirm(`Delete termination reason ${id}?`)) return;
+  try {
+    await apiFetch(`/api/roles/termination-reasons/${id}`, { method: 'DELETE' });
+    await load();
+  } catch (err) {
+    error.value = (err as Error).message;
+  }
+}
+
+async function confirmDelete(force: boolean) {
+  deleteError.value = '';
+  try {
+    await apiFetch(`/api/roles/${route.params.id}?force=${force}`, { method: 'DELETE' });
+    router.push('/');
+  } catch (err) {
+    deleteError.value = (err as Error).message;
+  }
+}
+
+async function loadExport() {
+  try {
+    const data = await apiFetch<{ content: string }>(`/api/roles/${route.params.id}/export?format=${exportFormat.value}`);
+    exportContent.value = data.content;
+  } catch (err) {
+    exportContent.value = (err as Error).message;
+  }
+}
+
+async function copyExport() {
+  await navigator.clipboard.writeText(exportContent.value);
+}
+
+function statusClass(status: string): string {
+  const map: Record<string, string> = {
+    'Applied':        'bg-accent/20 text-accent',
+    'Pending Triage': 'bg-warning/20 text-warning',
+    'Skipped':        'bg-muted/40 text-dim',
+    'Closed':         'bg-muted/40 text-dim',
+    'In Interview':   'bg-success/20 text-success',
+    'Offer Accepted': 'bg-success/20 text-success',
+    'Offer Declined': 'bg-danger/20 text-danger',
+    'Callback':       'bg-accent/20 text-accent',
+    'On Hold':        'bg-warning/20 text-warning',
+    'Resume Needed':  'bg-warning/20 text-warning',
+    'Resume Ready':   'bg-accent/20 text-accent',
+  };
+  return map[status] ?? 'bg-muted/40 text-dim';
+}
+
+watch(showExport, (val) => { if (val) loadExport(); });
+watch(exportFormat, () => { if (showExport.value) loadExport(); });
+onMounted(load);
+</script>
