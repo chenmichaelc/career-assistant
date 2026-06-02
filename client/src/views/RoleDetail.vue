@@ -39,7 +39,7 @@
         <div class="font-mono text-xs text-dim mb-1">salary</div>
         <div class="font-mono text-sm text-text">
           {{ role.salary_min ? `$${(role.salary_min/1000).toFixed(0)}K` : '?' }}
-          –
+          —
           {{ role.salary_max ? `$${(role.salary_max/1000).toFixed(0)}K` : '?' }}
         </div>
       </div>
@@ -64,7 +64,6 @@
           <option value="">select status...</option>
           <option v-for="s in VALID_STATUSES" :key="s" :value="s">{{ s }}</option>
         </select>
-        <input v-model="statusNote" placeholder="note (optional)" class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent flex-1" />
         <button @click="handleStatusUpdate" :disabled="!newStatus" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity">
           update
         </button>
@@ -229,17 +228,16 @@ const error   = ref('');
 // ─── Status update ────────────────────────────────────────────────────────────
 
 const newStatus     = ref('');
-const statusNote    = ref('');
 const statusError   = ref('');
 const statusSuccess = ref('');
 
 // ─── Reason modal ─────────────────────────────────────────────────────────────
 
-const showReasonModal  = ref(false);
-const pendingStatus    = ref('');
-const modalReason      = ref('');
-const modalNote        = ref('');
-const modalError       = ref('');
+const showReasonModal = ref(false);
+const pendingStatus   = ref('');
+const modalReason     = ref('');
+const modalNote       = ref('');
+const modalError      = ref('');
 
 const modalReasonOptions = computed(() => {
   if (pendingStatus.value === 'Skipped') return VALID_SKIP_REASONS;
@@ -249,19 +247,19 @@ const modalReasonOptions = computed(() => {
 
 // ─── Add reason controls ──────────────────────────────────────────────────────
 
-const addSkipReasonValue       = ref('');
-const addSkipReasonNote        = ref('');
-const addSkipReasonError       = ref('');
+const addSkipReasonValue        = ref('');
+const addSkipReasonNote         = ref('');
+const addSkipReasonError        = ref('');
 const addTerminationReasonValue = ref('');
 const addTerminationReasonNote  = ref('');
 const addTerminationReasonError = ref('');
 
 // ─── Export / Delete ──────────────────────────────────────────────────────────
 
-const showExport    = ref(false);
-const showDelete    = ref(false);
-const deleteError   = ref('');
-const exportFormat  = ref<'simple' | 'rich'>('simple');
+const showExport   = ref(false);
+const showDelete   = ref(false);
+const deleteError  = ref('');
+const exportFormat = ref<'simple' | 'rich'>('simple');
 const exportContent = ref('');
 
 // ─── Load ─────────────────────────────────────────────────────────────────────
@@ -271,9 +269,11 @@ async function load() {
   error.value   = '';
   try {
     role.value = await apiFetch<any>(`/api/roles/${route.params.id}`);
-  } catch (err) {
+  }
+  catch (err) {
     error.value = (err as Error).message;
-  } finally {
+  }
+  finally {
     loading.value = false;
   }
 }
@@ -284,15 +284,15 @@ function handleStatusUpdate() {
   if (!newStatus.value) return;
 
   if (REASON_REQUIRED_STATUSES.includes(newStatus.value)) {
-    pendingStatus.value = newStatus.value;
-    modalReason.value   = '';
-    modalNote.value     = '';
-    modalError.value    = '';
+    pendingStatus.value   = newStatus.value;
+    modalReason.value     = '';
+    modalNote.value       = '';
+    modalError.value      = '';
     showReasonModal.value = true;
     return;
   }
 
-  submitStatusUpdate(newStatus.value, [], [], statusNote.value || undefined);
+  submitStatusUpdate(newStatus.value, [], []);
 }
 
 async function submitStatusUpdate(
@@ -310,9 +310,9 @@ async function submitStatusUpdate(
     });
     statusSuccess.value = `Status updated to "${status}"`;
     newStatus.value     = '';
-    statusNote.value    = '';
     await load();
-  } catch (err) {
+  }
+  catch (err) {
     statusError.value = (err as Error).message;
   }
 }
@@ -335,9 +335,9 @@ async function confirmModal() {
     statusSuccess.value   = `Status updated to "${pendingStatus.value}"`;
     showReasonModal.value = false;
     newStatus.value       = '';
-    statusNote.value      = '';
     await load();
-  } catch (err) {
+  }
+  catch (err) {
     modalError.value = (err as Error).message;
   }
 }
@@ -365,7 +365,8 @@ async function submitAddSkipReason() {
     addSkipReasonValue.value = '';
     addSkipReasonNote.value  = '';
     await load();
-  } catch (err) {
+  }
+  catch (err) {
     addSkipReasonError.value = (err as Error).message;
   }
 }
@@ -383,7 +384,8 @@ async function submitAddTerminationReason() {
     addTerminationReasonValue.value = '';
     addTerminationReasonNote.value  = '';
     await load();
-  } catch (err) {
+  }
+  catch (err) {
     addTerminationReasonError.value = (err as Error).message;
   }
 }
@@ -395,7 +397,8 @@ async function deleteSkipReason(id: number) {
   try {
     await apiFetch(`/api/roles/skip-reasons/${id}`, { method: 'DELETE' });
     await load();
-  } catch (err) {
+  }
+  catch (err) {
     error.value = (err as Error).message;
   }
 }
@@ -405,7 +408,8 @@ async function deleteTerminationReason(id: number) {
   try {
     await apiFetch(`/api/roles/termination-reasons/${id}`, { method: 'DELETE' });
     await load();
-  } catch (err) {
+  }
+  catch (err) {
     error.value = (err as Error).message;
   }
 }
@@ -417,7 +421,8 @@ async function confirmDelete(force: boolean) {
   try {
     await apiFetch(`/api/roles/${route.params.id}?force=${force}`, { method: 'DELETE' });
     router.push('/');
-  } catch (err) {
+  }
+  catch (err) {
     deleteError.value = (err as Error).message;
   }
 }
@@ -428,7 +433,8 @@ async function loadExport() {
   try {
     const data = await apiFetch<{ content: string }>(`/api/roles/${route.params.id}/export?format=${exportFormat.value}`);
     exportContent.value = data.content;
-  } catch (err) {
+  }
+  catch (err) {
     exportContent.value = (err as Error).message;
   }
 }
