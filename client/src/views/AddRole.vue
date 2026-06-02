@@ -100,6 +100,8 @@ async function submit() {
 </script>
 
 <style scoped>
+@reference "../style.css";
+
 .input {
   @apply bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent;
 }
