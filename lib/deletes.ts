@@ -95,15 +95,13 @@ export function deleteRole(db: Database.Database, id: number, force: boolean = f
   const dependents = fetchDependents(db, id);
   const hasDependents =
     dependents.skip_reasons.length > 0 ||
-    dependents.termination_reasons.length > 0 ||
-    dependents.job_descriptions.length > 0;
+    dependents.termination_reasons.length > 0;
 
   if (hasDependents && !force) {
     throw new Error(
       `Role ${id} has dependent records and cannot be deleted without --force.\n` +
       `  Skip reasons: ${dependents.skip_reasons.length}\n` +
-      `  Termination reasons: ${dependents.termination_reasons.length}\n` +
-      `  Job descriptions: ${dependents.job_descriptions.length}`
+      `  Termination reasons: ${dependents.termination_reasons.length}\n`
     );
   }
 
@@ -111,8 +109,8 @@ export function deleteRole(db: Database.Database, id: number, force: boolean = f
     if (force) {
       db.prepare(`DELETE FROM skip_reasons WHERE role_id = ?`).run(id);
       db.prepare(`DELETE FROM termination_reasons WHERE role_id = ?`).run(id);
-      db.prepare(`DELETE FROM job_descriptions WHERE role_id = ?`).run(id);
     }
+    db.prepare(`DELETE FROM job_descriptions WHERE role_id = ?`).run(id);
     db.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
   });
 
