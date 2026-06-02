@@ -154,7 +154,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     try {
       const result = deleteRole(db, parseInt(id, 10), force === 'true');
       return result;
-    } catch (err) {
+    } 
+    catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
