@@ -19,7 +19,13 @@ import {
 }                           from '../../lib/deletes';
 import { exportRole }       from '../../lib/exporters/index';
 import { ExportFormat }     from '../../lib/exporters/index';
-import { RoleRow, SkipReasonType, TerminationReasonType } from '../../lib/types';
+import {
+  RoleRow,
+  SkipReasonType,
+  TerminationReasonType,
+  VALID_SKIP_REASONS,
+  VALID_TERMINATION_REASONS,
+}                           from '../../lib/types';
 import { UpdateArgs }       from '../../lib/args/update-args';
 
 interface PluginOptions extends FastifyPluginOptions {
@@ -145,6 +151,66 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     }
   });
 
+  // ─── POST /api/roles/:id/skip-reasons ───────────────────────────────────────
+
+  fastify.post('/:id/skip-reasons', async (request, reply) => {
+    const { id }           = request.params as { id: string };
+    const { reason, note } = request.body   as { reason: string; note?: string };
+
+    if (!reason || reason.trim() === '') {
+      return reply.status(400).send({ error: 'reason is required.' });
+    }
+
+    if (!VALID_SKIP_REASONS.includes(reason.trim() as SkipReasonType)) {
+      return reply.status(400).send({
+        error: `Invalid skip reason: "${reason}". Valid values: ${VALID_SKIP_REASONS.join(', ')}.`,
+      });
+    }
+
+    try {
+      fetchRoleOrThrow(db, id);
+    } catch (err) {
+      return reply.status(404).send({ error: (err as Error).message });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO skip_reasons (role_id, reason, note)
+      VALUES (?, ?, ?)
+    `).run(id, reason.trim(), note?.trim() ?? null);
+
+    return reply.status(201).send({ id: result.lastInsertRowid });
+  });
+
+  // ─── POST /api/roles/:id/termination-reasons ────────────────────────────────
+
+  fastify.post('/:id/termination-reasons', async (request, reply) => {
+    const { id }           = request.params as { id: string };
+    const { reason, note } = request.body   as { reason: string; note?: string };
+
+    if (!reason || reason.trim() === '') {
+      return reply.status(400).send({ error: 'reason is required.' });
+    }
+
+    if (!VALID_TERMINATION_REASONS.includes(reason.trim() as TerminationReasonType)) {
+      return reply.status(400).send({
+        error: `Invalid termination reason: "${reason}". Valid values: ${VALID_TERMINATION_REASONS.join(', ')}.`,
+      });
+    }
+
+    try {
+      fetchRoleOrThrow(db, id);
+    } catch (err) {
+      return reply.status(404).send({ error: (err as Error).message });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO termination_reasons (role_id, reason, note)
+      VALUES (?, ?, ?)
+    `).run(id, reason.trim(), note?.trim() ?? null);
+
+    return reply.status(201).send({ id: result.lastInsertRowid });
+  });
+
   // ─── DELETE /api/roles/:id ───────────────────────────────────────────────────
 
   fastify.delete('/:id', async (request, reply) => {
@@ -154,8 +220,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     try {
       const result = deleteRole(db, parseInt(id, 10), force === 'true');
       return result;
-    } 
-    catch (err) {
+    } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });

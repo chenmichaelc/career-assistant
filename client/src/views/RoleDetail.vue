@@ -65,7 +65,7 @@
           <option v-for="s in VALID_STATUSES" :key="s" :value="s">{{ s }}</option>
         </select>
         <input v-model="statusNote" placeholder="note (optional)" class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent flex-1" />
-        <button @click="updateStatus" :disabled="!newStatus" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity">
+        <button @click="handleStatusUpdate" :disabled="!newStatus" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity">
           update
         </button>
       </div>
@@ -87,6 +87,22 @@
       </div>
     </div>
 
+    <!-- Add Skip Reason (visible when role is Skipped) -->
+    <div v-if="role.role_status === 'Skipped'" class="bg-panel border border-border rounded p-4 mb-6">
+      <div class="font-mono text-xs text-dim mb-3">add skip reason</div>
+      <div class="flex gap-3 flex-wrap">
+        <select v-model="addSkipReasonValue" class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent">
+          <option value="">select reason...</option>
+          <option v-for="r in VALID_SKIP_REASONS" :key="r" :value="r">{{ r }}</option>
+        </select>
+        <input v-model="addSkipReasonNote" placeholder="note (optional)" class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent flex-1" />
+        <button @click="submitAddSkipReason" :disabled="!addSkipReasonValue" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity">
+          add
+        </button>
+      </div>
+      <div v-if="addSkipReasonError" class="font-mono text-danger text-xs mt-2">{{ addSkipReasonError }}</div>
+    </div>
+
     <!-- Termination Reasons -->
     <div v-if="role.termination_reasons?.length" class="bg-panel border border-border rounded p-4 mb-6">
       <div class="font-mono text-xs text-dim mb-3">termination reasons</div>
@@ -101,11 +117,54 @@
       </div>
     </div>
 
+    <!-- Add Termination Reason (visible when role is Closed) -->
+    <div v-if="role.role_status === 'Closed'" class="bg-panel border border-border rounded p-4 mb-6">
+      <div class="font-mono text-xs text-dim mb-3">add termination reason</div>
+      <div class="flex gap-3 flex-wrap">
+        <select v-model="addTerminationReasonValue" class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent">
+          <option value="">select reason...</option>
+          <option v-for="r in VALID_TERMINATION_REASONS" :key="r" :value="r">{{ r }}</option>
+        </select>
+        <input v-model="addTerminationReasonNote" placeholder="note (optional)" class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent flex-1" />
+        <button @click="submitAddTerminationReason" :disabled="!addTerminationReasonValue" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity">
+          add
+        </button>
+      </div>
+      <div v-if="addTerminationReasonError" class="font-mono text-danger text-xs mt-2">{{ addTerminationReasonError }}</div>
+    </div>
+
     <!-- Job Description -->
     <div class="bg-panel border border-border rounded p-4 mb-6">
       <div class="font-mono text-xs text-dim mb-3">job description</div>
       <div v-if="role.jd" class="font-mono text-sm text-text whitespace-pre-wrap leading-relaxed">{{ role.jd }}</div>
       <div v-else class="font-mono text-sm text-dim">No job description recorded.</div>
+    </div>
+
+    <!-- Reason Modal (Skipped / Closed transition) -->
+    <div v-if="showReasonModal" class="fixed inset-0 bg-surface/80 flex items-center justify-center z-50">
+      <div class="bg-panel border border-border rounded p-6 w-full max-w-md mx-4">
+        <div class="font-mono text-sm font-semibold text-text mb-1">reason required</div>
+        <div class="font-mono text-xs text-dim mb-5">provide at least one reason to continue</div>
+
+        <div class="font-mono text-xs text-dim mb-1">new status</div>
+        <div class="bg-surface border border-border text-dim font-mono text-sm px-3 py-2 rounded mb-4 opacity-70">{{ pendingStatus }}</div>
+
+        <div class="font-mono text-xs text-dim mb-1">reason <span class="text-danger">*</span></div>
+        <select v-model="modalReason" class="w-full bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent mb-4">
+          <option value="">select reason...</option>
+          <option v-for="r in modalReasonOptions" :key="r" :value="r">{{ r }}</option>
+        </select>
+
+        <div class="font-mono text-xs text-dim mb-1">note <span class="text-dim">(optional)</span></div>
+        <input v-model="modalNote" placeholder="optional note..." class="w-full bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent mb-5" />
+
+        <div v-if="modalError" class="font-mono text-danger text-xs mb-3">{{ modalError }}</div>
+
+        <div class="flex gap-3 justify-end">
+          <button @click="cancelModal" class="border border-border text-dim font-mono text-sm px-4 py-2 rounded hover:text-text transition-colors">cancel</button>
+          <button @click="confirmModal" :disabled="!modalReason" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity">confirm</button>
+        </div>
+      </div>
     </div>
 
     <!-- Export Modal -->
@@ -147,26 +206,65 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
-import { useRoute, useRouter }   from 'vue-router';
-import { apiFetch }              from '@/composables/useApi';
-import { VALID_STATUSES }        from '@/constants';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter }             from 'vue-router';
+import { apiFetch }                        from '@/composables/useApi';
+import {
+  VALID_STATUSES,
+  VALID_SKIP_REASONS,
+  VALID_TERMINATION_REASONS,
+}                                          from '@/constants';
+
+const REASON_REQUIRED_STATUSES = ['Skipped', 'Closed'];
 
 const route  = useRoute();
 const router = useRouter();
 
-const role          = ref<any>(null);
-const loading       = ref(false);
-const error         = ref('');
+// ─── Role state ───────────────────────────────────────────────────────────────
+
+const role    = ref<any>(null);
+const loading = ref(false);
+const error   = ref('');
+
+// ─── Status update ────────────────────────────────────────────────────────────
+
 const newStatus     = ref('');
 const statusNote    = ref('');
 const statusError   = ref('');
 const statusSuccess = ref('');
+
+// ─── Reason modal ─────────────────────────────────────────────────────────────
+
+const showReasonModal  = ref(false);
+const pendingStatus    = ref('');
+const modalReason      = ref('');
+const modalNote        = ref('');
+const modalError       = ref('');
+
+const modalReasonOptions = computed(() => {
+  if (pendingStatus.value === 'Skipped') return VALID_SKIP_REASONS;
+  if (pendingStatus.value === 'Closed')  return VALID_TERMINATION_REASONS;
+  return [];
+});
+
+// ─── Add reason controls ──────────────────────────────────────────────────────
+
+const addSkipReasonValue       = ref('');
+const addSkipReasonNote        = ref('');
+const addSkipReasonError       = ref('');
+const addTerminationReasonValue = ref('');
+const addTerminationReasonNote  = ref('');
+const addTerminationReasonError = ref('');
+
+// ─── Export / Delete ──────────────────────────────────────────────────────────
+
 const showExport    = ref(false);
 const showDelete    = ref(false);
 const deleteError   = ref('');
 const exportFormat  = ref<'simple' | 'rich'>('simple');
 const exportContent = ref('');
+
+// ─── Load ─────────────────────────────────────────────────────────────────────
 
 async function load() {
   loading.value = true;
@@ -180,15 +278,37 @@ async function load() {
   }
 }
 
-async function updateStatus() {
+// ─── Status update ────────────────────────────────────────────────────────────
+
+function handleStatusUpdate() {
+  if (!newStatus.value) return;
+
+  if (REASON_REQUIRED_STATUSES.includes(newStatus.value)) {
+    pendingStatus.value = newStatus.value;
+    modalReason.value   = '';
+    modalNote.value     = '';
+    modalError.value    = '';
+    showReasonModal.value = true;
+    return;
+  }
+
+  submitStatusUpdate(newStatus.value, [], [], statusNote.value || undefined);
+}
+
+async function submitStatusUpdate(
+  status:      string,
+  reasons:     string[],
+  termination: string[],
+  note?:       string,
+) {
   statusError.value   = '';
   statusSuccess.value = '';
   try {
     await apiFetch(`/api/roles/${route.params.id}/status`, {
       method: 'PATCH',
-      body:   JSON.stringify({ status: newStatus.value, note: statusNote.value || undefined }),
+      body:   JSON.stringify({ status, reasons, termination, note }),
     });
-    statusSuccess.value = `Status updated to "${newStatus.value}"`;
+    statusSuccess.value = `Status updated to "${status}"`;
     newStatus.value     = '';
     statusNote.value    = '';
     await load();
@@ -196,6 +316,79 @@ async function updateStatus() {
     statusError.value = (err as Error).message;
   }
 }
+
+// ─── Reason modal ─────────────────────────────────────────────────────────────
+
+async function confirmModal() {
+  if (!modalReason.value) return;
+  modalError.value = '';
+
+  const reasons     = pendingStatus.value === 'Skipped' ? [modalReason.value] : [];
+  const termination = pendingStatus.value === 'Closed'  ? [modalReason.value] : [];
+  const note        = modalNote.value || undefined;
+
+  try {
+    await apiFetch(`/api/roles/${route.params.id}/status`, {
+      method: 'PATCH',
+      body:   JSON.stringify({ status: pendingStatus.value, reasons, termination, note }),
+    });
+    statusSuccess.value   = `Status updated to "${pendingStatus.value}"`;
+    showReasonModal.value = false;
+    newStatus.value       = '';
+    statusNote.value      = '';
+    await load();
+  } catch (err) {
+    modalError.value = (err as Error).message;
+  }
+}
+
+function cancelModal() {
+  showReasonModal.value = false;
+  pendingStatus.value   = '';
+  modalReason.value     = '';
+  modalNote.value       = '';
+  modalError.value      = '';
+}
+
+// ─── Add reason ───────────────────────────────────────────────────────────────
+
+async function submitAddSkipReason() {
+  addSkipReasonError.value = '';
+  try {
+    await apiFetch(`/api/roles/${route.params.id}/skip-reasons`, {
+      method: 'POST',
+      body:   JSON.stringify({
+        reason: addSkipReasonValue.value,
+        note:   addSkipReasonNote.value || undefined,
+      }),
+    });
+    addSkipReasonValue.value = '';
+    addSkipReasonNote.value  = '';
+    await load();
+  } catch (err) {
+    addSkipReasonError.value = (err as Error).message;
+  }
+}
+
+async function submitAddTerminationReason() {
+  addTerminationReasonError.value = '';
+  try {
+    await apiFetch(`/api/roles/${route.params.id}/termination-reasons`, {
+      method: 'POST',
+      body:   JSON.stringify({
+        reason: addTerminationReasonValue.value,
+        note:   addTerminationReasonNote.value || undefined,
+      }),
+    });
+    addTerminationReasonValue.value = '';
+    addTerminationReasonNote.value  = '';
+    await load();
+  } catch (err) {
+    addTerminationReasonError.value = (err as Error).message;
+  }
+}
+
+// ─── Delete reasons ───────────────────────────────────────────────────────────
 
 async function deleteSkipReason(id: number) {
   if (!confirm(`Delete skip reason ${id}?`)) return;
@@ -217,6 +410,8 @@ async function deleteTerminationReason(id: number) {
   }
 }
 
+// ─── Delete role ──────────────────────────────────────────────────────────────
+
 async function confirmDelete(force: boolean) {
   deleteError.value = '';
   try {
@@ -226,6 +421,8 @@ async function confirmDelete(force: boolean) {
     deleteError.value = (err as Error).message;
   }
 }
+
+// ─── Export ───────────────────────────────────────────────────────────────────
 
 async function loadExport() {
   try {
@@ -239,6 +436,8 @@ async function loadExport() {
 async function copyExport() {
   await navigator.clipboard.writeText(exportContent.value);
 }
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
 
 function statusClass(status: string): string {
   const map: Record<string, string> = {
