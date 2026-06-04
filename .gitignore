@@ -15,3 +15,6 @@ npm-debug.log*
 
 #Backups
 backups/*
+
+#JetBrains
+/.idea/dataSources.xml
