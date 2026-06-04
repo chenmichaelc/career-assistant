@@ -30,7 +30,7 @@ if (isNaN(id)) {
   process.exit(1);
 }
 
-const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
+const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 
 try {
   if (isPreview) {

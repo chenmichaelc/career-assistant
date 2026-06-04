@@ -6,7 +6,7 @@ import Database from 'better-sqlite3';
 import path     from 'path';
 import { schema } from './schema';
 
-const db = new Database(path.join(__dirname, 'jobsearch.sqlite'));
+const db = new Database(path.join(__dirname, 'career-assistant.sqlite'));
 
 db.exec(schema);
 

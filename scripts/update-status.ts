@@ -11,7 +11,7 @@ import path              from 'path';
 import { parseArgs }     from '../lib/args/update-args';
 import { updateRole }    from '../lib/updates';
 
-const db    = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
+const db    = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 const flags = parseArgs(process.argv.slice(2));
 
 try {

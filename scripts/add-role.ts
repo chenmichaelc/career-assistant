@@ -11,7 +11,7 @@ import path            from 'path';
 import { addRole }     from '../lib/roles';
 import { RoleInput }   from '../lib/types';
 
-const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
+const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 
 let raw = '';
 

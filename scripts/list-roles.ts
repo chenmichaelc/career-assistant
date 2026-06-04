@@ -35,7 +35,7 @@ interface RoleOutput extends RoleRow {
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
-const db    = new Database(path.join(__dirname, '../db/jobsearch.sqlite'), { readonly: true });
+const db    = new Database(path.join(__dirname, '../db/career-assistant.sqlite'), { readonly: true });
 const flags = parseArgs(process.argv.slice(2));
 
 // ─── Build query ──────────────────────────────────────────────────────────────
