@@ -38,7 +38,7 @@ if (isNaN(id)) {
 
 // ─── Open DB ──────────────────────────────────────────────────────────────────
 
-const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
+const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 
 // ─── Execute ──────────────────────────────────────────────────────────────────
 

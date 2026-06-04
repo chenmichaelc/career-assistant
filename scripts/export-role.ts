@@ -41,7 +41,7 @@ if (!VALID_FORMATS.includes(flags.format as ExportFormat)) {
 
 // ─── Open DB ──────────────────────────────────────────────────────────────────
 
-const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'), { readonly: true });
+const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'), { readonly: true });
 
 // ─── Fetch role and JD ────────────────────────────────────────────────────────
 
