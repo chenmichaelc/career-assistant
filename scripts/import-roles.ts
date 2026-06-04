@@ -12,7 +12,7 @@ import { addRole }        from '../lib/roles';
 import { parseRecords, ParsedRecord } from '../lib/parse-records';
 import { RoleInput }      from '../lib/types';
 
-const db = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
+const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 
 let raw = '';
 

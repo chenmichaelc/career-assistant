@@ -10,7 +10,7 @@ import { queryRouter }        from './routes/query';
 import { backupRouter }       from './routes/backup';
 
 const fastify = Fastify({ logger: true });
-const db      = new Database(path.join(__dirname, '../db/jobsearch.sqlite'));
+const db      = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 
 fastify.register(cors, { origin: 'http://localhost:5173' });
 
