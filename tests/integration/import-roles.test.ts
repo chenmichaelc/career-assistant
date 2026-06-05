@@ -1,4 +1,4 @@
-// tests/e2e/import-roles.test.ts
+// tests/integration/import-roles.test.ts
 import { describe, test, expect } from 'vitest';
 import { runScript }              from '../helpers/run-script';
 
