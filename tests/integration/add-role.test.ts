@@ -1,4 +1,4 @@
-// tests/e2e/add-role.test.ts
+// tests/integration/add-role.test.ts
 import { describe, test, expect } from 'vitest';
 import { runScript }              from '../helpers/run-script';
 import { RoleInput }              from '../../lib/types';
