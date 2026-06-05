@@ -1,37 +1,47 @@
-// lib/roles.js
+// lib/roles.ts
 // Career Assistant — Role operations
 // All DB write logic lives here. Callers are responsible for opening and closing the DB connection.
 
+import Database from 'better-sqlite3';
+import { RoleInput, SkipReason, TerminationReason } from './types';
+
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-const REQUIRED_FIELDS = ['company', 'title', 'url', 'role_status', 'jd'];
+const REQUIRED_FIELDS: (keyof RoleInput)[] = ['company', 'title', 'url', 'role_status', 'jd'];
 
-const CONTEXTUAL_RULES = [
+interface ContextualRule {
+  condition: (role: RoleInput) => boolean;
+  message:   string;
+}
+
+const CONTEXTUAL_RULES: ContextualRule[] = [
   {
-    condition: (fields) => fields.role_status === 'Applied' && !fields.applied_date,
-    message:   'applied_date is required when role_status is Applied.'
+    condition: (role) => role.role_status === 'Applied' && !role.applied_date,
+    message:   'applied_date is required when role_status is Applied.',
   },
   {
-    condition: (fields) => fields.role_status === 'Skipped' && (!fields.skip_reasons || fields.skip_reasons.length === 0),
-    message:   'skip_reasons is required when role_status is Skipped.'
+    condition: (role) => role.role_status === 'Skipped' && (role.skip_reasons == null || role.skip_reasons.length === 0),
+    message:   'skip_reasons is required when role_status is Skipped.',
   },
   {
-    condition: (fields) => fields.role_status === 'Closed' && (!fields.termination_reasons || fields.termination_reasons.length === 0),
-    message:   'termination_reasons is required when role_status is Closed.'
-  }
+    condition: (role) => role.role_status === 'Closed' && (role.termination_reasons == null || role.termination_reasons.length === 0),
+    message:   'termination_reasons is required when role_status is Closed.',
+  },
 ];
 
-function validate(fields) {
-  const errors = [];
+function validate(role: RoleInput): string[] {
+  const errors: string[] = [];
 
   for (const field of REQUIRED_FIELDS) {
-    if (!fields[field] || String(fields[field]).trim() === '') {
+    const value     = role[field];
+    const isMissing = value === null || value === undefined || String(value).trim() === '';
+    if (isMissing) {
       errors.push(`${field} is required.`);
     }
   }
 
   for (const rule of CONTEXTUAL_RULES) {
-    if (rule.condition(fields)) {
+    if (rule.condition(role)) {
       errors.push(rule.message);
     }
   }
@@ -41,15 +51,15 @@ function validate(fields) {
 
 // ─── addRole ──────────────────────────────────────────────────────────────────
 
-function addRole(db, fields) {
-  const errors = validate(fields);
+export function addRole(db: Database.Database, role: RoleInput): number {
+  const errors = validate(role);
 
   if (errors.length > 0) {
     const errorList = errors.map(e => `  - ${e}`).join('\n');
     throw new Error(`Validation failed:\n${errorList}`);
   }
 
-  let roleId;
+  let roleId: number;
 
   const insertRole = db.prepare(`
     INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
@@ -73,27 +83,27 @@ function addRole(db, fields) {
 
   const run = db.transaction(() => {
     const roleData = {
-      company:      fields.company,
-      title:        fields.title,
-      url:          fields.url,
-      role_status:  fields.role_status,
-      candidacy:    fields.candidacy    ?? null,
-      applied_date: fields.applied_date ?? null,
-      salary_min:   fields.salary_min   ?? null,
-      salary_max:   fields.salary_max   ?? null,
-      notes:        fields.notes        ?? null,
+      company:      role.company,
+      title:        role.title,
+      url:          role.url,
+      role_status:  role.role_status,
+      candidacy:    role.candidacy    ?? null,
+      applied_date: role.applied_date ?? null,
+      salary_min:   role.salary_min   ?? null,
+      salary_max:   role.salary_max   ?? null,
+      notes:        role.notes        ?? null,
     };
 
     const result = insertRole.run(roleData);
-    roleId = result.lastInsertRowid;
+    roleId = Number(result.lastInsertRowid);
 
     insertJd.run({
       role_id: roleId,
-      content: fields.jd,
+      content: role.jd,
     });
 
-    if (fields.skip_reasons) {
-      for (const sr of fields.skip_reasons) {
+    if (role.skip_reasons != null) {
+      for (const sr of role.skip_reasons) {
         insertSkipReason.run({
           role_id: roleId,
           reason:  sr.reason,
@@ -102,8 +112,8 @@ function addRole(db, fields) {
       }
     }
 
-    if (fields.termination_reasons) {
-      for (const tr of fields.termination_reasons) {
+    if (role.termination_reasons != null) {
+      for (const tr of role.termination_reasons) {
         insertTerminationReason.run({
           role_id: roleId,
           reason:  tr.reason,
@@ -114,7 +124,5 @@ function addRole(db, fields) {
   });
 
   run();
-  return roleId;
+  return roleId!;
 }
-
-module.exports = { addRole };

@@ -9,5 +9,12 @@ node_modules/
 Thumbs.db
  
 # Logs
+logs/
 *.log
 npm-debug.log*
+
+#Backups
+backups/*
+
+#JetBrains
+/.idea/dataSources.xml

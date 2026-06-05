@@ -1,13 +1,11 @@
-// db/init.js
-// Career Assistant — Database Initialization
-// Run once to create the schema. Safe to re-run (uses IF NOT EXISTS).
+// db/schema.ts
+// Career Assistant — Database Schema
+// Single source of truth for the SQLite schema.
+// Imported by db/init.ts and tests/helpers/db.ts.
 
-const Database = require('better-sqlite3');
-const path = require('path');
+export const schema: string = `
+  PRAGMA foreign_keys = ON;
 
-const db = new Database(path.join(__dirname, 'jobsearch.sqlite'));
-
-db.exec(`
   CREATE TABLE IF NOT EXISTS roles (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     company       TEXT NOT NULL,
@@ -82,10 +80,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS job_descriptions (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    role_id   INTEGER NOT NULL REFERENCES roles(id),
-    content   TEXT NOT NULL
+    role_id   INTEGER NOT NULL UNIQUE REFERENCES roles(id),
+    content   TEXT NOT NULL DEFAULT ''
   );
-`);
-
-console.log('Database initialized successfully.');
-db.close();
+`;
