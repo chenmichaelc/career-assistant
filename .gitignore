@@ -18,3 +18,10 @@ backups/*
 
 #JetBrains
 /.idea/dataSources.xml
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
