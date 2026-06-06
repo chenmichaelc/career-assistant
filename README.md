@@ -22,7 +22,7 @@ The system is organized around four modules:
 
 **Career opportunity identification and mapping** *(planned)* — skills gap analysis against a personal profile, career path recommendations driven by market data, and guidance on high-value areas of investment given current market conditions.
 
-**Testing modules** — a layered test suite covering unit tests for all pure functions, integration tests for CLI scripts, and Playwright E2E tests for the UI (planned). Built to support Extreme Programming practices — changes can be made confidently with Claude or independently.
+**Testing modules** — a layered test suite covering unit tests for pure functions, integration tests for CLI scripts, and Playwright E2E tests for the UI, all in progress. Built to support Extreme Programming practices — changes can be made confidently with Claude or manually.
 
 Role lifecycle tracking — statuses, skip reasons, and termination reasons — is supported as a lightweight mechanism for feeding real-world outcome data back into the market analysis layer.
 
@@ -68,7 +68,8 @@ Open `http://localhost:5173`.
 ### Tests
 
 ```bash
-npm test
+npm test                                                        # Vitest unit + integration
+npm run test:e2e                                                # Playwright E2E
 ```
 
 ---
@@ -86,7 +87,7 @@ npm test
 | Frontend stabilization and bug fixes (CAR-2) | Done |
 | Rename e2e → integration tests (CAR-14) | Done |
 | Node.js upgrade to v24 (CAR-31) | Done |
-| Git history scrub, .gitignore audit (CAR-27 partial) | Done |
+| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | In Progress |
 
 ---
 
@@ -94,20 +95,26 @@ npm test
 
 Items in rough priority order. Backlog items are lower priority.
 
-**Public repository preparation (CAR-27)**
-README, pre-publication audit (CAR-29). CAR-28 in progress.
+**Playwright webServer + baseURL configuration (CAR-77)**
+Configure Playwright to start the server and client automatically. Blocked by CAR-74.
+
+**Server and client npm scripts (CAR-74)**
+Add `server` and `client` scripts to root `package.json` as the authoritative entry points for running the application.
 
 **Test infrastructure (CAR-3)**
-Playwright E2E suite (CAR-15), test database isolation (CAR-16).
+Test database isolation (CAR-16) to enable integration and E2E tests to run without touching production data.
 
 **ESLint (CAR-37)**
 Enforce codebase style conventions including `stroustrup` brace style (CAR-51).
 
+**GitHub merge gate (CAR-56)**
+Unit test gate (CAR-57), then integration (CAR-58, blocked by CAR-16) and Playwright (CAR-59, blocked by CAR-15). Node 24 workflow update (CAR-60, blocked by CAR-57).
+
 **Data layer refactor (CAR-5)**
 Extract single-table `db/` modules (CAR-20), refactor `lib/` orchestration (CAR-21), fill one-to-many test coverage gaps (CAR-22). Extend status transition modal to support per-reason notes once data layer supports it (CAR-50).
 
-**GitHub merge gate (CAR-56)**
-Unit test gate (CAR-57), then integration (CAR-58, blocked by CAR-16) and Playwright (CAR-59, blocked by CAR-15). Node 24 update (CAR-60, blocked by CAR-57).
+**Playwright full workflow coverage (CAR-63)** *(blocked by CAR-15, CAR-16)*
+Roles list (CAR-64), role detail (CAR-65), add role (CAR-66), SQL query (CAR-67), backup (CAR-68).
 
 **npm workspace restructuring + ES module migration (CAR-4)** *(Backlog)*
 Restructure into `@career-assistant/data`, `@career-assistant/server`, `@career-assistant/client` (CAR-17). Update import paths (CAR-18). Migrate to ES modules (CAR-19).
@@ -121,11 +128,20 @@ Replace triage and career development Claude project workflows with direct API c
 **LLM-powered job market analysis (CAR-32)** *(Backlog)*
 Bulk ingestion pipeline (CAR-33), role classification and skill extraction (CAR-34), cloud and local LLM integration (CAR-35), market analysis dashboard (CAR-36).
 
+**Server route test suite (CAR-73)** *(Backlog)*
+Tests for Fastify routes using `inject()`.
+
+**Analytics foundation (CAR-70)** *(Backlog)*
+Pre-built aggregate queries and analytics view.
+
+**ARCHITECTURE.md (CAR-69)** *(Backlog)*
+In-depth documentation of design decisions and rationale.
+
 **Known bugs (Backlog)**
-Role can simultaneously have skip and termination reasons (CAR-53).
+Role can simultaneously have skip and termination reasons (CAR-53). `request.body as any` on POST /api/roles (CAR-61). `ref<any>` in Vue components, deferred to CAR-4 (CAR-62).
 
 **Ideas under consideration (Backlog)**
-Runtime schema validation — Zod / TypeBox / Valibot (CAR-44). Contract testing — Pact / OpenAPI (CAR-45). Prettier for automated formatting (CAR-52).
+Runtime schema validation — Zod / TypeBox / Valibot (CAR-44). Contract testing — Pact / OpenAPI (CAR-45). Prettier for automated formatting (CAR-52). Deprecate raw SQL query endpoint before non-local deployment (CAR-71). Structured observability and logging (CAR-72).
 
 ---
 
@@ -156,6 +172,11 @@ career-assistant/
 │       ├── views/           # RoleList, RoleDetail, AddRole, SqlQuery
 │       ├── composables/     # useApi fetch wrapper
 │       └── constants.ts     # Frontend vocabulary constants
+├── e2e/                     # Playwright E2E tests
+│   ├── playwright.config.ts
+│   ├── tsconfig.json
+│   ├── pages/               # Page Object Model classes
+│   └── tests/               # Playwright specs
 └── tests/
     ├── helpers/             # createTestDb(), runScript()
     ├── unit/                # Pure function tests
@@ -176,6 +197,8 @@ career-assistant/
 
 **Server/client split** — Fastify on port 3000, Vite on port 5173 proxying `/api` in development. Chosen to keep the backend deployment-ready for future cloud architecture without structural changes.
 
+**Co-located configuration** — each module owns its TypeScript and tool configuration: `client/tsconfig.json` for the Vue frontend, `e2e/playwright.config.ts` and `e2e/tsconfig.json` for Playwright. Root `tsconfig.json` covers the Node.js data layer.
+
 ### Technology choices
 
 | Concern | Choice | Rationale |
@@ -183,7 +206,9 @@ career-assistant/
 | Database | SQLite + better-sqlite3 | Local-first, zero infrastructure, synchronous API |
 | Language | TypeScript 6 (strict) | Type safety for domain vocabulary, compile-time correctness |
 | Test framework | Vitest | Native TypeScript, Vite-native, Jest-compatible API |
+| E2E framework | Playwright | Cross-browser, POM support, first-class TypeScript |
 | HTTP server | Fastify | TypeScript-native, performant, plugin architecture |
 | Frontend | Vue 3 (Composition API) | Vite-native, same author as Vite, clean TS integration |
 | CSS | Tailwind CSS v4 | Utility-first, `@theme`-based custom tokens |
 | Runtime | Node.js 24 | LTS, compatible with better-sqlite3 v12+ |
+| License | GPL v3 | Copyleft — derivative works must remain open source |
