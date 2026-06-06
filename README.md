@@ -1,5 +1,7 @@
 # career-assistant
 
+*Licensed under the [GNU General Public License v3.0](LICENSE).*
+
 ## Contents
 
 1. [Overview](#overview)
