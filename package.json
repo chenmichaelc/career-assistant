@@ -4,7 +4,9 @@
   "description": "Local job search state management and career tooling.",
   "main": "index.js",
   "scripts": {
+    "client": "cd client && npm run dev",
     "init": "ts-node db/init.ts",
+    "server": "ts-node server/index.ts",
     "test": "vitest",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:ui": "playwright test --config e2e/playwright.config.ts --ui",
@@ -12,7 +14,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "type": "commonjs",
   "dependencies": {
     "@fastify/cors": "^11.2.0",
