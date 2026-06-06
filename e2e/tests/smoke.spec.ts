@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { RolesPage } from "../pages/rolesPage";
 
-test('Static smoke test of Index page', async ({ page }) => {
+test('Static smoke test of Default Page on Index', async ({ page }) => {
+
+  const indexPage = new RolesPage(page)
+
   await page.goto('http://localhost:5173/');
 
   // Expect "Career Assistant" to be the page title
@@ -9,21 +13,13 @@ test('Static smoke test of Index page', async ({ page }) => {
   // Expect the page title to appear on the index page
   await expect(page.getByText('career-assistant')).toBeVisible();
 
-  // Expect the Roles top menu item to appear on the index page
-  await expect(page.getByRole('link', { name: 'roles' })).toBeVisible();
+  // Expect all top menu items to appear on the index page
+  await expect(indexPage.topMenuRolesLink).toBeVisible();
+  await expect(indexPage.topMenuAddLink).toBeVisible();
+  await expect(indexPage.topMenuQueryLink).toBeVisible();
+  await expect(indexPage.topMenuBackupLink).toBeVisible();
 
-  // Expect the Add top menu item to appear on the index page
-  await expect(page.getByRole('link', { name: 'add' })).toBeVisible();
-
-  // Expect the Query top menu item to appear on the index page
-  await expect(page.getByRole('link', { name: 'query' })).toBeVisible();
-
-  // Expect the Backup top menu item to appear on the index page
-  await expect(page.getByRole('button', { name: 'backup' })).toBeVisible();
-
-  // Expect the Roles table header to appear on the index page
-  await expect(page.getByRole('heading', { name: 'Roles' })).toBeVisible();
-
-  // Expect the Search button to appear on the index page
-  await expect(page.getByRole('button', { name: 'search' })).toBeVisible();
+  // Expect key elements of Roles table header to appear on the index page
+  await expect(indexPage.rolesTableHeading).toBeVisible();
+  await expect(indexPage.searchButton).toBeVisible();
 });
