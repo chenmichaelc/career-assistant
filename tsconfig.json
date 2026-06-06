@@ -14,11 +14,10 @@
     "db/**/*",
     "lib/**/*",
     "scripts/**/*",
-    "tests/**/*"
+    "tests/**/*",
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "db/seed.js"
   ]
 }
