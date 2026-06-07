@@ -73,8 +73,6 @@ export default defineConfig({
       url:                 'http://127.0.0.1:3000/healthcheck',
       name:                'Fastify Server',
       reuseExistingServer: !process.env.CI,
-      stdout:              'pipe',
-      stderr:              'pipe',
     },
     {
       command:             'npm run client',
