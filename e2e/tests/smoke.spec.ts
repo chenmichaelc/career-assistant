@@ -1,16 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { RolesPage } from "../pages/rolesPage";
+import { RolesPage }    from '../pages/rolesPage';
 
 test('Static smoke test of Default Page on Index', async ({ page }) => {
+  const indexPage = new RolesPage(page);
 
-  const indexPage = new RolesPage(page)
-
-  await page.goto('http://localhost:5173/');
+  await page.goto('/');
 
   // Expect "Career Assistant" to be the page title
   await expect(page).toHaveTitle(/Career Assistant/);
 
-  // Expect the page title to appear on the index page
+  // Expect "Career Assistant" to be the page title
   await expect(page.getByText('career-assistant')).toBeVisible();
 
   // Expect all top menu items to appear on the index page
