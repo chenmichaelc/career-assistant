@@ -7,20 +7,58 @@
     </div>
 
     <!-- Filters -->
-    <div class="flex gap-3 mb-6">
-      <select
-          v-model="filterStatus"
-          class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded w-48 focus:outline-none focus:border-accent"
-      >
-        <option value="">filter by status</option>
-        <option v-for="s in VALID_STATUSES" :key="s" :value="s">{{ s }}</option>
-      </select>
+    <div class="flex gap-3 mb-6 flex-wrap">
+
+      <!-- Status multi-select dropdown -->
+      <div class="relative" ref="statusDropdownRef">
+        <button
+            @click="showStatusDropdown = !showStatusDropdown"
+            class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded w-48 text-left flex items-center justify-between hover:border-accent transition-colors focus:outline-none"
+        >
+          <span class="truncate">{{ statusLabel }}</span>
+          <span class="text-dim text-xs ml-2">▾</span>
+        </button>
+
+        <div
+            v-if="showStatusDropdown"
+            class="absolute top-full mt-1 left-0 z-10 bg-panel border border-border rounded shadow-lg w-56"
+        >
+          <!-- Controls -->
+          <div class="flex gap-2 px-3 pt-3 pb-2 border-b border-border">
+            <button @click="selectAll"  class="font-mono text-xs text-accent hover:opacity-80 transition-opacity">all</button>
+            <span class="text-dim text-xs">·</span>
+            <button @click="selectNone" class="font-mono text-xs text-accent hover:opacity-80 transition-opacity">none</button>
+            <span class="text-dim text-xs">·</span>
+            <button @click="selectActive" class="font-mono text-xs text-accent hover:opacity-80 transition-opacity">active</button>
+          </div>
+
+          <!-- Options -->
+          <div class="py-1 max-h-64 overflow-y-auto">
+            <label
+                v-for="s in VALID_STATUSES"
+                :key="s"
+                class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"
+            >
+              <input
+                  type="checkbox"
+                  :value="s"
+                  v-model="filterStatuses"
+                  class="accent-accent"
+              />
+              <span class="font-mono text-sm text-text">{{ s }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Company filter -->
       <input
           v-model="filterCompany"
           @keyup.enter="load"
           placeholder="filter by company"
           class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded w-56 focus:outline-none focus:border-accent"
       />
+
       <button @click="load" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 transition-opacity">
         search
       </button>
@@ -42,12 +80,24 @@
       <table class="w-full font-mono text-sm border-collapse">
         <thead>
         <tr class="border-b border-border text-dim text-left">
-          <th class="pb-3 pr-4 font-medium w-12">id</th>
-          <th class="pb-3 pr-4 font-medium">company</th>
-          <th class="pb-3 pr-4 font-medium">title</th>
-          <th class="pb-3 pr-4 font-medium">status</th>
-          <th class="pb-3 pr-4 font-medium">candidacy</th>
-          <th class="pb-3 font-medium">applied</th>
+          <th @click="setSort('id')"           class="pb-3 pr-4 font-medium w-12 cursor-pointer hover:text-text transition-colors select-none">
+            id <span class="text-xs">{{ sortIndicator('id') }}</span>
+          </th>
+          <th @click="setSort('company')"      class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none">
+            company <span class="text-xs">{{ sortIndicator('company') }}</span>
+          </th>
+          <th @click="setSort('title')"        class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none">
+            title <span class="text-xs">{{ sortIndicator('title') }}</span>
+          </th>
+          <th @click="setSort('role_status')"  class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none">
+            status <span class="text-xs">{{ sortIndicator('role_status') }}</span>
+          </th>
+          <th @click="setSort('candidacy')"    class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none">
+            candidacy <span class="text-xs">{{ sortIndicator('candidacy') }}</span>
+          </th>
+          <th @click="setSort('applied_date')" class="pb-3 font-medium cursor-pointer hover:text-text transition-colors select-none">
+            applied <span class="text-xs">{{ sortIndicator('applied_date') }}</span>
+          </th>
         </tr>
         </thead>
         <tbody>
@@ -75,25 +125,70 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted }  from 'vue';
-import { useRouter }       from 'vue-router';
-import { apiFetch }        from '@/composables/useApi';
-import { VALID_STATUSES }  from '@/constants';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter }                              from 'vue-router';
+import { apiFetch }                              from '@/composables/useApi';
+import { VALID_STATUSES }                        from '@/constants';
 
-const router        = useRouter();
-const roles         = ref<any[]>([]);
-const loading       = ref(false);
-const error         = ref('');
-const filterStatus  = ref('');
-const filterCompany = ref('');
+const INACTIVE_STATUSES = ['Skipped', 'Closed'];
+const ACTIVE_STATUSES   = VALID_STATUSES.filter(s => !INACTIVE_STATUSES.includes(s));
+
+const router              = useRouter();
+const roles               = ref<any[]>([]);
+const loading             = ref(false);
+const error               = ref('');
+const filterStatuses      = ref<string[]>([...ACTIVE_STATUSES]);
+const filterCompany       = ref('');
+const sortColumn          = ref('id');
+const sortOrder           = ref<'ASC' | 'DESC'>('DESC');
+const showStatusDropdown  = ref(false);
+const statusDropdownRef   = ref<HTMLElement | null>(null);
+
+// ─── Status dropdown label ────────────────────────────────────────────────────
+
+const statusLabel = computed(() => {
+  const count = filterStatuses.value.length;
+  if (count === 0)                    return 'no status selected';
+  if (count === VALID_STATUSES.length) return 'all statuses';
+  if (count === 1)                    return filterStatuses.value[0];
+  return `${count} statuses`;
+});
+
+// ─── Status selection helpers ─────────────────────────────────────────────────
+
+function selectAll()    { filterStatuses.value = [...VALID_STATUSES]; }
+function selectNone()   { filterStatuses.value = []; }
+function selectActive() { filterStatuses.value = [...ACTIVE_STATUSES]; }
+
+// ─── Close dropdown on outside click ─────────────────────────────────────────
+
+function handleClickOutside(e: MouseEvent) {
+  if (statusDropdownRef.value && !statusDropdownRef.value.contains(e.target as Node)) {
+    showStatusDropdown.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside);
+  load();
+});
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside);
+});
+
+// ─── Load ─────────────────────────────────────────────────────────────────────
 
 async function load() {
-  loading.value = true;
-  error.value   = '';
+  showStatusDropdown.value = false;
+  loading.value            = true;
+  error.value              = '';
   try {
     const params = new URLSearchParams();
-    if (filterStatus.value)  params.set('status',  filterStatus.value);
+    filterStatuses.value.forEach(s => params.append('status[]', s));
     if (filterCompany.value) params.set('company', filterCompany.value);
+    params.set('sort',  sortColumn.value);
+    params.set('order', sortOrder.value);
     roles.value = await apiFetch<any[]>(`/api/roles?${params}`);
   }
   catch (err) {
@@ -104,15 +199,41 @@ async function load() {
   }
 }
 
-function clearFilters() {
-  filterStatus.value  = '';
-  filterCompany.value = '';
+// ─── Sort ─────────────────────────────────────────────────────────────────────
+
+function setSort(column: string) {
+  if (sortColumn.value === column) {
+    sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC';
+  }
+  else {
+    sortColumn.value = column;
+    sortOrder.value  = 'DESC';
+  }
   load();
 }
+
+function sortIndicator(column: string): string {
+  if (sortColumn.value !== column) return '';
+  return sortOrder.value === 'ASC' ? '↑' : '↓';
+}
+
+// ─── Clear ────────────────────────────────────────────────────────────────────
+
+function clearFilters() {
+  filterStatuses.value = [...ACTIVE_STATUSES];
+  filterCompany.value  = '';
+  sortColumn.value     = 'id';
+  sortOrder.value      = 'DESC';
+  load();
+}
+
+// ─── Navigation ──────────────────────────────────────────────────────────────
 
 function goToRole(id: number) {
   router.push(`/roles/${id}`);
 }
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
 
 function statusClass(status: string): string {
   const map: Record<string, string> = {
@@ -130,6 +251,4 @@ function statusClass(status: string): string {
   };
   return map[status] ?? 'bg-muted/40 text-dim';
 }
-
-onMounted(load);
 </script>
