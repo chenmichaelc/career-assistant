@@ -15,7 +15,8 @@ jobs:
           node-version: '24'
       - run: npm ci
       - run: npm run build --if-present
-      - run: npm run .\client\build --if-present
+      - run: npm ci .\client
+      - run: npm run build .\client\ --if-present
       - run: npm run init
       - run: npm run test
       - run: npm run test:e2e
