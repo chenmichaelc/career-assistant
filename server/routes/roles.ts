@@ -58,7 +58,28 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   // ─── GET /api/roles ─────────────────────────────────────────────────────────
 
   fastify.get('/', async (request, reply) => {
-    const { status, company } = request.query as { status?: string; company?: string };
+    const { company, sort, order } = request.query as {
+      company?: string;
+      sort?:    string;
+      order?:   string;
+    };
+
+    const rawStatuses = (request.query as Record<string, string | string[]>)['status[]'];
+    const statuses: string[] = rawStatuses
+        ? (Array.isArray(rawStatuses) ? rawStatuses : [rawStatuses])
+        : [];
+
+    const VALID_SORT_COLUMNS: Record<string, string> = {
+      id:           'r.id',
+      company:      'r.company',
+      title:        'r.title',
+      role_status:  'r.role_status',
+      candidacy:    'r.candidacy',
+      applied_date: 'r.applied_date',
+    };
+
+    const sortColumn = VALID_SORT_COLUMNS[sort ?? 'id'] ?? 'r.id';
+    const sortOrder  = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     let query = `
       SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
@@ -69,9 +90,10 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     `;
     const params: string[] = [];
 
-    if (status) {
-      query += ` AND r.role_status = ?`;
-      params.push(status);
+    if (statuses.length > 0) {
+      const placeholders = statuses.map(() => '?').join(', ');
+      query += ` AND r.role_status IN (${placeholders})`;
+      params.push(...statuses);
     }
 
     if (company) {
@@ -79,7 +101,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       params.push(`%${company}%`);
     }
 
-    query += ` ORDER BY r.applied_date DESC, r.company ASC`;
+    query += ` ORDER BY ${sortColumn} ${sortOrder}`;
 
     const roles = db.prepare(query).all(...params) as RoleRow[];
 
@@ -105,7 +127,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
              r.applied_date, r.salary_min, r.salary_max, r.notes,
              r.created_at, r.updated_at, jd.content AS jd
       FROM roles r
-      LEFT JOIN job_descriptions jd ON jd.role_id = r.id
+             LEFT JOIN job_descriptions jd ON jd.role_id = r.id
       WHERE r.id = ?
     `).get(id) as (RoleRow & { jd: string }) | undefined;
 
@@ -248,7 +270,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
              r.applied_date, r.salary_min, r.salary_max, r.notes,
              r.created_at, r.updated_at, jd.content AS jd
       FROM roles r
-      LEFT JOIN job_descriptions jd ON jd.role_id = r.id
+             LEFT JOIN job_descriptions jd ON jd.role_id = r.id
       WHERE r.id = ?
     `).get(id) as (RoleRow & { jd: string }) | undefined;
 
