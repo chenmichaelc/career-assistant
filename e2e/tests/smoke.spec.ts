@@ -13,10 +13,10 @@ test('Static smoke test of Default Page on Index', async ({ page }) => {
   await expect(page.getByText('career-assistant')).toBeVisible();
 
   // Expect all top menu items to appear on the index page
-  await expect(indexPage.topMenuRolesLink).toBeVisible();
-  await expect(indexPage.topMenuAddLink).toBeVisible();
-  await expect(indexPage.topMenuQueryLink).toBeVisible();
-  await expect(indexPage.topMenuBackupLink).toBeVisible();
+  await expect(indexPage.topMenuBar.rolesLink).toBeVisible();
+  await expect(indexPage.topMenuBar.addLink).toBeVisible();
+  await expect(indexPage.topMenuBar.queryLink).toBeVisible();
+  await expect(indexPage.topMenuBar.backupButton).toBeVisible();
 
   // Expect key elements of Roles table header to appear on the index page
   await expect(indexPage.rolesTableHeading).toBeVisible();
