@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-surface">
-    <nav class="border-b border-border px-6 py-4 flex items-center justify-between">
+    <nav data-testid="menu-bar" class="border-b border-border px-6 py-4 flex items-center justify-between">
       <router-link to="/" class="font-mono text-accent font-semibold tracking-tight text-lg">
         career-assistant
       </router-link>

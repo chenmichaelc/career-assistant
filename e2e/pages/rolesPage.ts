@@ -1,21 +1,19 @@
+// e2e/pages/rolesPage.ts
+
 import { type Locator, type Page } from '@playwright/test';
+import { TopMenuBarComponent }        from './topMenuBarComponent';
 
 export class RolesPage {
-    readonly page: Page;
-    readonly topMenuRolesLink: Locator;
-    readonly topMenuAddLink: Locator;
-    readonly topMenuQueryLink: Locator;
-    readonly topMenuBackupLink: Locator;
+    readonly page:    Page;
+    readonly topMenuBar: TopMenuBarComponent;
+
     readonly rolesTableHeading: Locator;
-    readonly searchButton: Locator;
+    readonly searchButton:      Locator;
 
     constructor(page: Page) {
-        this.page = page;
-        this.topMenuRolesLink = page.getByRole('link', { name: 'roles' });
-        this.topMenuAddLink = page.getByRole('link', { name: 'add' });
-        this.topMenuQueryLink = page.getByRole('link', { name: 'query' });
-        this.topMenuBackupLink = page.getByRole('button', { name: 'backup' });
+        this.page    = page;
+        this.topMenuBar = new TopMenuBarComponent(page);
         this.rolesTableHeading = page.getByRole('heading', { name: 'Roles' });
-        this.searchButton = page.getByRole('button', { name: 'search' });
+        this.searchButton      = page.getByRole('button',  { name: 'search' });
     }
 }
