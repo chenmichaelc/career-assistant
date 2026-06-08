@@ -59,10 +59,10 @@ Creates `db/career-assistant.sqlite`.
 
 ```bash
 # Terminal 1 — API server (port 3000)
-npx ts-node server/index.ts
+npm run server
 
 # Terminal 2 — Vue client (port 5173)
-cd client && npm run dev
+npm run client
 ```
 
 Open `http://localhost:5173`.
@@ -70,8 +70,8 @@ Open `http://localhost:5173`.
 ### Tests
 
 ```bash
-npm test                                                        # Vitest unit + integration
-npm run test:e2e                                                # Playwright E2E
+npm test              # Vitest unit + integration
+npm run test:e2e      # Playwright E2E
 ```
 
 ---
@@ -89,7 +89,7 @@ npm run test:e2e                                                # Playwright E2E
 | Frontend stabilization and bug fixes (CAR-2) | Done |
 | Rename e2e → integration tests (CAR-14) | Done |
 | Node.js upgrade to v24 (CAR-31) | Done |
-| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | In Progress |
+| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | Done |
 
 ---
 
@@ -98,25 +98,25 @@ npm run test:e2e                                                # Playwright E2E
 Items in rough priority order. Backlog items are lower priority.
 
 **Playwright webServer + baseURL configuration (CAR-77)**
-Configure Playwright to start the server and client automatically. Blocked by CAR-74.
-
-**Server and client npm scripts (CAR-74)**
-Add `server` and `client` scripts to root `package.json` as the authoritative entry points for running the application.
+Configure Playwright to automatically start the server and client before tests run.
 
 **Test infrastructure (CAR-3)**
-Test database isolation (CAR-16) to enable integration and E2E tests to run without touching production data.
-
-**ESLint (CAR-37)**
-Enforce codebase style conventions including `stroustrup` brace style (CAR-51).
+Test database isolation via DB_PATH environment variable (CAR-16) to enable clean CI runs against an in-memory database.
 
 **GitHub merge gate (CAR-56)**
 Unit test gate (CAR-57), then integration (CAR-58, blocked by CAR-16) and Playwright (CAR-59, blocked by CAR-15). Node 24 workflow update (CAR-60, blocked by CAR-57).
 
+**ESLint (CAR-37)**
+Enforce codebase style conventions including `stroustrup` brace style (CAR-51).
+
 **Data layer refactor (CAR-5)**
-Extract single-table `db/` modules (CAR-20), refactor `lib/` orchestration (CAR-21), fill one-to-many test coverage gaps (CAR-22). Extend status transition modal to support per-reason notes once data layer supports it (CAR-50).
+Extract single-table `db/` modules (CAR-20), refactor `lib/` orchestration (CAR-21), fill one-to-many test coverage gaps (CAR-22).
 
 **Playwright full workflow coverage (CAR-63)** *(blocked by CAR-15, CAR-16)*
 Roles list (CAR-64), role detail (CAR-65), add role (CAR-66), SQL query (CAR-67), backup (CAR-68).
+
+**Refactor RoleDetail.vue (CAR-99)** *(Backlog)*
+Extract DeleteModal, ExportModal, ReasonModal, and AddReasonControl into dedicated components.
 
 **npm workspace restructuring + ES module migration (CAR-4)** *(Backlog)*
 Restructure into `@career-assistant/data`, `@career-assistant/server`, `@career-assistant/client` (CAR-17). Update import paths (CAR-18). Migrate to ES modules (CAR-19).
@@ -136,18 +136,17 @@ Tests for Fastify routes using `inject()`.
 **Analytics foundation (CAR-70)** *(Backlog)*
 Pre-built aggregate queries and analytics view.
 
-**ARCHITECTURE.md (CAR-69)** *(Backlog)*
-In-depth documentation of design decisions and rationale.
-
 **Known bugs (Backlog)**
-Role can simultaneously have skip and termination reasons (CAR-53). `request.body as any` on POST /api/roles (CAR-61). `ref<any>` in Vue components, deferred to CAR-4 (CAR-62).
+Role can simultaneously have skip and termination reasons (CAR-53). `request.body as any` on POST /api/roles (CAR-61). `ref<any>` in Vue components, deferred to CAR-4 (CAR-62). POST reason endpoints pass role ID as string (CAR-103). Backup route blocks event loop with sync fs calls (CAR-104).
 
 **Ideas under consideration (Backlog)**
-Runtime schema validation — Zod / TypeBox / Valibot (CAR-44). Contract testing — Pact / OpenAPI (CAR-45). Prettier for automated formatting (CAR-52). Deprecate raw SQL query endpoint before non-local deployment (CAR-71). Structured observability and logging (CAR-72).
+Runtime schema validation — Zod / TypeBox / Valibot (CAR-44). Contract testing — Pact / OpenAPI (CAR-45). Prettier for automated formatting (CAR-52). Deprecate raw SQL query endpoint before non-local deployment (CAR-71). Structured observability and logging (CAR-72). Automated job post scraping (CAR-93). Resume storage and analysis (CAR-94). Custom resume builder (CAR-95).
 
 ---
 
 ## Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for in-depth documentation of design decisions and rationale.
 
 ### Repository structure
 
