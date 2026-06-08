@@ -132,12 +132,13 @@ import { VALID_STATUSES }                        from '@/constants';
 
 const INACTIVE_STATUSES = ['Skipped', 'Closed'];
 const ACTIVE_STATUSES   = VALID_STATUSES.filter(s => !INACTIVE_STATUSES.includes(s));
+const DEFAULT_STATUSES = [...VALID_STATUSES];
 
 const router              = useRouter();
 const roles               = ref<any[]>([]);
 const loading             = ref(false);
 const error               = ref('');
-const filterStatuses      = ref<string[]>([...ACTIVE_STATUSES]);
+const filterStatuses      = ref<string[]>([...DEFAULT_STATUSES]);
 const filterCompany       = ref('');
 const sortColumn          = ref('id');
 const sortOrder           = ref<'ASC' | 'DESC'>('DESC');
@@ -220,7 +221,7 @@ function sortIndicator(column: string): string {
 // ─── Clear ────────────────────────────────────────────────────────────────────
 
 function clearFilters() {
-  filterStatuses.value = [...ACTIVE_STATUSES];
+  filterStatuses.value = [...DEFAULT_STATUSES];
   filterCompany.value  = '';
   sortColumn.value     = 'id';
   sortOrder.value      = 'DESC';
