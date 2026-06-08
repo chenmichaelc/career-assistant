@@ -83,6 +83,11 @@ export function updateRole(db: Database.Database, flags: UpdateArgs): RoleRow {
   const updateRoleStatus = db.prepare(`
     UPDATE roles
     SET role_status = @role_status,
+        applied_date = CASE
+            WHEN @role_status = 'Applied' AND applied_date IS NULL
+            THEN date('now')
+            ELSE applied_date
+            END,
         updated_at  = datetime('now')
     WHERE id = @id
   `);

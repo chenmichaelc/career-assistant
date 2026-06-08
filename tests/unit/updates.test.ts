@@ -150,6 +150,37 @@ describe('updateRole', () => {
     expect(role.role_status).toBe('Pending Triage');
   });
 
+  test('sets applied_date when transitioning to Applied and no date exists', () => {
+    const id    = addRole(db, baseRole);
+    const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
+
+    updateRole(db, flags);
+
+    const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    expect(role.applied_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  test('preserves existing applied_date when transitioning to Applied', () => {
+    const roleWithDate: RoleInput = { ...baseRole, applied_date: '2024-01-15' };
+    const id    = addRole(db, roleWithDate);
+    const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
+
+    updateRole(db, flags);
+
+    const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    expect(role.applied_date).toBe('2024-01-15');
+  });
+
+  test('does not set applied_date when transitioning to a non-Applied status', () => {
+    const id    = addRole(db, baseRole);
+    const flags: UpdateArgs = { id: String(id), status: 'On Hold', reasons: [], termination: [] };
+
+    updateRole(db, flags);
+
+    const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    expect(role.applied_date).toBeNull();
+  });
+
   test('inserts skip reasons correctly', () => {
     const id    = addRole(db, baseRole);
     const flags: UpdateArgs = {
