@@ -21,7 +21,7 @@ export async function backupRouter(fastify: FastifyInstance, options: PluginOpti
     }
 
     const timestamp  = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = path.join(backupDir, `jobsearch-${timestamp}.sqlite`);
+    const backupPath = path.join(backupDir, `career-assistant-${timestamp}.sqlite`);
 
     await db.backup(backupPath);
 
