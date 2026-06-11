@@ -27,8 +27,8 @@ career-assistant/
 │       ├── push.yml                # CI — runs on every push
 │       └── pull-request.yml        # CI — runs on every pull request
 ├── db/
-│   ├── schema.ts                   # Single source of truth for SQLite schema
-│   └── init.ts                     # One-time DB initialization script
+│   ├── schema.ts                   # Single source of truth for SQLite schema (definitions only)
+│   └── setup.ts                    # Exports applySchema() for server and test use
 ├── lib/                            # Business logic — no I/O, independently testable
 │   ├── types.ts                    # Shared types + runtime vocabulary arrays
 │   ├── roles.ts                    # Role insertion with validation
@@ -40,9 +40,10 @@ career-assistant/
 │   │   ├── simple.ts               # company + title + JD format
 │   │   └── rich.ts                 # Importer-compatible format
 │   └── args/
-│       ├── update-args.ts           # CLI argument parser for update-status
+│       ├── update-args.ts          # CLI argument parser for update-status
 │       └── list-args.ts            # CLI argument parser for list-roles
 ├── scripts/                        # CLI entry points — thin I/O wrappers over lib/
+│   ├── init-db.ts                  # One-time DB initialization — calls applySchema()
 ├── server/
 │   ├── package.json                # Server-scoped dependencies (early workspace structure)
 │   ├── index.ts                    # Fastify server setup + route registration
