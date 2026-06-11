@@ -2,6 +2,11 @@
 
 *Licensed under the [GNU General Public License v3.0](LICENSE).*
 
+| Pipeline Description     | Status |
+|--------------------------|--------------|
+| Most Recent Pull Request | [![pull-request](https://github.com/chenmichaelc/career-assistant/actions/workflows/pull-request.yml/badge.svg)](https://github.com/chenmichaelc/career-assistant/actions/workflows/pull-request.yml) |
+| Most Recent Push         | [![Most Recent Push](https://github.com/chenmichaelc/career-assistant/actions/workflows/push.yml/badge.svg)](https://github.com/chenmichaelc/career-assistant/actions/workflows/push.yml) |
+
 ## Contents
 
 1. [Overview](#overview)
@@ -45,6 +50,7 @@ This project also serves as a deliberate experiment in LLM-assisted software dev
 nvm use
 npm install
 cd client && npm install && cd ..
+cd e2e && npm install && cd ..
 ```
 
 ### Initialise the database
@@ -78,18 +84,19 @@ npm run test:e2e      # Playwright E2E
 
 ## Milestones
 
-| Milestone | Status |
-|---|---|
-| SQLite schema, seed import, CLI data layer | Done |
-| TypeScript migration, Vitest test suite | Done |
-| Full CLI tooling (import, export, update, delete) | Done |
-| Layered validation architecture | Done |
-| Unit and integration test suite | Done |
-| Vue 3 frontend + Fastify REST API | Done |
-| Frontend stabilization and bug fixes (CAR-2) | Done |
-| Rename e2e → integration tests (CAR-14) | Done |
-| Node.js upgrade to v24 (CAR-31) | Done |
+| Milestone                                                             | Status |
+|-----------------------------------------------------------------------|---|
+| SQLite schema, seed import, CLI data layer                            | Done |
+| TypeScript migration, Vitest test suite                               | Done |
+| Full CLI tooling (import, export, update, delete)                     | Done |
+| Layered validation architecture                                       | Done |
+| Unit and integration test suite                                       | Done |
+| Vue 3 frontend + Fastify REST API                                     | Done |
+| Frontend stabilization and bug fixes (CAR-2)                          | Done |
+| Rename e2e → integration tests (CAR-14)                               | Done |
+| Node.js upgrade to v24 (CAR-31)                                       | Done |
 | Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | Done |
+| **GitHub merge gate (CAR-56)                                          | Done |
 
 ---
 
@@ -97,23 +104,23 @@ npm run test:e2e      # Playwright E2E
 
 Items in rough priority order. Backlog items are lower priority.
 
-**Playwright webServer + baseURL configuration (CAR-77)**
-Configure Playwright to automatically start the server and client before tests run.
-
 **Test infrastructure (CAR-3)**
 Test database isolation via DB_PATH environment variable (CAR-16) to enable clean CI runs against an in-memory database.
-
-**GitHub merge gate (CAR-56)**
-Unit test gate (CAR-57), then integration (CAR-58, blocked by CAR-16) and Playwright (CAR-59, blocked by CAR-15). Node 24 workflow update (CAR-60, blocked by CAR-57).
 
 **ESLint (CAR-37)**
 Enforce codebase style conventions including `stroustrup` brace style (CAR-51).
 
 **Data layer refactor (CAR-5)**
-Extract single-table `db/` modules (CAR-20), refactor `lib/` orchestration (CAR-21), fill one-to-many test coverage gaps (CAR-22).
+Extract single-table `lib/db/` modules (CAR-20), refactor `lib/` orchestration (CAR-21), fill one-to-many test coverage gaps (CAR-22).
+
+**Contextual status tracking (CAR-116)**
+Decompose the overloaded `role_status` field into separate triage status, application history status, and analysis status fields (CAR-118, CAR-119, CAR-120). Update filters and UI accordingly (CAR-117).
 
 **Playwright full workflow coverage (CAR-63)** *(blocked by CAR-15, CAR-16)*
 Roles list (CAR-64), role detail (CAR-65), add role (CAR-66), SQL query (CAR-67), backup (CAR-68).
+
+**Playwright test data management (CAR-91)**
+Fixture-based role creation and cleanup via semantic company name identification.
 
 **Refactor RoleDetail.vue (CAR-99)** *(Backlog)*
 Extract DeleteModal, ExportModal, ReasonModal, and AddReasonControl into dedicated components.
@@ -153,6 +160,10 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for in-depth documentation of design deci
 ```
 career-assistant/
 ├── .nvmrc                   # Node.js version (24)
+├── .github/
+│   └── workflows/
+│       ├── push.yml         # CI — runs on every push
+│       └── pull-request.yml # CI — runs on every pull request
 ├── db/                      # Schema and initialization
 │   ├── schema.ts            # Single source of truth for SQLite schema
 │   └── init.ts              # One-time DB initialization
@@ -166,6 +177,7 @@ career-assistant/
 │   └── args/                # CLI argument parsers
 ├── scripts/                 # CLI entry points — thin I/O wrappers over lib/
 ├── server/                  # Fastify REST API
+│   ├── package.json         # Server-scoped dependencies (early workspace structure)
 │   └── routes/              # roles, query, backup
 ├── client/                  # Vue 3 frontend
 │   ├── tsconfig.json        # Browser-targeted TypeScript config
@@ -174,6 +186,7 @@ career-assistant/
 │       ├── composables/     # useApi fetch wrapper
 │       └── constants.ts     # Frontend vocabulary constants
 ├── e2e/                     # Playwright E2E tests
+│   ├── package.json         # E2E-scoped dependencies
 │   ├── playwright.config.ts
 │   ├── tsconfig.json
 │   ├── pages/               # Page Object Model classes
