@@ -10,9 +10,10 @@ This document goes deeper than the README on the design decisions behind career-
 4. [Validation architecture](#validation-architecture)
 5. [Test philosophy](#test-philosophy)
 6. [Server and client](#server-and-client)
-7. [TypeScript conventions](#typescript-conventions)
-8. [Configuration co-location](#configuration-co-location)
-9. [Planned evolution](#planned-evolution)
+7. [CI/CD](#cicd)
+8. [TypeScript conventions](#typescript-conventions)
+9. [Configuration co-location](#configuration-co-location)
+10. [Planned evolution](#planned-evolution)
 
 ---
 
@@ -20,61 +21,64 @@ This document goes deeper than the README on the design decisions behind career-
 
 ```
 career-assistant/
-├── .nvmrc                        # Node.js version pin (24)
+├── .nvmrc                          # Node.js version pin (24)
+├── .github/
+│   └── workflows/
+│       ├── push.yml                # CI — runs on every push
+│       └── pull-request.yml        # CI — runs on every pull request
 ├── db/
-│   ├── schema.ts                 # Single source of truth for SQLite schema
-│   └── init.ts                   # One-time DB initialization script
-├── lib/                          # Business logic — no I/O, independently testable
-│   ├── types.ts                  # Shared types + runtime vocabulary arrays
-│   ├── roles.ts                  # Role insertion with validation
-│   ├── updates.ts                # Status update validation + orchestration
-│   ├── deletes.ts                # Delete operations with FK awareness
-│   ├── parse-records.ts          # Plain-text import format parser
+│   ├── schema.ts                   # Single source of truth for SQLite schema
+│   └── init.ts                     # One-time DB initialization script
+├── lib/                            # Business logic — no I/O, independently testable
+│   ├── types.ts                    # Shared types + runtime vocabulary arrays
+│   ├── roles.ts                    # Role insertion with validation
+│   ├── updates.ts                  # Status update validation + orchestration
+│   ├── deletes.ts                  # Delete operations with FK awareness
+│   ├── parse-records.ts            # Plain-text import format parser
 │   ├── exporters/
-│   │   ├── index.ts              # Export entry point + format type
-│   │   ├── simple.ts             # company + title + JD format
-│   │   └── rich.ts               # Importer-compatible format
+│   │   ├── index.ts                # Export entry point + format type
+│   │   ├── simple.ts               # company + title + JD format
+│   │   └── rich.ts                 # Importer-compatible format
 │   └── args/
-│       ├── update-args.ts        # CLI argument parser for update-status
-│       └── list-args.ts          # CLI argument parser for list-roles
-├── scripts/                      # CLI entry points — thin I/O wrappers over lib/
+│       ├── update-args.ts           # CLI argument parser for update-status
+│       └── list-args.ts            # CLI argument parser for list-roles
+├── scripts/                        # CLI entry points — thin I/O wrappers over lib/
 ├── server/
-│   ├── index.ts                  # Fastify server setup + route registration
+│   ├── package.json                # Server-scoped dependencies (early workspace structure)
+│   ├── index.ts                    # Fastify server setup + route registration
 │   └── routes/
-│       ├── roles.ts              # Role CRUD, status updates, reason management
-│       ├── query.ts              # Raw SQL query endpoint
-│       └── backup.ts             # DB backup endpoint
+│       ├── roles.ts                # Role CRUD, status updates, reason management
+│       ├── query.ts                # Raw SQL query endpoint
+│       └── backup.ts               # DB backup endpoint
 ├── client/
-│   ├── tsconfig.json             # Browser-targeted TypeScript config
-│   ├── vite.config.ts            # Vite config with Vue plugin + API proxy
+│   ├── tsconfig.json               # Browser-targeted TypeScript config
+│   ├── vite.config.ts              # Vite config with Vue plugin + API proxy
 │   └── src/
-│       ├── main.ts               # Vue app entry point
-│       ├── App.vue               # Root component — nav bar + router view
-│       ├── constants.ts          # Frontend vocabulary constants
+│       ├── main.ts                 # Vue app entry point
+│       ├── App.vue                 # Root component — nav bar + router view
+│       ├── constants.ts            # Frontend vocabulary constants
 │       ├── composables/
-│       │   └── useApi.ts         # Typed fetch wrapper with error handling
+│       │   └── useApi.ts           # Typed fetch wrapper with error handling
 │       └── views/
-│           ├── RoleList.vue      # Role list with multi-select filter + column sort
-│           ├── RoleDetail.vue    # Role detail, status updates, reason management
-│           ├── AddRole.vue       # Role creation form
-│           └── SqlQuery.vue      # Raw SQL interface with CSV export
+│           ├── RoleList.vue        # Role list with multi-select filter + column sort
+│           ├── RoleDetail.vue      # Role detail, status updates, reason management
+│           ├── AddRole.vue         # Role creation form
+│           └── SqlQuery.vue        # Raw SQL interface with CSV export
 ├── e2e/
-│   ├── playwright.config.ts      # Playwright config — webServer, baseURL, reporters
-│   ├── tsconfig.json             # ESNext TypeScript config for Playwright
+│   ├── package.json                # E2E-scoped dependencies
+│   ├── playwright.config.ts        # Playwright config — webServer, baseURL, reporters
+│   ├── tsconfig.json               # ESNext TypeScript config for Playwright
 │   ├── pages/
-│   │   ├── menuBarComponent.ts   # Shared nav bar component (data-testid scoped)
-│   │   └── rolesPage.ts          # Roles page object
+│   │   ├── topMenuBarComponent.ts  # Shared nav bar component (data-testid scoped)
+│   │   └── rolesPage.ts            # Roles page object
 │   └── tests/
-│       └── smoke.spec.ts         # Smoke test — full stack connectivity
-├── tests/
-│   ├── helpers/
-│   │   ├── db.ts                 # createTestDb() — in-memory SQLite with schema
-│   │   └── run-script.ts         # runScript() — spawn CLI scripts as child processes
-│   ├── unit/                     # Pure function tests
-│   └── integration/              # CLI script tests (black box via child process)
-└── .github/
-    └── workflows/
-        └── ci.yml                # GitHub Actions — unit + E2E test pipeline
+│       └── smoke.spec.ts           # Smoke test — full stack connectivity
+└── tests/
+    ├── helpers/
+    │   ├── db.ts                   # createTestDb() — in-memory SQLite with schema
+    │   └── run-script.ts           # runScript() — spawn CLI scripts as child processes
+    ├── unit/                       # Pure function tests
+    └── integration/                # CLI script tests (black box via child process)
 ```
 
 ---
@@ -215,9 +219,9 @@ These are black-box tests — they test the CLI contract (exit codes, stdout for
 Playwright browser tests against the running application. The Page Object Model pattern is used throughout, with shared UI zones extracted into component classes:
 
 ```typescript
-// MenuBarComponent scopes locators to the data-testid="menu-bar" container
-this.container  = page.getByTestId('menu-bar');
-this.rolesLink  = this.container.getByRole('link', { name: 'roles' });
+// TopMenuBarComponent scopes locators to the data-testid="menu-bar" container
+this.topMenuBarContainer = page.getByTestId('menu-bar');
+this.rolesLink           = this.topMenuBarContainer.getByRole('link', { name: 'roles' });
 ```
 
 The `data-testid` attribute is placed on zone containers only — not on individual interactive elements. Natural ARIA role/name selectors are used within the scoped container.
@@ -248,16 +252,26 @@ proxy: {
 
 ### Health endpoint
 
-The server exposes a `/health` endpoint that returns `{ status: 'ok' }`. This is used by Playwright's `webServer` readiness check to determine when the server is ready to accept test traffic, and will be used by future monitoring infrastructure.
+The server exposes a `/healthcheck` endpoint that returns `{ status: 'ok' }`. This is used by Playwright's `webServer` readiness check to determine when the server is ready to accept test traffic, and will be used by future monitoring infrastructure.
 
-### Environment configuration
+---
 
-Two environment variables are supported (CAR-16):
+## CI/CD
 
-- `DB_PATH` — path to the SQLite database file, or `:memory:` for an ephemeral in-memory database. Defaults to `db/career-assistant.sqlite`.
-- `CORS_ORIGIN` — allowed CORS origin. Defaults to `http://localhost:5173`.
+Two GitHub Actions workflows run the full test suite — unit, integration, and Playwright E2E — on every push and every pull request. Both workflows are identical in steps:
 
-These enable CI pipelines to run against a clean in-memory database without touching production data.
+1. Checkout repository
+2. Set up Node.js 24
+3. Install root dependencies (`npm ci`)
+4. Install client dependencies (`npm ci` in `client/`)
+5. Install E2E dependencies (`npm ci` in `e2e/`)
+6. Initialise the database (`npm run init`)
+7. Run Vitest unit and integration tests (`npm run test`)
+8. Install Playwright browsers (`npx playwright install --with-deps`)
+9. Run Playwright E2E tests (`npm run test:e2e`)
+10. Upload Playwright HTML report as a GitHub artifact (retained for 30 days)
+
+The Playwright report upload runs unconditionally (`if: ${{ !cancelled() }}`) so test results are always available for review even when tests fail.
 
 ---
 
@@ -309,7 +323,9 @@ Each module owns its configuration files:
 
 The root `tsconfig.json` covers the Node.js data layer (`db/`, `lib/`, `scripts/`, `tests/`).
 
-This pattern follows the principle that things which change together should live together. It also anticipates the CAR-4 workspace restructuring, where each package will become an explicit npm workspace with its own fully isolated configuration.
+The `server/package.json` and `e2e/package.json` are early steps toward the CAR-4 workspace restructuring — each module beginning to own its own dependency manifest.
+
+This pattern follows the principle that things which change together should live together.
 
 ---
 
@@ -330,9 +346,9 @@ Each package will have its own `tsconfig.json` and `package.json`. The root `tsc
 
 This resolves the current duplication of vocabulary types between `lib/types.ts` and `client/src/constants.ts` — the client will import directly from `@career-assistant/data`.
 
-### CAR-5 — Data layer refactor
+### CAR-5 — Data layer refactor *(In Progress)*
 
-Single-table CRUD operations will be extracted into dedicated modules under `db/`:
+Single-table CRUD operations are being extracted into dedicated modules under `lib/db/`:
 
 ```
 lib/db/
@@ -342,7 +358,7 @@ lib/db/
 └── job-descriptions.db.ts
 ```
 
-The orchestration layer in `lib/updates.ts` and `lib/deletes.ts` will be refactored to compose from these modules rather than executing SQL directly.
+The orchestration layer in `lib/updates.ts` and `lib/deletes.ts` is being refactored to compose from these modules rather than executing SQL directly.
 
 ### CAR-32 — LLM-powered job market analysis
 
