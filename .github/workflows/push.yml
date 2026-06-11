@@ -1,0 +1,36 @@
+name: push
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repo to GitHub workspace
+        uses: actions/checkout@v6
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install root dependencies
+        run: npm ci
+      - name: Install client dependencies
+        run: npm ci
+        working-directory: client
+      - name: Install Playwright dependencies
+        run: npm ci
+        working-directory: e2e
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+        working-directory: e2e
+      - name: Initialise database
+        run: npm run init
+      - name: Run vitest unit and integration tests
+        run: npm run test
+      - name: Run Playwright E2E tests
+        run: npm run test:e2e
+      - name: Upload Playwright test results to GitHub
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 30
