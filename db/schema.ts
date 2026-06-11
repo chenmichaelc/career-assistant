@@ -1,7 +1,7 @@
 // db/schema.ts
 // Career Assistant — Database Schema
 // Single source of truth for the SQLite schema.
-// Imported by db/init.ts and tests/helpers/db.ts.
+// Imported by db/setup.ts and tests/helpers/db.ts.
 
 export const schema: string = `
   PRAGMA foreign_keys = ON;
