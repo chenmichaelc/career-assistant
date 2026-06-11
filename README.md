@@ -85,18 +85,18 @@ npm run test:e2e      # Playwright E2E
 ## Milestones
 
 | Milestone                                                             | Status |
-|-----------------------------------------------------------------------|---|
-| SQLite schema, seed import, CLI data layer                            | Done |
-| TypeScript migration, Vitest test suite                               | Done |
-| Full CLI tooling (import, export, update, delete)                     | Done |
-| Layered validation architecture                                       | Done |
-| Unit and integration test suite                                       | Done |
-| Vue 3 frontend + Fastify REST API                                     | Done |
-| Frontend stabilization and bug fixes (CAR-2)                          | Done |
-| Rename e2e → integration tests (CAR-14)                               | Done |
-| Node.js upgrade to v24 (CAR-31)                                       | Done |
-| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | Done |
-| **GitHub merge gate (CAR-56)                                          | Done |
+|-----------------------------------------------------------------------|--------|
+| SQLite schema, seed import, CLI data layer                            | Done   |
+| TypeScript migration, Vitest test suite                               | Done   |
+| Full CLI tooling (import, export, update, delete)                     | Done   |
+| Layered validation architecture                                       | Done   |
+| Unit and integration test suite                                       | Done   |
+| Vue 3 frontend + Fastify REST API                                     | Done   |
+| Frontend stabilization and bug fixes (CAR-2)                          | Done   |
+| Rename e2e → integration tests (CAR-14)                               | Done   |
+| Node.js upgrade to v24 (CAR-31)                                       | Done   |
+| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | Done   |
+| GitHub merge gate (CAR-56)                                            | Done   |
 
 ---
 
@@ -165,8 +165,8 @@ career-assistant/
 │       ├── push.yml         # CI — runs on every push
 │       └── pull-request.yml # CI — runs on every pull request
 ├── db/                      # Schema and initialization
-│   ├── schema.ts            # Single source of truth for SQLite schema
-│   └── init.ts              # One-time DB initialization
+│   ├── schema.ts            # Single source of truth for SQLite schema (definitions only)
+│   └── setup.ts             # Exports applySchema() for server and test use
 ├── lib/                     # Business logic — no I/O
 │   ├── types.ts             # Shared types + runtime vocabulary arrays
 │   ├── roles.ts             # Role insertion with validation
