@@ -19,20 +19,20 @@ export function insertTerminationReason(
     note:   string | null,
 ): number {
     const result = db.prepare(`
-    INSERT INTO termination_reasons (role_id, reason, note)
-    VALUES (@role_id, @reason, @note)
-  `).run({ role_id: roleId, reason, note });
+        INSERT INTO termination_reasons (role_id, reason, note)
+        VALUES (@role_id, @reason, @note)
+    `).run({ role_id: roleId, reason, note });
 
     return Number(result.lastInsertRowid);
 }
 
 export function getTerminationReasonsByRoleId(db: Database.Database, roleId: number | string): TerminationReasonRow[] {
     return db.prepare(`
-    SELECT id, role_id, reason, note
-    FROM termination_reasons
-    WHERE role_id = ?
-    ORDER BY id ASC
-  `).all(roleId) as TerminationReasonRow[];
+        SELECT id, role_id, reason, note
+        FROM termination_reasons
+        WHERE role_id = ?
+        ORDER BY id ASC
+    `).all(roleId) as TerminationReasonRow[];
 }
 
 export function getTerminationReasonById(db: Database.Database, id: number): TerminationReasonRow | undefined {
@@ -43,10 +43,10 @@ export function getTerminationReasonById(db: Database.Database, id: number): Ter
   `).get(id) as TerminationReasonRow | undefined;
 }
 
-export function deleteTerminationReasonById(db: Database.Database, id: number): void {
-    db.prepare(`DELETE FROM termination_reasons WHERE id = ?`).run(id);
+export function deleteTerminationReasonById(db: Database.Database, id: number): Database.RunResult {
+    return db.prepare(`DELETE FROM termination_reasons WHERE id = ?`).run(id);
 }
 
-export function deleteTerminationReasonsByRoleId(db: Database.Database, roleId: number): void {
-    db.prepare(`DELETE FROM termination_reasons WHERE role_id = ?`).run(roleId);
+export function deleteTerminationReasonsByRoleId(db: Database.Database, roleId: number): Database.RunResult {
+    return db.prepare(`DELETE FROM termination_reasons WHERE role_id = ?`).run(roleId);
 }
