@@ -19,9 +19,9 @@ export interface RoleInsertData {
 
 export function insertRole(db: Database.Database, data: RoleInsertData): number {
     const result = db.prepare(`
-    INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
-    VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
-  `).run({
+        INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
+        VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
+    `).run({
         company:      data.company,
         title:        data.title,
         url:          data.url,
@@ -38,15 +38,15 @@ export function insertRole(db: Database.Database, data: RoleInsertData): number 
 
 export function getRoleById(db: Database.Database, id: number): RoleRow | undefined {
     return db.prepare(`
-    SELECT id, company, title, url, role_status, candidacy, applied_date,
-           salary_min, salary_max, notes, created_at, updated_at
-    FROM roles
-    WHERE id = ?
-  `).get(id) as RoleRow | undefined;
+        SELECT id, company, title, url, role_status, candidacy, applied_date,
+               salary_min, salary_max, notes, created_at, updated_at
+        FROM roles
+        WHERE id = ?
+    `).get(id) as RoleRow | undefined;
 }
 
-export function updateRoleStatus(db: Database.Database, id: number | string, status: string): void {
-    db.prepare(`
+export function updateRoleStatus(db: Database.Database, id: number | string, status: string): Database.RunResult {
+    return db.prepare(`
     UPDATE roles
     SET role_status  = @role_status,
         applied_date = CASE
@@ -59,6 +59,6 @@ export function updateRoleStatus(db: Database.Database, id: number | string, sta
   `).run({ role_status: status, id });
 }
 
-export function deleteRoleById(db: Database.Database, id: number): void {
-    db.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
+export function deleteRoleById(db: Database.Database, id: number): Database.RunResult {
+    return db.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
 }

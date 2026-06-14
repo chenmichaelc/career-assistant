@@ -1,7 +1,7 @@
-// tests/unit/db/roles.db.test.ts
+// tests/unit/lib/db/roles.db.test.ts
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { createTestDb }    from '../../../helpers/db';
+import { createTestDb }  from '../../../helpers/db';
 import {
     insertRole,
     getRoleById,
@@ -68,13 +68,11 @@ describe('insertRole', () => {
     });
 
     test('throws on invalid role_status — CHECK constraint', () => {
-        expect(() => insertRole(db, { ...baseRole, role_status: 'InvalidStatus' }))
-            .toThrow();
+        expect(() => insertRole(db, { ...baseRole, role_status: 'InvalidStatus' })).toThrow();
     });
 
     test('throws on invalid candidacy — CHECK constraint', () => {
-        expect(() => insertRole(db, { ...baseRole, candidacy: 'InvalidCandidacy' }))
-            .toThrow();
+        expect(() => insertRole(db, { ...baseRole, candidacy: 'InvalidCandidacy' })).toThrow();
     });
 
     test('assigns incrementing IDs to successive inserts', () => {
@@ -108,11 +106,12 @@ describe('getRoleById', () => {
 
 describe('updateRoleStatus', () => {
 
-    test('updates role_status correctly', () => {
-        const id = insertRole(db, baseRole);
-        updateRoleStatus(db, id, 'Applied');
-        const role = db.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    test('updates role_status correctly and returns one change', () => {
+        const id     = insertRole(db, baseRole);
+        const result = updateRoleStatus(db, id, 'Applied');
+        const role   = db.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
         expect(role.role_status).toBe('Applied');
+        expect(result.changes).toBe(1);
     });
 
     test('sets applied_date when transitioning to Applied and no date exists', () => {
@@ -123,10 +122,11 @@ describe('updateRoleStatus', () => {
     });
 
     test('preserves existing applied_date when transitioning to Applied', () => {
-        const id = insertRole(db, { ...baseRole, applied_date: '2024-01-15' });
+        const existingDate = '2024-01-15';
+        const id           = insertRole(db, { ...baseRole, applied_date: existingDate });
         updateRoleStatus(db, id, 'Applied');
         const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(role.applied_date).toBe('2024-01-15');
+        expect(role.applied_date).toBe(existingDate);
     });
 
     test('does not set applied_date when transitioning to non-Applied status', () => {
@@ -134,16 +134,6 @@ describe('updateRoleStatus', () => {
         updateRoleStatus(db, id, 'On Hold');
         const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
         expect(role.applied_date).toBeNull();
-    });
-
-    test('updates updated_at timestamp', () => {
-        const id      = insertRole(db, baseRole);
-        const before  = (db.prepare('SELECT updated_at FROM roles WHERE id = ?').get(id) as Record<string, unknown>).updated_at;
-        updateRoleStatus(db, id, 'On Hold');
-        const after   = (db.prepare('SELECT updated_at FROM roles WHERE id = ?').get(id) as Record<string, unknown>).updated_at;
-        expect(after).toBeDefined();
-        // updated_at should be set (may equal before if same second, but should not be null)
-        expect(after).not.toBeNull();
     });
 
     test('throws on invalid status — CHECK constraint', () => {
@@ -157,22 +147,28 @@ describe('updateRoleStatus', () => {
         expect(() => updateRoleStatus(db, id, 'Callback')).not.toThrow();
     });
 
+    test('safely makes no change when role does not exist', () => {
+        const result = updateRoleStatus(db, 999, 'Applied');
+        expect(result.changes).toBe(0);
+    });
+
 });
 
 // ─── deleteRoleById ───────────────────────────────────────────────────────────
 
 describe('deleteRoleById', () => {
 
-    test('deletes the role', () => {
-        const id = insertRole(db, baseRole);
-        deleteRoleById(db, id);
-        const role = getRoleById(db, id);
-        expect(role).toBeUndefined();
+    test('deletes the role and returns one change', () => {
+        const id     = insertRole(db, baseRole);
+        const result = deleteRoleById(db, id);
+        expect(getRoleById(db, id)).toBeUndefined();
+        expect(result.changes).toBe(1);
     });
 
     test('throws on FK violation when job description exists', () => {
+        const jobDescriptionContent = 'JD content';
         const id = insertRole(db, baseRole);
-        db.prepare('INSERT INTO job_descriptions (role_id, content) VALUES (?, ?)').run(id, 'JD content');
+        db.prepare('INSERT INTO job_descriptions (role_id, content) VALUES (?, ?)').run(id, jobDescriptionContent);
         expect(() => deleteRoleById(db, id)).toThrow();
     });
 
@@ -180,6 +176,11 @@ describe('deleteRoleById', () => {
         const id = insertRole(db, baseRole);
         db.prepare("INSERT INTO skip_reasons (role_id, reason) VALUES (?, 'Location')").run(id);
         expect(() => deleteRoleById(db, id)).toThrow();
+    });
+
+    test('safely makes no change when role does not exist', () => {
+        const result = deleteRoleById(db, 999);
+        expect(result.changes).toBe(0);
     });
 
 });

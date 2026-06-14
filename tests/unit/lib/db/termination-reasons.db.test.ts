@@ -1,4 +1,4 @@
-// tests/unit/db/termination-reasons.db.test.ts
+// tests/unit/lib/db/termination-reasons.db.test.ts
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb }  from '../../../helpers/db';
@@ -35,10 +35,11 @@ describe('insertTerminationReason', () => {
     });
 
     test('inserts with note when provided', () => {
+        const note   = 'Failed technical screen';
         const roleId = insertRole(db, baseRole);
-        const id     = insertTerminationReason(db, roleId, 'Screened Out', 'Failed technical screen');
+        const id     = insertTerminationReason(db, roleId, 'Screened Out', note);
         const reason = db.prepare('SELECT * FROM termination_reasons WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(reason.note).toBe('Failed technical screen');
+        expect(reason.note).toBe(note);
     });
 
     test('inserts with null note when not provided', () => {
@@ -104,12 +105,13 @@ describe('getTerminationReasonsByRoleId', () => {
 describe('getTerminationReasonById', () => {
 
     test('returns termination reason when found', () => {
+        const note   = 'Failed technical screen';
         const roleId = insertRole(db, baseRole);
-        const id     = insertTerminationReason(db, roleId, 'Screened Out', 'Failed technical screen');
+        const id     = insertTerminationReason(db, roleId, 'Screened Out', note);
         const reason = getTerminationReasonById(db, id);
         expect(reason).toBeDefined();
         expect(reason!.reason).toBe('Screened Out');
-        expect(reason!.note).toBe('Failed technical screen');
+        expect(reason!.note).toBe(note);
         expect(reason!.role_id).toBe(roleId);
     });
 
@@ -124,11 +126,12 @@ describe('getTerminationReasonById', () => {
 
 describe('deleteTerminationReasonById', () => {
 
-    test('deletes the termination reason', () => {
+    test('deletes the termination reason and returns one change', () => {
         const roleId = insertRole(db, baseRole);
         const id     = insertTerminationReason(db, roleId, 'Screened Out', null);
-        deleteTerminationReasonById(db, id);
+        const result = deleteTerminationReasonById(db, id);
         expect(getTerminationReasonById(db, id)).toBeUndefined();
+        expect(result.changes).toBe(1);
     });
 
     test('does not affect other termination reasons for the same role', () => {
@@ -139,18 +142,24 @@ describe('deleteTerminationReasonById', () => {
         expect(getTerminationReasonById(db, id2)).toBeDefined();
     });
 
+    test('safely makes no change when termination reason does not exist', () => {
+        const result = deleteTerminationReasonById(db, 999);
+        expect(result.changes).toBe(0);
+    });
+
 });
 
 // ─── deleteTerminationReasonsByRoleId ─────────────────────────────────────────
 
 describe('deleteTerminationReasonsByRoleId', () => {
 
-    test('deletes all termination reasons for a role', () => {
+    test('deletes all termination reasons for a role and returns correct change count', () => {
         const roleId = insertRole(db, baseRole);
         insertTerminationReason(db, roleId, 'Screened Out', null);
         insertTerminationReason(db, roleId, 'Filled', null);
-        deleteTerminationReasonsByRoleId(db, roleId);
+        const result = deleteTerminationReasonsByRoleId(db, roleId);
         expect(getTerminationReasonsByRoleId(db, roleId)).toHaveLength(0);
+        expect(result.changes).toBe(2);
     });
 
     test('does not affect termination reasons for other roles', () => {
@@ -160,6 +169,12 @@ describe('deleteTerminationReasonsByRoleId', () => {
         insertTerminationReason(db, roleId2, 'Filled', null);
         deleteTerminationReasonsByRoleId(db, roleId1);
         expect(getTerminationReasonsByRoleId(db, roleId2)).toHaveLength(1);
+    });
+
+    test('safely makes no change when no termination reasons exist for role', () => {
+        const roleId = insertRole(db, baseRole);
+        const result = deleteTerminationReasonsByRoleId(db, roleId);
+        expect(result.changes).toBe(0);
     });
 
 });

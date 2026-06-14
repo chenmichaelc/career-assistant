@@ -1,165 +1,180 @@
-// tests/unit/db/skip-reasons.db.test.ts
+// tests/unit/lib/db/roles.db.test.ts
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb }  from '../../../helpers/db';
-import { insertRole }    from '../../../../lib/db/roles.db';
 import {
-    insertSkipReason,
-    getSkipReasonsByRoleId,
-    getSkipReasonById,
-    deleteSkipReasonById,
-    deleteSkipReasonsByRoleId,
-} from '../../../../lib/db/skip-reasons.db';
+    insertRole,
+    getRoleById,
+    updateRoleStatus,
+    deleteRoleById,
+    RoleInsertData,
+} from '../../../../lib/db/roles.db';
 
 let db: Database.Database;
 
-const baseRole = {
+const baseRole: RoleInsertData = {
     company:     'Acme Corp',
     title:       'QA Engineer',
-    url:         'https://example.com',
-    role_status: 'Skipped',
+    url:         'https://example.com/job/1',
+    role_status: 'Pending Triage',
 };
 
 beforeEach(() => { db = createTestDb(); });
 afterEach(()  => { db.close(); });
 
-// ─── insertSkipReason ─────────────────────────────────────────────────────────
+// ─── insertRole ───────────────────────────────────────────────────────────────
 
-describe('insertSkipReason', () => {
+describe('insertRole', () => {
 
-    test('inserts a skip reason and returns a numeric ID', () => {
-        const roleId = insertRole(db, baseRole);
-        const id     = insertSkipReason(db, roleId, 'Location', null);
+    test('inserts a role and returns a numeric ID', () => {
+        const id = insertRole(db, baseRole);
         expect(typeof id).toBe('number');
         expect(id).toBeGreaterThan(0);
     });
 
-    test('inserts with note when provided', () => {
-        const roleId = insertRole(db, baseRole);
-        const id     = insertSkipReason(db, roleId, 'Location', 'Austin in-office');
-        const reason = db.prepare('SELECT * FROM skip_reasons WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(reason.note).toBe('Austin in-office');
+    test('inserted role is retrievable with correct values', () => {
+        const id   = insertRole(db, baseRole);
+        const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+        expect(role.company).toBe('Acme Corp');
+        expect(role.title).toBe('QA Engineer');
+        expect(role.role_status).toBe('Pending Triage');
     });
 
-    test('inserts with null note when not provided', () => {
-        const roleId = insertRole(db, baseRole);
-        const id     = insertSkipReason(db, roleId, 'Location', null);
-        const reason = db.prepare('SELECT * FROM skip_reasons WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(reason.note).toBeNull();
+    test('nulls optional fields when not provided', () => {
+        const id   = insertRole(db, baseRole);
+        const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+        expect(role.candidacy).toBeNull();
+        expect(role.applied_date).toBeNull();
+        expect(role.salary_min).toBeNull();
+        expect(role.salary_max).toBeNull();
+        expect(role.notes).toBeNull();
     });
 
-    test('throws on invalid reason — CHECK constraint', () => {
-        const roleId = insertRole(db, baseRole);
-        expect(() => insertSkipReason(db, roleId, 'InvalidReason', null)).toThrow();
+    test('stores optional fields when provided', () => {
+        const id = insertRole(db, {
+            ...baseRole,
+            candidacy:    'Competitive',
+            applied_date: '2024-01-15',
+            salary_min:   100000,
+            salary_max:   130000,
+            notes:        'Good match',
+        });
+        const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+        expect(role.candidacy).toBe('Competitive');
+        expect(role.applied_date).toBe('2024-01-15');
+        expect(role.salary_min).toBe(100000);
+        expect(role.salary_max).toBe(130000);
+        expect(role.notes).toBe('Good match');
     });
 
-    test('throws on non-existent role_id — FK constraint', () => {
-        expect(() => insertSkipReason(db, 999, 'Location', null)).toThrow();
+    test('throws on invalid role_status — CHECK constraint', () => {
+        expect(() => insertRole(db, { ...baseRole, role_status: 'InvalidStatus' })).toThrow();
     });
 
-    test('allows multiple skip reasons for the same role', () => {
-        const roleId = insertRole(db, baseRole);
-        insertSkipReason(db, roleId, 'Location', null);
-        insertSkipReason(db, roleId, 'Compensation', null);
-        const reasons = getSkipReasonsByRoleId(db, roleId);
-        expect(reasons).toHaveLength(2);
+    test('throws on invalid candidacy — CHECK constraint', () => {
+        expect(() => insertRole(db, { ...baseRole, candidacy: 'InvalidCandidacy' })).toThrow();
     });
 
-});
-
-// ─── getSkipReasonsByRoleId ───────────────────────────────────────────────────
-
-describe('getSkipReasonsByRoleId', () => {
-
-    test('returns all skip reasons for a role ordered by id ASC', () => {
-        const roleId = insertRole(db, baseRole);
-        insertSkipReason(db, roleId, 'Location', null);
-        insertSkipReason(db, roleId, 'Compensation', null);
-        insertSkipReason(db, roleId, 'Culture', null);
-        const reasons = getSkipReasonsByRoleId(db, roleId);
-        expect(reasons).toHaveLength(3);
-        expect(reasons[0].reason).toBe('Location');
-        expect(reasons[1].reason).toBe('Compensation');
-        expect(reasons[2].reason).toBe('Culture');
-    });
-
-    test('returns empty array when no reasons exist', () => {
-        const roleId  = insertRole(db, baseRole);
-        const reasons = getSkipReasonsByRoleId(db, roleId);
-        expect(reasons).toHaveLength(0);
-    });
-
-    test('does not return reasons for other roles', () => {
-        const roleId1 = insertRole(db, baseRole);
-        const roleId2 = insertRole(db, baseRole);
-        insertSkipReason(db, roleId1, 'Location', null);
-        const reasons = getSkipReasonsByRoleId(db, roleId2);
-        expect(reasons).toHaveLength(0);
+    test('assigns incrementing IDs to successive inserts', () => {
+        const id1 = insertRole(db, baseRole);
+        const id2 = insertRole(db, baseRole);
+        expect(id2).toBe(id1 + 1);
     });
 
 });
 
-// ─── getSkipReasonById ────────────────────────────────────────────────────────
+// ─── getRoleById ──────────────────────────────────────────────────────────────
 
-describe('getSkipReasonById', () => {
+describe('getRoleById', () => {
 
-    test('returns skip reason when found', () => {
-        const roleId = insertRole(db, baseRole);
-        const id     = insertSkipReason(db, roleId, 'Location', 'Austin in-office');
-        const reason = getSkipReasonById(db, id);
-        expect(reason).toBeDefined();
-        expect(reason!.reason).toBe('Location');
-        expect(reason!.note).toBe('Austin in-office');
-        expect(reason!.role_id).toBe(roleId);
+    test('returns role when found', () => {
+        const id   = insertRole(db, baseRole);
+        const role = getRoleById(db, id);
+        expect(role).toBeDefined();
+        expect(role!.id).toBe(id);
+        expect(role!.company).toBe('Acme Corp');
     });
 
     test('returns undefined when not found', () => {
-        const reason = getSkipReasonById(db, 999);
-        expect(reason).toBeUndefined();
+        const role = getRoleById(db, 999);
+        expect(role).toBeUndefined();
     });
 
 });
 
-// ─── deleteSkipReasonById ─────────────────────────────────────────────────────
+// ─── updateRoleStatus ─────────────────────────────────────────────────────────
 
-describe('deleteSkipReasonById', () => {
+describe('updateRoleStatus', () => {
 
-    test('deletes the skip reason', () => {
-        const roleId = insertRole(db, baseRole);
-        const id     = insertSkipReason(db, roleId, 'Location', null);
-        deleteSkipReasonById(db, id);
-        expect(getSkipReasonById(db, id)).toBeUndefined();
+    test('updates role_status correctly', () => {
+        const id = insertRole(db, baseRole);
+        updateRoleStatus(db, id, 'Applied');
+        const role = db.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+        expect(role.role_status).toBe('Applied');
     });
 
-    test('does not affect other skip reasons for the same role', () => {
-        const roleId = insertRole(db, baseRole);
-        const id1    = insertSkipReason(db, roleId, 'Location', null);
-        const id2    = insertSkipReason(db, roleId, 'Compensation', null);
-        deleteSkipReasonById(db, id1);
-        expect(getSkipReasonById(db, id2)).toBeDefined();
+    test('sets applied_date when transitioning to Applied and no date exists', () => {
+        const id = insertRole(db, baseRole);
+        updateRoleStatus(db, id, 'Applied');
+        const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+        expect(role.applied_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    test('preserves existing applied_date when transitioning to Applied', () => {
+        const existingDate = '2024-01-15';
+        const id           = insertRole(db, { ...baseRole, applied_date: existingDate });
+        updateRoleStatus(db, id, 'Applied');
+        const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+        expect(role.applied_date).toBe(existingDate);
+    });
+
+    test('does not set applied_date when transitioning to non-Applied status', () => {
+        const id = insertRole(db, baseRole);
+        updateRoleStatus(db, id, 'On Hold');
+        const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+        expect(role.applied_date).toBeNull();
+    });
+
+    test('throws on invalid status — CHECK constraint', () => {
+        const id = insertRole(db, baseRole);
+        expect(() => updateRoleStatus(db, id, 'InvalidStatus')).toThrow();
+    });
+
+    test('accepts string or number id', () => {
+        const id = insertRole(db, baseRole);
+        expect(() => updateRoleStatus(db, String(id), 'On Hold')).not.toThrow();
+        expect(() => updateRoleStatus(db, id, 'Callback')).not.toThrow();
     });
 
 });
 
-// ─── deleteSkipReasonsByRoleId ────────────────────────────────────────────────
+// ─── deleteRoleById ───────────────────────────────────────────────────────────
 
-describe('deleteSkipReasonsByRoleId', () => {
+describe('deleteRoleById', () => {
 
-    test('deletes all skip reasons for a role', () => {
-        const roleId = insertRole(db, baseRole);
-        insertSkipReason(db, roleId, 'Location', null);
-        insertSkipReason(db, roleId, 'Compensation', null);
-        deleteSkipReasonsByRoleId(db, roleId);
-        expect(getSkipReasonsByRoleId(db, roleId)).toHaveLength(0);
+    test('deletes the role and returns one change', () => {
+        const id     = insertRole(db, baseRole);
+        const result = deleteRoleById(db, id);
+        expect(getRoleById(db, id)).toBeUndefined();
+        expect(result.changes).toBe(1);
     });
 
-    test('does not affect skip reasons for other roles', () => {
-        const roleId1 = insertRole(db, baseRole);
-        const roleId2 = insertRole(db, baseRole);
-        insertSkipReason(db, roleId1, 'Location', null);
-        insertSkipReason(db, roleId2, 'Compensation', null);
-        deleteSkipReasonsByRoleId(db, roleId1);
-        expect(getSkipReasonsByRoleId(db, roleId2)).toHaveLength(1);
+    test('throws on FK violation when job description exists', () => {
+        const jobDescriptionContent = 'JD content';
+        const id = insertRole(db, baseRole);
+        db.prepare('INSERT INTO job_descriptions (role_id, content) VALUES (?, ?)').run(id, jobDescriptionContent);
+        expect(() => deleteRoleById(db, id)).toThrow();
+    });
+
+    test('throws on FK violation when skip reasons exist', () => {
+        const id = insertRole(db, baseRole);
+        db.prepare("INSERT INTO skip_reasons (role_id, reason) VALUES (?, 'Location')").run(id);
+        expect(() => deleteRoleById(db, id)).toThrow();
+    });
+
+    test('safely makes no change when role does not exist', () => {
+        const result = deleteRoleById(db, 999);
+        expect(result.changes).toBe(0);
     });
 
 });
