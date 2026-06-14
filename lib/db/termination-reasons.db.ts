@@ -14,7 +14,7 @@ export interface TerminationReasonRow {
 
 export function insertTerminationReason(
     db:     Database.Database,
-    roleId: number | string,
+    roleId: number,
     reason: string,
     note:   string | null,
 ): number {
@@ -26,12 +26,12 @@ export function insertTerminationReason(
     return Number(result.lastInsertRowid);
 }
 
-export function getTerminationReasonsByRoleId(db: Database.Database, roleId: number | string): TerminationReasonRow[] {
+export function getTerminationReasonsByRoleId(db: Database.Database, roleId: number): TerminationReasonRow[] {
     return db.prepare(`
         SELECT id, role_id, reason, note
         FROM termination_reasons
         WHERE role_id = ?
-        ORDER BY id ASC
+        ORDER BY id
     `).all(roleId) as TerminationReasonRow[];
 }
 

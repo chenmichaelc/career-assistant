@@ -14,7 +14,7 @@ export interface SkipReasonRow {
 
 export function insertSkipReason(
     db:     Database.Database,
-    roleId: number | string,
+    roleId: number,
     reason: string,
     note:   string | null,
 ): number {
@@ -26,12 +26,12 @@ export function insertSkipReason(
     return Number(result.lastInsertRowid);
 }
 
-export function getSkipReasonsByRoleId(db: Database.Database, roleId: number | string): SkipReasonRow[] {
+export function getSkipReasonsByRoleId(db: Database.Database, roleId: number): SkipReasonRow[] {
     return db.prepare(`
         SELECT id, role_id, reason, note
         FROM skip_reasons
         WHERE role_id = ?
-        ORDER BY id ASC
+        ORDER BY id
     `).all(roleId) as SkipReasonRow[];
 }
 

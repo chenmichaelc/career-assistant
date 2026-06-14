@@ -45,7 +45,7 @@ export function getRoleById(db: Database.Database, id: number): RoleRow | undefi
     `).get(id) as RoleRow | undefined;
 }
 
-export function updateRoleStatus(db: Database.Database, id: number | string, status: string): Database.RunResult {
+export function updateRoleStatus(db: Database.Database, id: number, status: string): Database.RunResult {
     return db.prepare(`
     UPDATE roles
     SET role_status  = @role_status,
