@@ -7,7 +7,7 @@ export const schema: string = `
   PRAGMA foreign_keys = ON;
 
   CREATE TABLE IF NOT EXISTS roles (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    id            INTEGER PRIMARY KEY,
     company       TEXT NOT NULL,
     title         TEXT NOT NULL,
     url           TEXT,
@@ -39,7 +39,7 @@ export const schema: string = `
   );
 
   CREATE TABLE IF NOT EXISTS skip_reasons (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    id        INTEGER PRIMARY KEY,
     role_id   INTEGER NOT NULL REFERENCES roles(id),
     reason    TEXT NOT NULL CHECK(reason IN (
                 'Wrong Industry',
@@ -58,7 +58,7 @@ export const schema: string = `
   );
 
   CREATE TABLE IF NOT EXISTS termination_reasons (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    id        INTEGER PRIMARY KEY,
     role_id   INTEGER NOT NULL REFERENCES roles(id),
     reason    TEXT NOT NULL CHECK(reason IN (
                 'Screened Out',
@@ -79,7 +79,7 @@ export const schema: string = `
   );
 
   CREATE TABLE IF NOT EXISTS job_descriptions (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    id        INTEGER PRIMARY KEY,
     role_id   INTEGER NOT NULL UNIQUE REFERENCES roles(id),
     content   TEXT NOT NULL DEFAULT ''
   );
