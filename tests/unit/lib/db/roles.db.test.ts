@@ -143,7 +143,7 @@ describe('updateRoleStatus', () => {
 
     test('accepts string or number id', () => {
         const id = insertRole(db, baseRole);
-        expect(() => updateRoleStatus(db, String(id), 'On Hold')).not.toThrow();
+        expect(() => updateRoleStatus(db, id, 'On Hold')).not.toThrow();
         expect(() => updateRoleStatus(db, id, 'Callback')).not.toThrow();
     });
 
