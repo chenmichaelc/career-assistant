@@ -34,37 +34,39 @@ describe('insertRole', () => {
 
     test('inserted role is retrievable with correct values', () => {
         const id   = insertRole(db, baseRole);
-        const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(role.company).toBe('Acme Corp');
-        expect(role.title).toBe('QA Engineer');
-        expect(role.role_status).toBe('Pending Triage');
+        const role = getRoleById(db, id);
+        expect(role).toBeDefined();
+        expect(role!.company).toBe(baseRole.company);
+        expect(role!.title).toBe(baseRole.title);
+        expect(role!.role_status).toBe(baseRole.role_status);
     });
 
     test('nulls optional fields when not provided', () => {
         const id   = insertRole(db, baseRole);
-        const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(role.candidacy).toBeNull();
-        expect(role.applied_date).toBeNull();
-        expect(role.salary_min).toBeNull();
-        expect(role.salary_max).toBeNull();
-        expect(role.notes).toBeNull();
+        const role = getRoleById(db, id);
+        expect(role).toBeDefined();
+        expect(role!.candidacy).toBeNull();
+        expect(role!.applied_date).toBeNull();
+        expect(role!.salary_min).toBeNull();
+        expect(role!.salary_max).toBeNull();
+        expect(role!.notes).toBeNull();
     });
 
     test('stores optional fields when provided', () => {
-        const id = insertRole(db, {
-            ...baseRole,
-            candidacy:    'Competitive',
-            applied_date: '2024-01-15',
-            salary_min:   100000,
-            salary_max:   130000,
-            notes:        'Good match',
-        });
-        const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(role.candidacy).toBe('Competitive');
-        expect(role.applied_date).toBe('2024-01-15');
-        expect(role.salary_min).toBe(100000);
-        expect(role.salary_max).toBe(130000);
-        expect(role.notes).toBe('Good match');
+        const candidacy   = 'Competitive';
+        const appliedDate = '2024-01-15';
+        const salaryMin   = 100000;
+        const salaryMax   = 130000;
+        const notes       = 'Good match';
+
+        const id   = insertRole(db, { ...baseRole, candidacy, applied_date: appliedDate, salary_min: salaryMin, salary_max: salaryMax, notes });
+        const role = getRoleById(db, id);
+        expect(role).toBeDefined();
+        expect(role!.candidacy).toBe(candidacy);
+        expect(role!.applied_date).toBe(appliedDate);
+        expect(role!.salary_min).toBe(salaryMin);
+        expect(role!.salary_max).toBe(salaryMax);
+        expect(role!.notes).toBe(notes);
     });
 
     test('throws on invalid role_status — CHECK constraint', () => {
@@ -92,11 +94,12 @@ describe('getRoleById', () => {
         const role = getRoleById(db, id);
         expect(role).toBeDefined();
         expect(role!.id).toBe(id);
-        expect(role!.company).toBe('Acme Corp');
+        expect(role!.company).toBe(baseRole.company);
     });
 
     test('returns undefined when not found', () => {
-        const role = getRoleById(db, 999);
+        const nonExistentId = 999;
+        const role          = getRoleById(db, nonExistentId);
         expect(role).toBeUndefined();
     });
 
@@ -107,33 +110,34 @@ describe('getRoleById', () => {
 describe('updateRoleStatus', () => {
 
     test('updates role_status correctly and returns one change', () => {
-        const id     = insertRole(db, baseRole);
-        const result = updateRoleStatus(db, id, 'Applied');
-        const role   = db.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(role.role_status).toBe('Applied');
+        const newStatus = 'Applied';
+        const id        = insertRole(db, baseRole);
+        const result    = updateRoleStatus(db, id, newStatus);
+        const role      = getRoleById(db, id);
+        expect(role!.role_status).toBe(newStatus);
         expect(result.changes).toBe(1);
     });
 
     test('sets applied_date when transitioning to Applied and no date exists', () => {
         const id = insertRole(db, baseRole);
         updateRoleStatus(db, id, 'Applied');
-        const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(role.applied_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        const role = getRoleById(db, id);
+        expect(role!.applied_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     test('preserves existing applied_date when transitioning to Applied', () => {
         const existingDate = '2024-01-15';
         const id           = insertRole(db, { ...baseRole, applied_date: existingDate });
         updateRoleStatus(db, id, 'Applied');
-        const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(role.applied_date).toBe(existingDate);
+        const role         = getRoleById(db, id);
+        expect(role!.applied_date).toBe(existingDate);
     });
 
     test('does not set applied_date when transitioning to non-Applied status', () => {
-        const id = insertRole(db, baseRole);
+        const id   = insertRole(db, baseRole);
         updateRoleStatus(db, id, 'On Hold');
-        const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
-        expect(role.applied_date).toBeNull();
+        const role = getRoleById(db, id);
+        expect(role!.applied_date).toBeNull();
     });
 
     test('throws on invalid status — CHECK constraint', () => {
@@ -148,7 +152,8 @@ describe('updateRoleStatus', () => {
     });
 
     test('safely makes no change when role does not exist', () => {
-        const result = updateRoleStatus(db, 999, 'Applied');
+        const nonExistentId = 999;
+        const result        = updateRoleStatus(db, nonExistentId, 'Applied');
         expect(result.changes).toBe(0);
     });
 
@@ -167,19 +172,21 @@ describe('deleteRoleById', () => {
 
     test('throws on FK violation when job description exists', () => {
         const jobDescriptionContent = 'JD content';
-        const id = insertRole(db, baseRole);
+        const id                    = insertRole(db, baseRole);
         db.prepare('INSERT INTO job_descriptions (role_id, content) VALUES (?, ?)').run(id, jobDescriptionContent);
         expect(() => deleteRoleById(db, id)).toThrow();
     });
 
     test('throws on FK violation when skip reasons exist', () => {
-        const id = insertRole(db, baseRole);
-        db.prepare("INSERT INTO skip_reasons (role_id, reason) VALUES (?, 'Location')").run(id);
+        const skipReason = 'Location';
+        const id         = insertRole(db, baseRole);
+        db.prepare('INSERT INTO skip_reasons (role_id, reason) VALUES (?, ?)').run(id, skipReason);
         expect(() => deleteRoleById(db, id)).toThrow();
     });
 
     test('safely makes no change when role does not exist', () => {
-        const result = deleteRoleById(db, 999);
+        const nonExistentId = 999;
+        const result        = deleteRoleById(db, nonExistentId);
         expect(result.changes).toBe(0);
     });
 
