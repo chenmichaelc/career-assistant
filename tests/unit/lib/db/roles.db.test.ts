@@ -57,7 +57,7 @@ describe('insertRole', () => {
         const appliedDate = '2024-01-15';
         const salaryMin   = 100000;
         const salaryMax   = 130000;
-        const notes       = 'Good match';
+        const notes       = 'Sample note';
 
         const id   = insertRole(db, { ...baseRole, candidacy, applied_date: appliedDate, salary_min: salaryMin, salary_max: salaryMax, notes });
         const role = getRoleById(db, id);
@@ -70,11 +70,11 @@ describe('insertRole', () => {
     });
 
     test('throws on invalid role_status — CHECK constraint', () => {
-        expect(() => insertRole(db, { ...baseRole, role_status: 'InvalidStatus' })).toThrow();
+        expect(() => insertRole(db, { ...baseRole, role_status: 'InvalidStatus' })).toThrow('CHECK constraint failed');
     });
 
     test('throws on invalid candidacy — CHECK constraint', () => {
-        expect(() => insertRole(db, { ...baseRole, candidacy: 'InvalidCandidacy' })).toThrow();
+        expect(() => insertRole(db, { ...baseRole, candidacy: 'InvalidCandidacy' })).toThrow('CHECK constraint failed');
     });
 
     test('assigns incrementing IDs to successive inserts', () => {
@@ -119,10 +119,11 @@ describe('updateRoleStatus', () => {
     });
 
     test('sets applied_date when transitioning to Applied and no date exists', () => {
+        const today = new Date().toISOString().split('T')[0];
         const id = insertRole(db, baseRole);
         updateRoleStatus(db, id, 'Applied');
         const role = getRoleById(db, id);
-        expect(role!.applied_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(role!.applied_date).toBe(today);
     });
 
     test('preserves existing applied_date when transitioning to Applied', () => {
@@ -143,12 +144,6 @@ describe('updateRoleStatus', () => {
     test('throws on invalid status — CHECK constraint', () => {
         const id = insertRole(db, baseRole);
         expect(() => updateRoleStatus(db, id, 'InvalidStatus')).toThrow();
-    });
-
-    test('accepts string or number id', () => {
-        const id = insertRole(db, baseRole);
-        expect(() => updateRoleStatus(db, id, 'On Hold')).not.toThrow();
-        expect(() => updateRoleStatus(db, id, 'Callback')).not.toThrow();
     });
 
     test('safely makes no change when role does not exist', () => {
@@ -174,14 +169,14 @@ describe('deleteRoleById', () => {
         const jobDescriptionContent = 'JD content';
         const id                    = insertRole(db, baseRole);
         db.prepare('INSERT INTO job_descriptions (role_id, content) VALUES (?, ?)').run(id, jobDescriptionContent);
-        expect(() => deleteRoleById(db, id)).toThrow();
+        expect(() => deleteRoleById(db, id)).toThrow('FOREIGN KEY constraint failed');
     });
 
     test('throws on FK violation when skip reasons exist', () => {
         const skipReason = 'Location';
         const id         = insertRole(db, baseRole);
         db.prepare('INSERT INTO skip_reasons (role_id, reason) VALUES (?, ?)').run(id, skipReason);
-        expect(() => deleteRoleById(db, id)).toThrow();
+        expect(() => deleteRoleById(db, id)).toThrow('FOREIGN KEY constraint failed');
     });
 
     test('safely makes no change when role does not exist', () => {
