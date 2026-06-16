@@ -13,18 +13,24 @@ interface PluginOptions extends FastifyPluginOptions {
 export async function backupRouter(fastify: FastifyInstance, options: PluginOptions) {
   const db = options.db;
 
-  fastify.post('/', async (request, reply) => {
-    const backupDir = path.join(__dirname, '../../backups');
+  fastify.post('/', async (_request, reply) => {
+    try {
+      const backupDir = path.join(__dirname, '../../backups');
 
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, {recursive: true});
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupPath = path.join(backupDir, `career-assistant-${timestamp}.sqlite`);
+
+      await db.backup(backupPath);
+
+      return { path: backupPath, timestamp };
     }
-
-    const timestamp  = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = path.join(backupDir, `career-assistant-${timestamp}.sqlite`);
-
-    await db.backup(backupPath);
-
-    return { path: backupPath, timestamp };
+    catch (err) {
+      fastify.log.error(err, 'Backup failed');
+      return reply.status(500).send({ error: 'Backup failed' });
+      }
   });
 }

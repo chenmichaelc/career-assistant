@@ -3,7 +3,7 @@
 // All DB write logic lives here. Callers are responsible for opening and closing the DB connection.
 
 import Database from 'better-sqlite3';
-import { RoleInput, SkipReason, TerminationReason } from './types';
+import { RoleInput } from './types';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 

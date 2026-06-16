@@ -46,18 +46,12 @@ interface TerminationReasonRow {
   note:    string | null;
 }
 
-interface JobDescriptionRow {
-  id:      number;
-  role_id: number;
-  content: string;
-}
-
 export async function rolesRouter(fastify: FastifyInstance, options: PluginOptions) {
   const db = options.db;
 
   // ─── GET /api/roles ─────────────────────────────────────────────────────────
 
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async (request, _reply) => {
     const { company, sort, order } = request.query as {
       company?: string;
       sort?:    string;
