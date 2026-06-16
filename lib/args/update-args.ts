@@ -26,8 +26,8 @@ export function parseArgs(argv: string[]): UpdateArgs {
       i++;
     }
 
-    if (flag === 'reasons' || flag === 'termination') {
-      flags[flag] = values;
+    if (flag === 'reasons') {
+      flags.reasons = values;
     } else if (flag === 'termination') {
       flags.termination = values;
     } else if (flag === 'id') {
