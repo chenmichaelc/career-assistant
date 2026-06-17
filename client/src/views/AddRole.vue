@@ -81,6 +81,7 @@ async function submit() {
   error.value     = '';
   submitting.value = true;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shared RoleInput type not yet accessible from client; tracked in CAR-4
     const payload: any = { ...form.value };
     if (!payload.notes)      delete payload.notes;
     if (!payload.salary_min) payload.salary_min = null;
