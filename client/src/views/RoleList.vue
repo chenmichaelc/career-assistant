@@ -135,6 +135,7 @@ const ACTIVE_STATUSES   = VALID_STATUSES.filter(s => !INACTIVE_STATUSES.includes
 const DEFAULT_STATUSES = [...VALID_STATUSES];
 
 const router              = useRouter();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- role shape not yet shared with client; tracked in CAR-4
 const roles               = ref<any[]>([]);
 const loading             = ref(false);
 const error               = ref('');
@@ -190,6 +191,7 @@ async function load() {
     if (filterCompany.value) params.set('company', filterCompany.value);
     params.set('sort',  sortColumn.value);
     params.set('order', sortOrder.value);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- role shape not yet shared with client; tracked in CAR-4
     roles.value = await apiFetch<any[]>(`/api/roles?${params}`);
   }
   catch (err) {

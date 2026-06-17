@@ -17,8 +17,8 @@ import {
   deleteJobDescription,
   previewRoleDeletion,
 }                           from '../../lib/deletes';
-import { exportRole }       from '../../lib/exporters/index';
-import { ExportFormat }     from '../../lib/exporters/index';
+import { exportRole }       from '../../lib/exporters';
+import { ExportFormat }     from '../../lib/exporters';
 import {
   RoleRow,
   SkipReasonType,
@@ -99,8 +99,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     const roles = db.prepare(query).all(...params) as RoleRow[];
 
-    const fetchSkipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id ASC`);
-    const fetchTerminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id ASC`);
+    const fetchSkipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`);
+    const fetchTerminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`);
 
     const output = roles.map(role => ({
       ...role,
@@ -129,8 +129,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(404).send({ error: `No role found with ID ${id}` });
     }
 
-    const skipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id ASC`).all(id)        as SkipReasonRow[];
-    const terminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id ASC`).all(id) as TerminationReasonRow[];
+    const skipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`).all(id)        as SkipReasonRow[];
+    const terminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`).all(id) as TerminationReasonRow[];
 
     return { ...role, skip_reasons: skipReasons, termination_reasons: terminationReasons };
   });
@@ -139,6 +139,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
   fastify.post('/', async (request, reply) => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- request body validation via Zod tracked in CAR-44
       const id = addRole(db, request.body as any);
       return reply.status(201).send({ id });
     } catch (err) {

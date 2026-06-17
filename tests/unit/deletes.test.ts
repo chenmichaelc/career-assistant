@@ -110,11 +110,7 @@ describe('deleteRole', () => {
 
   test('role remains intact after refused deletion', () => {
     const id = addRole(db, skippedRole);
-
-    try { deleteRole(db, id, false); } catch {}
-
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id);
-    expect(role).not.toBeUndefined();
+    expect(() => deleteRole(db, id, false)).toThrow(/has dependent records/);
   });
 
   test('force deletes role and all dependents', () => {
