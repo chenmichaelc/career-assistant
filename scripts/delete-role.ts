@@ -6,13 +6,13 @@
 //   npx ts-node scripts/delete-role.ts --id <id>
 //   npx ts-node scripts/delete-role.ts --id <id> --force
 
-import Database                           from 'better-sqlite3';
-import path                               from 'path';
+import Database from 'better-sqlite3';
+import path from 'path';
 import { previewRoleDeletion, deleteRole } from '../lib/deletes';
 
 // ─── Parse args ───────────────────────────────────────────────────────────────
 
-const args  = process.argv.slice(2);
+const args = process.argv.slice(2);
 const flags: Record<string, string> = {};
 
 for (let i = 0; i < args.length; i += 2) {
@@ -20,7 +20,7 @@ for (let i = 0; i < args.length; i += 2) {
 }
 
 const isPreview = flags.mode === 'preview';
-const isForce   = 'force' in flags;
+const isForce = 'force' in flags;
 
 // ─── Validate args ────────────────────────────────────────────────────────────
 
@@ -44,7 +44,10 @@ const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 
 try {
   if (isPreview) {
-    const { role, skip_reasons, termination_reasons, job_descriptions } = previewRoleDeletion(db, id);
+    const { role, skip_reasons, termination_reasons, job_descriptions } = previewRoleDeletion(
+      db,
+      id
+    );
 
     process.stdout.write(`\nPreview — Role ${id}\n`);
     process.stdout.write(`  Company:     ${role.company}\n`);
@@ -78,9 +81,12 @@ try {
     }
 
     process.stdout.write('\n');
-  }
- else {
-    const { role, skip_reasons, termination_reasons, job_descriptions } = deleteRole(db, id, isForce);
+  } else {
+    const { role, skip_reasons, termination_reasons, job_descriptions } = deleteRole(
+      db,
+      id,
+      isForce
+    );
 
     process.stdout.write(`\n✓ Deleted: ${role.company} — ${role.title}\n`);
 
@@ -93,8 +99,7 @@ try {
 
     process.stdout.write('\n');
   }
-}
- catch (err) {
+} catch (err) {
   process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);

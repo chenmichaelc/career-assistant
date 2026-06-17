@@ -3,8 +3,8 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
-import path     from 'path';
-import fs       from 'fs';
+import path from 'path';
+import fs from 'fs';
 
 interface PluginOptions extends FastifyPluginOptions {
   db: Database.Database;
@@ -18,7 +18,7 @@ export async function backupRouter(fastify: FastifyInstance, options: PluginOpti
       const backupDir = path.join(__dirname, '../../backups');
 
       if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, {recursive: true});
+        fs.mkdirSync(backupDir, { recursive: true });
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -27,10 +27,9 @@ export async function backupRouter(fastify: FastifyInstance, options: PluginOpti
       await db.backup(backupPath);
 
       return { path: backupPath, timestamp };
-    }
-    catch (err) {
+    } catch (err) {
       fastify.log.error(err, 'Backup failed');
       return reply.status(500).send({ error: 'Backup failed' });
-      }
+    }
   });
 }

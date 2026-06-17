@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { RolesPage }    from '../pages/rolesPage';
+import { RolesPage } from '../pages/rolesPage';
 
 test('Static smoke test of Default Page on Index', async ({ page }) => {
   const indexPage = new RolesPage(page);

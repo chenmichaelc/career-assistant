@@ -166,7 +166,7 @@ Syntactic validity: is the input well-formed? Are required flags present? Are va
 
 ```typescript
 // Example: unknown flag detection
-const unknownFlags = Object.keys(args).filter(k => !KNOWN_FLAGS.includes(k));
+const unknownFlags = Object.keys(args).filter((k) => !KNOWN_FLAGS.includes(k));
 if (unknownFlags.length > 0) throw new Error(`Unknown flags: ${unknownFlags.join(', ')}`);
 ```
 
@@ -197,8 +197,12 @@ Pure function tests using Vitest with in-memory SQLite databases via `createTest
 
 ```typescript
 let db: Database.Database;
-beforeEach(() => { db = createTestDb(); });
-afterEach(()  => { db.close(); });
+beforeEach(() => {
+  db = createTestDb();
+});
+afterEach(() => {
+  db.close();
+});
 ```
 
 `createTestDb()` applies the real schema to a `:memory:` database. Tests execute real SQL against real constraints — there are no mocks of the data layer. This gives real constraint enforcement (FK violations, CHECK violations) in tests that are fast, isolated, and require no cleanup.
@@ -222,7 +226,7 @@ Playwright browser tests against the running application. The Page Object Model 
 ```typescript
 // TopMenuBarComponent scopes locators to the data-testid="menu-bar" container
 this.topMenuBarContainer = page.getByTestId('menu-bar');
-this.rolesLink           = this.topMenuBarContainer.getByRole('link', { name: 'roles' });
+this.rolesLink = this.topMenuBarContainer.getByRole('link', { name: 'roles' });
 ```
 
 The `data-testid` attribute is placed on zone containers only — not on individual interactive elements. Natural ARIA role/name selectors are used within the scoped container.
@@ -282,11 +286,11 @@ The Playwright report upload runs unconditionally (`if: ${{ !cancelled() }}`) so
 
 Three distinct TypeScript configurations cover three distinct runtime environments:
 
-| Config | Target | Module | Environment |
-|---|---|---|---|
-| `tsconfig.json` (root) | ES2020 | CommonJS | Node.js, ts-node |
-| `client/tsconfig.json` | ESNext | ESNext/bundler | Browser, Vite |
-| `e2e/tsconfig.json` | ESNext | ESNext/bundler | Node.js, Playwright |
+| Config                 | Target | Module         | Environment         |
+| ---------------------- | ------ | -------------- | ------------------- |
+| `tsconfig.json` (root) | ES2020 | CommonJS       | Node.js, ts-node    |
+| `client/tsconfig.json` | ESNext | ESNext/bundler | Browser, Vite       |
+| `e2e/tsconfig.json`    | ESNext | ESNext/bundler | Node.js, Playwright |
 
 The root config uses CommonJS because `ts-node` — used to run CLI scripts and the server — requires it. The client and e2e configs use ESNext because Vite and Playwright handle their own TypeScript compilation and work with native ES modules.
 
@@ -301,11 +305,9 @@ All three configs use `strict: true`. The most impactful strict checks in practi
 ```typescript
 try {
   // ...
-}
-catch (err) {
+} catch (err) {
   // ...
-}
-finally {
+} finally {
   // ...
 }
 ```
@@ -347,7 +349,7 @@ Each package will have its own `tsconfig.json` and `package.json`. The root `tsc
 
 This resolves the current duplication of vocabulary types between `lib/types.ts` and `client/src/constants.ts` — the client will import directly from `@career-assistant/data`.
 
-### CAR-5 — Data layer refactor *(In Progress)*
+### CAR-5 — Data layer refactor _(In Progress)_
 
 Single-table CRUD operations are being extracted into dedicated modules under `lib/db/`:
 

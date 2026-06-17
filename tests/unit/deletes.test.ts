@@ -1,8 +1,8 @@
 // tests/unit/deletes.test.ts
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import Database              from 'better-sqlite3';
-import { createTestDb }      from '../helpers/db';
-import { addRole }           from '../../lib/roles';
+import Database from 'better-sqlite3';
+import { createTestDb } from '../helpers/db';
+import { addRole } from '../../lib/roles';
 import {
   previewRoleDeletion,
   deleteRole,
@@ -18,22 +18,22 @@ import { RoleInput } from '../../lib/types';
 let db: Database.Database;
 
 const baseRole: RoleInput = {
-  company:     'Acme',
-  title:       'QA Engineer',
-  url:         'https://example.com/job/1',
+  company: 'Acme',
+  title: 'QA Engineer',
+  url: 'https://example.com/job/1',
   role_status: 'Pending Triage',
-  jd:          'This is a job description.',
+  jd: 'This is a job description.',
 };
 
 const skippedRole: RoleInput = {
   ...baseRole,
-  role_status:  'Skipped',
+  role_status: 'Skipped',
   skip_reasons: [{ reason: 'Location', note: 'Austin in-office' }],
 };
 
 const closedRole: RoleInput = {
   ...baseRole,
-  role_status:         'Closed',
+  role_status: 'Closed',
   termination_reasons: [{ reason: 'Screened Out', note: null }],
 };
 
@@ -48,9 +48,8 @@ afterEach(() => {
 // ─── previewRoleDeletion ──────────────────────────────────────────────────────
 
 describe('previewRoleDeletion', () => {
-
   test('returns role details', () => {
-    const id      = addRole(db, baseRole);
+    const id = addRole(db, baseRole);
     const preview = previewRoleDeletion(db, id);
 
     expect(preview.role.company).toBe(baseRole.company);
@@ -58,7 +57,7 @@ describe('previewRoleDeletion', () => {
   });
 
   test('returns empty dependent arrays for clean role', () => {
-    const id      = addRole(db, baseRole);
+    const id = addRole(db, baseRole);
     const preview = previewRoleDeletion(db, id);
 
     expect(preview.skip_reasons).toHaveLength(0);
@@ -67,7 +66,7 @@ describe('previewRoleDeletion', () => {
   });
 
   test('returns skip reasons for skipped role', () => {
-    const id      = addRole(db, skippedRole);
+    const id = addRole(db, skippedRole);
     const preview = previewRoleDeletion(db, id);
 
     expect(preview.skip_reasons).toHaveLength(1);
@@ -75,7 +74,7 @@ describe('previewRoleDeletion', () => {
   });
 
   test('returns termination reasons for closed role', () => {
-    const id      = addRole(db, closedRole);
+    const id = addRole(db, closedRole);
     const preview = previewRoleDeletion(db, id);
 
     expect(preview.termination_reasons).toHaveLength(1);
@@ -85,13 +84,11 @@ describe('previewRoleDeletion', () => {
   test('throws when role not found', () => {
     expect(() => previewRoleDeletion(db, 999)).toThrow('No role found with ID 999');
   });
-
 });
 
 // ─── deleteRole ───────────────────────────────────────────────────────────────
 
 describe('deleteRole', () => {
-
   test('deletes a role with no dependents', () => {
     const id = addRole(db, baseRole);
 
@@ -117,9 +114,9 @@ describe('deleteRole', () => {
     const id = addRole(db, skippedRole);
     deleteRole(db, id, true);
 
-    const role        = db.prepare('SELECT * FROM roles WHERE id = ?').get(id);
+    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id);
     const skipReasons = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').all(id);
-    const jds         = db.prepare('SELECT * FROM job_descriptions WHERE role_id = ?').all(id);
+    const jds = db.prepare('SELECT * FROM job_descriptions WHERE role_id = ?').all(id);
 
     expect(role).toBeUndefined();
     expect(skipReasons).toHaveLength(0);
@@ -137,16 +134,16 @@ describe('deleteRole', () => {
     const result = deleteRole(db, id, false);
     expect(result.role.company).toBe(baseRole.company);
   });
-
 });
 
 // ─── previewSkipReasonDeletion ────────────────────────────────────────────────
 
 describe('previewSkipReasonDeletion', () => {
-
   test('returns skip reason and parent role', () => {
     const roleId = addRole(db, skippedRole);
-    const sr     = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').get(roleId) as { id: number };
+    const sr = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').get(roleId) as {
+      id: number;
+    };
 
     const preview = previewSkipReasonDeletion(db, sr.id);
 
@@ -158,16 +155,16 @@ describe('previewSkipReasonDeletion', () => {
   test('throws when skip reason not found', () => {
     expect(() => previewSkipReasonDeletion(db, 999)).toThrow('No skip reason found with ID 999');
   });
-
 });
 
 // ─── deleteSkipReason ─────────────────────────────────────────────────────────
 
 describe('deleteSkipReason', () => {
-
   test('deletes skip reason by id', () => {
     const roleId = addRole(db, skippedRole);
-    const sr     = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').get(roleId) as { id: number };
+    const sr = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').get(roleId) as {
+      id: number;
+    };
 
     deleteSkipReason(db, sr.id);
 
@@ -177,7 +174,9 @@ describe('deleteSkipReason', () => {
 
   test('returns deleted reason and parent role', () => {
     const roleId = addRole(db, skippedRole);
-    const sr     = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').get(roleId) as { id: number };
+    const sr = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').get(roleId) as {
+      id: number;
+    };
 
     const result = deleteSkipReason(db, sr.id);
 
@@ -188,16 +187,16 @@ describe('deleteSkipReason', () => {
   test('throws when skip reason not found', () => {
     expect(() => deleteSkipReason(db, 999)).toThrow('No skip reason found with ID 999');
   });
-
 });
 
 // ─── previewTerminationReasonDeletion ─────────────────────────────────────────
 
 describe('previewTerminationReasonDeletion', () => {
-
   test('returns termination reason and parent role', () => {
     const roleId = addRole(db, closedRole);
-    const tr     = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').get(roleId) as { id: number };
+    const tr = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').get(roleId) as {
+      id: number;
+    };
 
     const preview = previewTerminationReasonDeletion(db, tr.id);
 
@@ -206,18 +205,20 @@ describe('previewTerminationReasonDeletion', () => {
   });
 
   test('throws when termination reason not found', () => {
-    expect(() => previewTerminationReasonDeletion(db, 999)).toThrow('No termination reason found with ID 999');
+    expect(() => previewTerminationReasonDeletion(db, 999)).toThrow(
+      'No termination reason found with ID 999'
+    );
   });
-
 });
 
 // ─── deleteTerminationReason ──────────────────────────────────────────────────
 
 describe('deleteTerminationReason', () => {
-
   test('deletes termination reason by id', () => {
     const roleId = addRole(db, closedRole);
-    const tr     = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').get(roleId) as { id: number };
+    const tr = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').get(roleId) as {
+      id: number;
+    };
 
     deleteTerminationReason(db, tr.id);
 
@@ -227,7 +228,9 @@ describe('deleteTerminationReason', () => {
 
   test('returns deleted reason and parent role', () => {
     const roleId = addRole(db, closedRole);
-    const tr     = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').get(roleId) as { id: number };
+    const tr = db.prepare('SELECT * FROM termination_reasons WHERE role_id = ?').get(roleId) as {
+      id: number;
+    };
 
     const result = deleteTerminationReason(db, tr.id);
 
@@ -236,17 +239,17 @@ describe('deleteTerminationReason', () => {
   });
 
   test('throws when termination reason not found', () => {
-    expect(() => deleteTerminationReason(db, 999)).toThrow('No termination reason found with ID 999');
+    expect(() => deleteTerminationReason(db, 999)).toThrow(
+      'No termination reason found with ID 999'
+    );
   });
-
 });
 
 // ─── previewJobDescriptionDeletion ────────────────────────────────────────────
 
 describe('previewJobDescriptionDeletion', () => {
-
   test('returns jd and parent role', () => {
-    const roleId  = addRole(db, baseRole);
+    const roleId = addRole(db, baseRole);
     const preview = previewJobDescriptionDeletion(db, roleId);
 
     expect(preview.jd.content).toBe(baseRole.jd);
@@ -255,15 +258,15 @@ describe('previewJobDescriptionDeletion', () => {
   });
 
   test('throws when job description not found', () => {
-    expect(() => previewJobDescriptionDeletion(db, 999)).toThrow('No job description found for role ID 999');
+    expect(() => previewJobDescriptionDeletion(db, 999)).toThrow(
+      'No job description found for role ID 999'
+    );
   });
-
 });
 
 // ─── deleteJobDescription ─────────────────────────────────────────────────────
 
 describe('deleteJobDescription', () => {
-
   test('deletes job description by role id', () => {
     const roleId = addRole(db, baseRole);
     deleteJobDescription(db, roleId);
@@ -283,5 +286,4 @@ describe('deleteJobDescription', () => {
   test('throws when job description not found', () => {
     expect(() => deleteJobDescription(db, 999)).toThrow('No job description found for role ID 999');
   });
-
 });

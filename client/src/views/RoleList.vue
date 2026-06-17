@@ -8,43 +8,52 @@
 
     <!-- Filters -->
     <div class="flex gap-3 mb-6 flex-wrap">
-
       <!-- Status multi-select dropdown -->
       <div class="relative" ref="statusDropdownRef">
         <button
-            @click="showStatusDropdown = !showStatusDropdown"
-            class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded w-48 text-left flex items-center justify-between hover:border-accent transition-colors focus:outline-none"
+          @click="showStatusDropdown = !showStatusDropdown"
+          class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded w-48 text-left flex items-center justify-between hover:border-accent transition-colors focus:outline-none"
         >
           <span class="truncate">{{ statusLabel }}</span>
           <span class="text-dim text-xs ml-2">▾</span>
         </button>
 
         <div
-            v-if="showStatusDropdown"
-            class="absolute top-full mt-1 left-0 z-10 bg-panel border border-border rounded shadow-lg w-56"
+          v-if="showStatusDropdown"
+          class="absolute top-full mt-1 left-0 z-10 bg-panel border border-border rounded shadow-lg w-56"
         >
           <!-- Controls -->
           <div class="flex gap-2 px-3 pt-3 pb-2 border-b border-border">
-            <button @click="selectAll"  class="font-mono text-xs text-accent hover:opacity-80 transition-opacity">all</button>
+            <button
+              @click="selectAll"
+              class="font-mono text-xs text-accent hover:opacity-80 transition-opacity"
+            >
+              all
+            </button>
             <span class="text-dim text-xs">·</span>
-            <button @click="selectNone" class="font-mono text-xs text-accent hover:opacity-80 transition-opacity">none</button>
+            <button
+              @click="selectNone"
+              class="font-mono text-xs text-accent hover:opacity-80 transition-opacity"
+            >
+              none
+            </button>
             <span class="text-dim text-xs">·</span>
-            <button @click="selectActive" class="font-mono text-xs text-accent hover:opacity-80 transition-opacity">active</button>
+            <button
+              @click="selectActive"
+              class="font-mono text-xs text-accent hover:opacity-80 transition-opacity"
+            >
+              active
+            </button>
           </div>
 
           <!-- Options -->
           <div class="py-1 max-h-64 overflow-y-auto">
             <label
-                v-for="s in VALID_STATUSES"
-                :key="s"
-                class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"
+              v-for="s in VALID_STATUSES"
+              :key="s"
+              class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"
             >
-              <input
-                  type="checkbox"
-                  :value="s"
-                  v-model="filterStatuses"
-                  class="accent-accent"
-              />
+              <input type="checkbox" :value="s" v-model="filterStatuses" class="accent-accent" />
               <span class="font-mono text-sm text-text">{{ s }}</span>
             </label>
           </div>
@@ -53,22 +62,31 @@
 
       <!-- Company filter -->
       <input
-          v-model="filterCompany"
-          @keyup.enter="load"
-          placeholder="filter by company"
-          class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded w-56 focus:outline-none focus:border-accent"
+        v-model="filterCompany"
+        @keyup.enter="load"
+        placeholder="filter by company"
+        class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded w-56 focus:outline-none focus:border-accent"
       />
 
-      <button @click="load" class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 transition-opacity">
+      <button
+        @click="load"
+        class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 transition-opacity"
+      >
         search
       </button>
-      <button @click="clearFilters" class="border border-border text-dim font-mono text-sm px-4 py-2 rounded hover:text-text transition-colors">
+      <button
+        @click="clearFilters"
+        class="border border-border text-dim font-mono text-sm px-4 py-2 rounded hover:text-text transition-colors"
+      >
         clear
       </button>
     </div>
 
     <!-- Error -->
-    <div v-if="error" class="bg-panel border border-danger text-danger font-mono text-sm px-4 py-3 rounded mb-4">
+    <div
+      v-if="error"
+      class="bg-panel border border-danger text-danger font-mono text-sm px-4 py-3 rounded mb-4"
+    >
       {{ error }}
     </div>
 
@@ -79,45 +97,66 @@
     <div v-else class="overflow-x-auto">
       <table class="w-full font-mono text-sm border-collapse">
         <thead>
-        <tr class="border-b border-border text-dim text-left">
-          <th @click="setSort('id')"           class="pb-3 pr-4 font-medium w-12 cursor-pointer hover:text-text transition-colors select-none">
-            id <span class="text-xs">{{ sortIndicator('id') }}</span>
-          </th>
-          <th @click="setSort('company')"      class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none">
-            company <span class="text-xs">{{ sortIndicator('company') }}</span>
-          </th>
-          <th @click="setSort('title')"        class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none">
-            title <span class="text-xs">{{ sortIndicator('title') }}</span>
-          </th>
-          <th @click="setSort('role_status')"  class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none">
-            status <span class="text-xs">{{ sortIndicator('role_status') }}</span>
-          </th>
-          <th @click="setSort('candidacy')"    class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none">
-            candidacy <span class="text-xs">{{ sortIndicator('candidacy') }}</span>
-          </th>
-          <th @click="setSort('applied_date')" class="pb-3 font-medium cursor-pointer hover:text-text transition-colors select-none">
-            applied <span class="text-xs">{{ sortIndicator('applied_date') }}</span>
-          </th>
-        </tr>
+          <tr class="border-b border-border text-dim text-left">
+            <th
+              @click="setSort('id')"
+              class="pb-3 pr-4 font-medium w-12 cursor-pointer hover:text-text transition-colors select-none"
+            >
+              id <span class="text-xs">{{ sortIndicator('id') }}</span>
+            </th>
+            <th
+              @click="setSort('company')"
+              class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none"
+            >
+              company <span class="text-xs">{{ sortIndicator('company') }}</span>
+            </th>
+            <th
+              @click="setSort('title')"
+              class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none"
+            >
+              title <span class="text-xs">{{ sortIndicator('title') }}</span>
+            </th>
+            <th
+              @click="setSort('role_status')"
+              class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none"
+            >
+              status <span class="text-xs">{{ sortIndicator('role_status') }}</span>
+            </th>
+            <th
+              @click="setSort('candidacy')"
+              class="pb-3 pr-4 font-medium cursor-pointer hover:text-text transition-colors select-none"
+            >
+              candidacy <span class="text-xs">{{ sortIndicator('candidacy') }}</span>
+            </th>
+            <th
+              @click="setSort('applied_date')"
+              class="pb-3 font-medium cursor-pointer hover:text-text transition-colors select-none"
+            >
+              applied <span class="text-xs">{{ sortIndicator('applied_date') }}</span>
+            </th>
+          </tr>
         </thead>
         <tbody>
-        <tr
+          <tr
             v-for="role in roles"
             :key="role.id"
             @click="goToRole(role.id)"
             class="border-b border-border hover:bg-panel cursor-pointer transition-colors"
-        >
-          <td class="py-3 pr-4 text-dim">{{ role.id }}</td>
-          <td class="py-3 pr-4 text-text">{{ role.company }}</td>
-          <td class="py-3 pr-4 text-dim max-w-xs truncate">{{ role.title }}</td>
-          <td class="py-3 pr-4">
-              <span :class="statusClass(role.role_status)" class="px-2 py-0.5 rounded text-xs font-medium">
+          >
+            <td class="py-3 pr-4 text-dim">{{ role.id }}</td>
+            <td class="py-3 pr-4 text-text">{{ role.company }}</td>
+            <td class="py-3 pr-4 text-dim max-w-xs truncate">{{ role.title }}</td>
+            <td class="py-3 pr-4">
+              <span
+                :class="statusClass(role.role_status)"
+                class="px-2 py-0.5 rounded text-xs font-medium"
+              >
                 {{ role.role_status }}
               </span>
-          </td>
-          <td class="py-3 pr-4 text-dim">{{ role.candidacy ?? '—' }}</td>
-          <td class="py-3 text-dim">{{ role.applied_date ?? '—' }}</td>
-        </tr>
+            </td>
+            <td class="py-3 pr-4 text-dim">{{ role.candidacy ?? '—' }}</td>
+            <td class="py-3 text-dim">{{ role.applied_date ?? '—' }}</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -126,46 +165,46 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter }                              from 'vue-router';
-import { apiFetch }                              from '@/composables/useApi';
-import { VALID_STATUSES }                        from '@/constants';
+import { useRouter } from 'vue-router';
+import { apiFetch } from '@/composables/useApi';
+import { VALID_STATUSES } from '@/constants';
 
 const INACTIVE_STATUSES = ['Skipped', 'Closed'];
-const ACTIVE_STATUSES   = VALID_STATUSES.filter(s => !INACTIVE_STATUSES.includes(s));
+const ACTIVE_STATUSES = VALID_STATUSES.filter((s) => !INACTIVE_STATUSES.includes(s));
 const DEFAULT_STATUSES = [...VALID_STATUSES];
 
-const router              = useRouter();
+const router = useRouter();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- role shape not yet shared with client; tracked in CAR-4
-const roles               = ref<any[]>([]);
-const loading             = ref(false);
-const error               = ref('');
-const filterStatuses      = ref<string[]>([...DEFAULT_STATUSES]);
-const filterCompany       = ref('');
-const sortColumn          = ref('id');
-const sortOrder           = ref<'ASC' | 'DESC'>('DESC');
-const showStatusDropdown  = ref(false);
-const statusDropdownRef   = ref<HTMLElement | null>(null);
+const roles = ref<any[]>([]);
+const loading = ref(false);
+const error = ref('');
+const filterStatuses = ref<string[]>([...DEFAULT_STATUSES]);
+const filterCompany = ref('');
+const sortColumn = ref('id');
+const sortOrder = ref<'ASC' | 'DESC'>('DESC');
+const showStatusDropdown = ref(false);
+const statusDropdownRef = ref<HTMLElement | null>(null);
 
 // ─── Status dropdown label ────────────────────────────────────────────────────
 
 const statusLabel = computed(() => {
   const count = filterStatuses.value.length;
-  if (count === 0)                    return 'no status selected';
+  if (count === 0) return 'no status selected';
   if (count === VALID_STATUSES.length) return 'all statuses';
-  if (count === 1)                    return filterStatuses.value[0];
+  if (count === 1) return filterStatuses.value[0];
   return `${count} statuses`;
 });
 
 // ─── Status selection helpers ─────────────────────────────────────────────────
 
-function selectAll()    {
- filterStatuses.value = [...VALID_STATUSES]; 
+function selectAll() {
+  filterStatuses.value = [...VALID_STATUSES];
 }
-function selectNone()   {
- filterStatuses.value = []; 
+function selectNone() {
+  filterStatuses.value = [];
 }
 function selectActive() {
- filterStatuses.value = [...ACTIVE_STATUSES]; 
+  filterStatuses.value = [...ACTIVE_STATUSES];
 }
 
 // ─── Close dropdown on outside click ─────────────────────────────────────────
@@ -189,21 +228,19 @@ onUnmounted(() => {
 
 async function load() {
   showStatusDropdown.value = false;
-  loading.value            = true;
-  error.value              = '';
+  loading.value = true;
+  error.value = '';
   try {
     const params = new URLSearchParams();
-    filterStatuses.value.forEach(s => params.append('status[]', s));
+    filterStatuses.value.forEach((s) => params.append('status[]', s));
     if (filterCompany.value) params.set('company', filterCompany.value);
-    params.set('sort',  sortColumn.value);
+    params.set('sort', sortColumn.value);
     params.set('order', sortOrder.value);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- role shape not yet shared with client; tracked in CAR-4
     roles.value = await apiFetch<any[]>(`/api/roles?${params}`);
-  }
-  catch (err) {
+  } catch (err) {
     error.value = (err as Error).message;
-  }
-  finally {
+  } finally {
     loading.value = false;
   }
 }
@@ -213,10 +250,9 @@ async function load() {
 function setSort(column: string) {
   if (sortColumn.value === column) {
     sortOrder.value = sortOrder.value === 'ASC' ? 'DESC' : 'ASC';
-  }
-  else {
+  } else {
     sortColumn.value = column;
-    sortOrder.value  = 'DESC';
+    sortOrder.value = 'DESC';
   }
   load();
 }
@@ -230,9 +266,9 @@ function sortIndicator(column: string): string {
 
 function clearFilters() {
   filterStatuses.value = [...DEFAULT_STATUSES];
-  filterCompany.value  = '';
-  sortColumn.value     = 'id';
-  sortOrder.value      = 'DESC';
+  filterCompany.value = '';
+  sortColumn.value = 'id';
+  sortOrder.value = 'DESC';
   load();
 }
 
@@ -246,17 +282,17 @@ function goToRole(id: number) {
 
 function statusClass(status: string): string {
   const map: Record<string, string> = {
-    'Applied':        'bg-accent/20 text-accent',
+    Applied: 'bg-accent/20 text-accent',
     'Pending Triage': 'bg-warning/20 text-warning',
-    'Skipped':        'bg-muted/40 text-dim',
-    'Closed':         'bg-muted/40 text-dim',
-    'In Interview':   'bg-success/20 text-success',
+    Skipped: 'bg-muted/40 text-dim',
+    Closed: 'bg-muted/40 text-dim',
+    'In Interview': 'bg-success/20 text-success',
     'Offer Accepted': 'bg-success/20 text-success',
     'Offer Declined': 'bg-danger/20 text-danger',
-    'Callback':       'bg-accent/20 text-accent',
-    'On Hold':        'bg-warning/20 text-warning',
-    'Resume Needed':  'bg-warning/20 text-warning',
-    'Resume Ready':   'bg-accent/20 text-accent',
+    Callback: 'bg-accent/20 text-accent',
+    'On Hold': 'bg-warning/20 text-warning',
+    'Resume Needed': 'bg-warning/20 text-warning',
+    'Resume Ready': 'bg-accent/20 text-accent',
   };
   return map[status] ?? 'bg-muted/40 text-dim';
 }

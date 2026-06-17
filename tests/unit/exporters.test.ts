@@ -1,36 +1,35 @@
 // tests/unit/exporters.test.ts
 import { describe, test, expect } from 'vitest';
-import { simpleExport }           from '../../lib/exporters/simple';
-import { richExport }             from '../../lib/exporters/rich';
-import { exportRole }             from '../../lib/exporters/index';
-import { RoleRow }                from '../../lib/types';
+import { simpleExport } from '../../lib/exporters/simple';
+import { richExport } from '../../lib/exporters/rich';
+import { exportRole } from '../../lib/exporters';
+import { RoleRow } from '../../lib/types';
 
 // ─── Minimal test fixture ─────────────────────────────────────────────────────
 
 const baseRole = {
-  company:     'Acme/Turner & Sons',
-  title:       'QA Engineer (III), Part II',
-  url:         'https://example.com/job/1?i=2',
-  salary_min:  110000,
-  salary_max:  130000,
-  jd:          `This is a job description.
+  company: 'Acme/Turner & Sons',
+  title: 'QA Engineer (III), Part II',
+  url: 'https://example.com/job/1?i=2',
+  salary_min: 110000,
+  salary_max: 130000,
+  jd: `This is a job description.
 It spans multiple lines.
 Special characters: &, /, (, ), "quotes", 'apostrophes'.`,
 } as unknown as RoleRow;
 
 const roleWithNulls = {
-  company:    'Acme',
-  title:      'QA Engineer',
-  url:        null,
+  company: 'Acme',
+  title: 'QA Engineer',
+  url: null,
   salary_min: null,
   salary_max: null,
-  jd:         '',
+  jd: '',
 } as unknown as RoleRow;
 
 // ─── simpleExport ─────────────────────────────────────────────────────────────
 
 describe('simpleExport', () => {
-
   test('output contains company', () => {
     const output = simpleExport(baseRole);
     expect(output).toContain('Company: Acme/Turner & Sons');
@@ -63,13 +62,11 @@ describe('simpleExport', () => {
     expect(output).not.toContain('URL:');
     expect(output).not.toContain('Salary');
   });
-
 });
 
 // ─── richExport ───────────────────────────────────────────────────────────────
 
 describe('richExport', () => {
-
   test('output contains URL', () => {
     const output = richExport(baseRole);
     expect(output).toContain('URL: https://example.com/job/1?i=2');
@@ -136,13 +133,11 @@ describe('richExport', () => {
     expect(output).toMatch(/^Description:/m);
     expect(output).toMatch(/^--$/m);
   });
-
 });
 
 // ─── exportRole orchestrator ──────────────────────────────────────────────────
 
 describe('exportRole', () => {
-
   test('selects simple format correctly', () => {
     const output = exportRole(baseRole, 'simple');
     expect(output).toContain('Company:');
@@ -158,5 +153,4 @@ describe('exportRole', () => {
   test('throws on unknown format', () => {
     expect(() => exportRole(baseRole, 'unknown' as never)).toThrow('Unknown export format');
   });
-
 });
