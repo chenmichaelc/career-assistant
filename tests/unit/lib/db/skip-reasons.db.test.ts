@@ -20,8 +20,12 @@ const baseRole = {
     role_status: 'Skipped',
 };
 
-beforeEach(() => { db = createTestDb(); });
-afterEach(()  => { db.close(); });
+beforeEach(() => {
+ db = createTestDb(); 
+});
+afterEach(()  => {
+ db.close(); 
+});
 
 // ─── insertSkipReason ─────────────────────────────────────────────────────────
 

@@ -17,8 +17,8 @@ import {
   deleteJobDescription,
   previewRoleDeletion,
 }                           from '../../lib/deletes';
-import { exportRole }       from '../../lib/exporters/index';
-import { ExportFormat }     from '../../lib/exporters/index';
+import { exportRole }       from '../../lib/exporters';
+import { ExportFormat }     from '../../lib/exporters';
 import {
   RoleRow,
   SkipReasonType,
@@ -46,18 +46,12 @@ interface TerminationReasonRow {
   note:    string | null;
 }
 
-interface JobDescriptionRow {
-  id:      number;
-  role_id: number;
-  content: string;
-}
-
 export async function rolesRouter(fastify: FastifyInstance, options: PluginOptions) {
   const db = options.db;
 
   // ─── GET /api/roles ─────────────────────────────────────────────────────────
 
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', async (request, _reply) => {
     const { company, sort, order } = request.query as {
       company?: string;
       sort?:    string;
@@ -105,8 +99,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     const roles = db.prepare(query).all(...params) as RoleRow[];
 
-    const fetchSkipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id ASC`);
-    const fetchTerminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id ASC`);
+    const fetchSkipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`);
+    const fetchTerminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`);
 
     const output = roles.map(role => ({
       ...role,
@@ -135,8 +129,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(404).send({ error: `No role found with ID ${id}` });
     }
 
-    const skipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id ASC`).all(id)        as SkipReasonRow[];
-    const terminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id ASC`).all(id) as TerminationReasonRow[];
+    const skipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`).all(id)        as SkipReasonRow[];
+    const terminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`).all(id) as TerminationReasonRow[];
 
     return { ...role, skip_reasons: skipReasons, termination_reasons: terminationReasons };
   });
@@ -145,9 +139,11 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
   fastify.post('/', async (request, reply) => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- request body validation via Zod tracked in CAR-44
       const id = addRole(db, request.body as any);
       return reply.status(201).send({ id });
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -168,7 +164,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     try {
       const role = updateRole(db, flags);
       return { role };
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -191,7 +188,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       fetchRoleOrThrow(db, id);
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
 
@@ -221,7 +219,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       fetchRoleOrThrow(db, id);
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
 
@@ -242,7 +241,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     try {
       const result = deleteRole(db, parseInt(id, 10), force === 'true');
       return result;
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -254,7 +254,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return previewRoleDeletion(db, parseInt(id, 10));
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -291,7 +292,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteSkipReason(db, parseInt(id, 10));
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -303,7 +305,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteTerminationReason(db, parseInt(id, 10));
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -315,7 +318,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteJobDescription(db, parseInt(id, 10));
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });

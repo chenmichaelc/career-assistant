@@ -26,15 +26,19 @@ export function parseArgs(argv: string[]): UpdateArgs {
       i++;
     }
 
-    if (flag === 'reasons' || flag === 'termination') {
-      flags[flag] = values;
-    } else if (flag === 'termination') {
+    if (flag === 'reasons') {
+      flags.reasons = values;
+    }
+ else if (flag === 'termination') {
       flags.termination = values;
-    } else if (flag === 'id') {
+    }
+ else if (flag === 'id') {
       flags.id = values[0];
-    } else if (flag === 'status') {
+    }
+ else if (flag === 'status') {
       flags.status = values[0];
-    } else if (flag === 'note') {
+    }
+ else if (flag === 'note') {
       flags.note = values[0];
     }
   }

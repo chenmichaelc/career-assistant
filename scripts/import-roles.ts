@@ -44,7 +44,8 @@ function importRecords(records: ParsedRecord[]): void {
       const id = addRole(db, roleInput);
       process.stdout.write(`Inserted: ${id} — ${role.company} — ${role.title}\n`);
       inserted++;
-    } catch (err) {
+    }
+ catch (err) {
       process.stdout.write(`Skipped:  record ${recordNum} (line ${startLine}) — ${(err as Error).message}\n`);
       skipped++;
     }

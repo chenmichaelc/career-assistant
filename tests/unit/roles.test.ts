@@ -208,7 +208,7 @@ describe('addRole — required field validation', () => {
     expect(roles).toHaveLength(0);
 
     const jds = db.prepare('SELECT * FROM job_descriptions').all();
-    expect(roles).toHaveLength(0);
+    expect(jds).toHaveLength(0);
   });
 
   test('when required field company is an empty string, throw error and do not add role', () => {

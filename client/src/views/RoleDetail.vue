@@ -221,6 +221,7 @@ const router = useRouter();
 
 // ─── Role state ───────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- role shape not yet shared with client; tracked in CAR-4
 const role    = ref<any>(null);
 const loading = ref(false);
 const error   = ref('');
@@ -268,6 +269,7 @@ async function load() {
   loading.value = true;
   error.value   = '';
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- role shape not yet shared with client; tracked in CAR-4
     role.value = await apiFetch<any>(`/api/roles/${route.params.id}`);
   }
   catch (err) {
@@ -462,7 +464,11 @@ function statusClass(status: string): string {
   return map[status] ?? 'bg-muted/40 text-dim';
 }
 
-watch(showExport, (val) => { if (val) loadExport(); });
-watch(exportFormat, () => { if (showExport.value) loadExport(); });
+watch(showExport, (val) => {
+ if (val) loadExport(); 
+});
+watch(exportFormat, () => {
+ if (showExport.value) loadExport(); 
+});
 onMounted(load);
 </script>

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target":           "ESNext",
+    "module":           "ESNext",
+    "moduleResolution": "bundler",
+    "lib":              ["ES2023"],
+    "types":            ["node"],
+    "skipLibCheck":     true,
+    "noEmit":           true,
+    "noUnusedLocals":           true,
+    "noUnusedParameters":       true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["vite.config.ts"]
+}

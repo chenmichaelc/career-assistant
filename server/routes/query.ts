@@ -36,7 +36,8 @@ export async function queryRouter(fastify: FastifyInstance, options: PluginOptio
       const stmt    = db.prepare(sql);
       const results = isWrite ? stmt.run() : stmt.all();
       return { results, rowCount: Array.isArray(results) ? results.length : undefined };
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });

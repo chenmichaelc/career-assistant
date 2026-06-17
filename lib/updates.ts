@@ -26,7 +26,8 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
 
   if (!flags.status || flags.status.trim() === '') {
     errors.push('--status is required.');
-  } else if (!VALID_STATUSES.includes(flags.status.trim() as RoleStatus)) {
+  }
+ else if (!VALID_STATUSES.includes(flags.status.trim() as RoleStatus)) {
     errors.push(`Invalid status: "${flags.status}". Valid values: ${VALID_STATUSES.join(', ')}.`);
   }
 
