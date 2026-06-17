@@ -1,6 +1,6 @@
 // tests/integration/import-roles.test.ts
 import { describe, test, expect } from 'vitest';
-import { runScript }              from '../helpers/run-script';
+import { runScript } from '../helpers/run-script';
 
 const validFile = `URL: https://example.com/job/1
 Company: Acme
@@ -34,7 +34,6 @@ Description:
 --`;
 
 describe('import-roles.ts', () => {
-
   test('inserts valid records and outputs summary', () => {
     const { stdout, exitCode } = runScript('import-roles.ts', validFile);
     expect(exitCode).toBe(0);
@@ -54,5 +53,4 @@ describe('import-roles.ts', () => {
     const { stdout } = runScript('import-roles.ts', fileWithBlankRecord);
     expect(stdout).toMatch(/Skipped:.*line \d+/);
   });
-
 });

@@ -6,12 +6,12 @@
 //   npx ts-node scripts/update-status.ts --id <id> --status Skipped --reasons "Wrong Industry" --note "Below floor"
 //   npx ts-node scripts/update-status.ts --id <id> --status Closed --termination "Screened Out"
 
-import Database          from 'better-sqlite3';
-import path              from 'path';
-import { parseArgs }     from '../lib/args/update-args';
-import { updateRole }    from '../lib/updates';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { parseArgs } from '../lib/args/update-args';
+import { updateRole } from '../lib/updates';
 
-const db    = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
+const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 const flags = parseArgs(process.argv.slice(2));
 
 try {
@@ -33,8 +33,7 @@ try {
   }
 
   process.stdout.write('\n');
-}
- catch (err) {
+} catch (err) {
   process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);

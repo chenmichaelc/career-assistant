@@ -6,11 +6,11 @@
 //   ts-node scripts/import-roles.ts < roles.txt
 //   cat roles.txt | ts-node scripts/import-roles.ts
 
-import Database           from 'better-sqlite3';
-import path               from 'path';
-import { addRole }        from '../lib/roles';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { addRole } from '../lib/roles';
 import { parseRecords, ParsedRecord } from '../lib/parse-records';
-import { RoleInput }      from '../lib/types';
+import { RoleInput } from '../lib/types';
 
 const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 
@@ -30,10 +30,10 @@ process.stdin.on('end', () => {
 
 function importRecords(records: ParsedRecord[]): void {
   let inserted = 0;
-  let skipped  = 0;
+  let skipped = 0;
 
   for (let i = 0; i < records.length; i++) {
-    const record    = records[i];
+    const record = records[i];
     const recordNum = i + 1;
     const startLine = record._startLine;
 
@@ -44,9 +44,10 @@ function importRecords(records: ParsedRecord[]): void {
       const id = addRole(db, roleInput);
       process.stdout.write(`Inserted: ${id} — ${role.company} — ${role.title}\n`);
       inserted++;
-    }
- catch (err) {
-      process.stdout.write(`Skipped:  record ${recordNum} (line ${startLine}) — ${(err as Error).message}\n`);
+    } catch (err) {
+      process.stdout.write(
+        `Skipped:  record ${recordNum} (line ${startLine}) — ${(err as Error).message}\n`
+      );
       skipped++;
     }
   }

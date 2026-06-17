@@ -5,11 +5,11 @@
 //   npx ts-node scripts/delete-job-description.ts --role-id <id> --mode preview
 //   npx ts-node scripts/delete-job-description.ts --role-id <id>
 
-import Database                                                      from 'better-sqlite3';
-import path                                                          from 'path';
-import { previewJobDescriptionDeletion, deleteJobDescription }       from '../lib/deletes';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { previewJobDescriptionDeletion, deleteJobDescription } from '../lib/deletes';
 
-const args  = process.argv.slice(2);
+const args = process.argv.slice(2);
 const flags: Record<string, string> = {};
 
 for (let i = 0; i < args.length; i += 2) {
@@ -43,16 +43,14 @@ try {
     const preview = jd.content.slice(0, 120).replace(/\n/g, ' ');
     process.stdout.write(`  Content: ${preview}${jd.content.length > 120 ? '...' : ''}\n`);
     process.stdout.write('\n');
-  }
- else {
+  } else {
     const { jd, role } = deleteJobDescription(db, roleId);
 
     process.stdout.write(`\n✓ Deleted job description [${jd.id}] for role ${roleId}\n`);
     process.stdout.write(`  Role: [${role.id}] ${role.company} — ${role.title}\n`);
     process.stdout.write('\n');
   }
-}
- catch (err) {
+} catch (err) {
   process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);

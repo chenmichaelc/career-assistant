@@ -3,47 +3,42 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
-import {
-  addRole,
-}                           from '../../lib/roles';
-import {
-  updateRole,
-  fetchRoleOrThrow,
-}                           from '../../lib/updates';
+import { addRole } from '../../lib/roles';
+import { updateRole, fetchRoleOrThrow } from '../../lib/updates';
 import {
   deleteRole,
   deleteSkipReason,
   deleteTerminationReason,
   deleteJobDescription,
   previewRoleDeletion,
-}                           from '../../lib/deletes';
-import { exportRole }       from '../../lib/exporters';
-import { ExportFormat }     from '../../lib/exporters';
+} from '../../lib/deletes';
+import { exportRole } from '../../lib/exporters';
+import { ExportFormat } from '../../lib/exporters';
 import {
   RoleRow,
   SkipReasonType,
   TerminationReasonType,
   VALID_SKIP_REASONS,
   VALID_TERMINATION_REASONS,
-}                           from '../../lib/types';
-import { UpdateArgs }       from '../../lib/args/update-args';
+} from '../../lib/types';
+import { UpdateArgs } from '../../lib/args/update-args';
 
 interface PluginOptions extends FastifyPluginOptions {
   db: Database.Database;
 }
 
 interface SkipReasonRow {
-  id:      number;
+  id: number;
   role_id: number;
-  reason:  SkipReasonType;
-  note:    string | null;
+  reason: SkipReasonType;
+  note: string | null;
 }
 
 interface TerminationReasonRow {
-  id:      number;
+  id: number;
   role_id: number;
-  reason:  TerminationReasonType;
-  note:    string | null;
+  reason: TerminationReasonType;
+  note: string | null;
 }
 
 export async function rolesRouter(fastify: FastifyInstance, options: PluginOptions) {
@@ -54,26 +49,28 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   fastify.get('/', async (request, _reply) => {
     const { company, sort, order } = request.query as {
       company?: string;
-      sort?:    string;
-      order?:   string;
+      sort?: string;
+      order?: string;
     };
 
     const rawStatuses = (request.query as Record<string, string | string[]>)['status[]'];
     const statuses: string[] = rawStatuses
-        ? (Array.isArray(rawStatuses) ? rawStatuses : [rawStatuses])
-        : [];
+      ? Array.isArray(rawStatuses)
+        ? rawStatuses
+        : [rawStatuses]
+      : [];
 
     const VALID_SORT_COLUMNS: Record<string, string> = {
-      id:           'r.id',
-      company:      'r.company',
-      title:        'r.title',
-      role_status:  'r.role_status',
-      candidacy:    'r.candidacy',
+      id: 'r.id',
+      company: 'r.company',
+      title: 'r.title',
+      role_status: 'r.role_status',
+      candidacy: 'r.candidacy',
       applied_date: 'r.applied_date',
     };
 
     const sortColumn = VALID_SORT_COLUMNS[sort ?? 'id'] ?? 'r.id';
-    const sortOrder  = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const sortOrder = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     let query = `
       SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
@@ -99,12 +96,16 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     const roles = db.prepare(query).all(...params) as RoleRow[];
 
-    const fetchSkipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`);
-    const fetchTerminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`);
+    const fetchSkipReasons = db.prepare(
+      `SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`
+    );
+    const fetchTerminationReasons = db.prepare(
+      `SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`
+    );
 
-    const output = roles.map(role => ({
+    const output = roles.map((role) => ({
       ...role,
-      skip_reasons:        fetchSkipReasons.all(role.id)        as SkipReasonRow[],
+      skip_reasons: fetchSkipReasons.all(role.id) as SkipReasonRow[],
       termination_reasons: fetchTerminationReasons.all(role.id) as TerminationReasonRow[],
     }));
 
@@ -116,21 +117,31 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    const role = db.prepare(`
+    const role = db
+      .prepare(
+        `
       SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
              r.applied_date, r.salary_min, r.salary_max, r.notes,
              r.created_at, r.updated_at, jd.content AS jd
       FROM roles r
              LEFT JOIN job_descriptions jd ON jd.role_id = r.id
       WHERE r.id = ?
-    `).get(id) as (RoleRow & { jd: string }) | undefined;
+    `
+      )
+      .get(id) as (RoleRow & { jd: string }) | undefined;
 
     if (!role) {
       return reply.status(404).send({ error: `No role found with ID ${id}` });
     }
 
-    const skipReasons        = db.prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`).all(id)        as SkipReasonRow[];
-    const terminationReasons = db.prepare(`SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`).all(id) as TerminationReasonRow[];
+    const skipReasons = db
+      .prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`)
+      .all(id) as SkipReasonRow[];
+    const terminationReasons = db
+      .prepare(
+        `SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`
+      )
+      .all(id) as TerminationReasonRow[];
 
     return { ...role, skip_reasons: skipReasons, termination_reasons: terminationReasons };
   });
@@ -142,8 +153,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- request body validation via Zod tracked in CAR-44
       const id = addRole(db, request.body as any);
       return reply.status(201).send({ id });
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -151,21 +161,20 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   // ─── PATCH /api/roles/:id/status ────────────────────────────────────────────
 
   fastify.patch('/:id/status', async (request, reply) => {
-    const { id }    = request.params as { id: string };
-    const body      = request.body as Partial<UpdateArgs>;
+    const { id } = request.params as { id: string };
+    const body = request.body as Partial<UpdateArgs>;
     const flags: UpdateArgs = {
       id,
-      status:      body.status,
-      reasons:     body.reasons     ?? [],
+      status: body.status,
+      reasons: body.reasons ?? [],
       termination: body.termination ?? [],
-      note:        body.note,
+      note: body.note,
     };
 
     try {
       const role = updateRole(db, flags);
       return { role };
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -173,8 +182,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   // ─── POST /api/roles/:id/skip-reasons ───────────────────────────────────────
 
   fastify.post('/:id/skip-reasons', async (request, reply) => {
-    const { id }           = request.params as { id: string };
-    const { reason, note } = request.body   as { reason: string; note?: string };
+    const { id } = request.params as { id: string };
+    const { reason, note } = request.body as { reason: string; note?: string };
 
     if (!reason || reason.trim() === '') {
       return reply.status(400).send({ error: 'reason is required.' });
@@ -188,15 +197,18 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       fetchRoleOrThrow(db, id);
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
 
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       INSERT INTO skip_reasons (role_id, reason, note)
       VALUES (?, ?, ?)
-    `).run(id, reason.trim(), note?.trim() ?? null);
+    `
+      )
+      .run(id, reason.trim(), note?.trim() ?? null);
 
     return reply.status(201).send({ id: result.lastInsertRowid });
   });
@@ -204,8 +216,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   // ─── POST /api/roles/:id/termination-reasons ────────────────────────────────
 
   fastify.post('/:id/termination-reasons', async (request, reply) => {
-    const { id }           = request.params as { id: string };
-    const { reason, note } = request.body   as { reason: string; note?: string };
+    const { id } = request.params as { id: string };
+    const { reason, note } = request.body as { reason: string; note?: string };
 
     if (!reason || reason.trim() === '') {
       return reply.status(400).send({ error: 'reason is required.' });
@@ -219,15 +231,18 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       fetchRoleOrThrow(db, id);
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
 
-    const result = db.prepare(`
+    const result = db
+      .prepare(
+        `
       INSERT INTO termination_reasons (role_id, reason, note)
       VALUES (?, ?, ?)
-    `).run(id, reason.trim(), note?.trim() ?? null);
+    `
+      )
+      .run(id, reason.trim(), note?.trim() ?? null);
 
     return reply.status(201).send({ id: result.lastInsertRowid });
   });
@@ -235,14 +250,13 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   // ─── DELETE /api/roles/:id ───────────────────────────────────────────────────
 
   fastify.delete('/:id', async (request, reply) => {
-    const { id }    = request.params as { id: string };
-    const { force } = request.query  as { force?: string };
+    const { id } = request.params as { id: string };
+    const { force } = request.query as { force?: string };
 
     try {
       const result = deleteRole(db, parseInt(id, 10), force === 'true');
       return result;
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -254,8 +268,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return previewRoleDeletion(db, parseInt(id, 10));
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -263,17 +276,21 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   // ─── GET /api/roles/:id/export ───────────────────────────────────────────────
 
   fastify.get('/:id/export', async (request, reply) => {
-    const { id }     = request.params as { id: string };
-    const { format } = request.query  as { format?: string };
+    const { id } = request.params as { id: string };
+    const { format } = request.query as { format?: string };
 
-    const row = db.prepare(`
+    const row = db
+      .prepare(
+        `
       SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
              r.applied_date, r.salary_min, r.salary_max, r.notes,
              r.created_at, r.updated_at, jd.content AS jd
       FROM roles r
              LEFT JOIN job_descriptions jd ON jd.role_id = r.id
       WHERE r.id = ?
-    `).get(id) as (RoleRow & { jd: string }) | undefined;
+    `
+      )
+      .get(id) as (RoleRow & { jd: string }) | undefined;
 
     if (!row) {
       return reply.status(404).send({ error: `No role found with ID ${id}` });
@@ -292,8 +309,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteSkipReason(db, parseInt(id, 10));
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -305,8 +321,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteTerminationReason(db, parseInt(id, 10));
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -318,8 +333,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteJobDescription(db, parseInt(id, 10));
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });

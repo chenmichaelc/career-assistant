@@ -1,9 +1,8 @@
 // tests/unit/list-args.test.ts
 import { describe, test, expect } from 'vitest';
-import { parseArgs }              from '../../lib/args/list-args';
+import { parseArgs } from '../../lib/args/list-args';
 
 describe('list-roles parseArgs function', () => {
-
   test('parses --status flag correctly', () => {
     const flags = parseArgs(['--status', 'Applied']);
     expect(flags.status).toBe('Applied');

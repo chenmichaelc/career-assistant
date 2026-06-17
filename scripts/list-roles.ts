@@ -7,35 +7,35 @@
 //   npx ts-node scripts/list-roles.ts --company Akamai
 //   npx ts-node scripts/list-roles.ts --status Skipped > skipped.json
 
-import Database      from 'better-sqlite3';
-import path          from 'path';
+import Database from 'better-sqlite3';
+import path from 'path';
 import { parseArgs } from '../lib/args/list-args';
 import { RoleRow, SkipReasonType, TerminationReasonType } from '../lib/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SkipReasonRow {
-  id:      number;
+  id: number;
   role_id: number;
-  reason:  SkipReasonType;
-  note:    string | null;
+  reason: SkipReasonType;
+  note: string | null;
 }
 
 interface TerminationReasonRow {
-  id:      number;
+  id: number;
   role_id: number;
-  reason:  TerminationReasonType;
-  note:    string | null;
+  reason: TerminationReasonType;
+  note: string | null;
 }
 
 interface RoleOutput extends RoleRow {
-  skip_reasons:        SkipReasonRow[];
+  skip_reasons: SkipReasonRow[];
   termination_reasons: TerminationReasonRow[];
 }
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
-const db    = new Database(path.join(__dirname, '../db/career-assistant.sqlite'), { readonly: true });
+const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'), { readonly: true });
 const flags = parseArgs(process.argv.slice(2));
 
 // ─── Build query ──────────────────────────────────────────────────────────────
@@ -76,25 +76,25 @@ const fetchSkipReasons = db.prepare(`
   SELECT id, role_id, reason, note
   FROM skip_reasons
   WHERE role_id = ?
-  ORDER BY id ASC
+  ORDER BY id
 `);
 
 const fetchTerminationReasons = db.prepare(`
   SELECT id, role_id, reason, note
   FROM termination_reasons
   WHERE role_id = ?
-  ORDER BY id ASC
+  ORDER BY id
 `);
 
 // ─── Assemble output ──────────────────────────────────────────────────────────
 
-const output: RoleOutput[] = roles.map(role => {
-  const skipReasons        = fetchSkipReasons.all(role.id)        as SkipReasonRow[];
+const output: RoleOutput[] = roles.map((role) => {
+  const skipReasons = fetchSkipReasons.all(role.id) as SkipReasonRow[];
   const terminationReasons = fetchTerminationReasons.all(role.id) as TerminationReasonRow[];
 
   return {
     ...role,
-    skip_reasons:        skipReasons,
+    skip_reasons: skipReasons,
     termination_reasons: terminationReasons,
   };
 });

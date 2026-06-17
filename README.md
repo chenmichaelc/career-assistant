@@ -1,11 +1,11 @@
 # career-assistant
 
-*Licensed under the [GNU General Public License v3.0](LICENSE).*
+_Licensed under the [GNU General Public License v3.0](LICENSE)._
 
-| Pipeline Description     | Status |
-|--------------------------|--------------|
+| Pipeline Description     | Status                                                                                                                                                                                                |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Most Recent Pull Request | [![pull-request](https://github.com/chenmichaelc/career-assistant/actions/workflows/pull-request.yml/badge.svg)](https://github.com/chenmichaelc/career-assistant/actions/workflows/pull-request.yml) |
-| Most Recent Push         | [![Most Recent Push](https://github.com/chenmichaelc/career-assistant/actions/workflows/push.yml/badge.svg)](https://github.com/chenmichaelc/career-assistant/actions/workflows/push.yml) |
+| Most Recent Push         | [![Most Recent Push](https://github.com/chenmichaelc/career-assistant/actions/workflows/push.yml/badge.svg)](https://github.com/chenmichaelc/career-assistant/actions/workflows/push.yml)             |
 
 ## Contents
 
@@ -25,9 +25,9 @@ The system is organized around four modules:
 
 **Job role data** — the core data layer. Roles are imported in bulk from a plain-text format or added individually via JSON. Each role carries a job description, candidacy assessment, salary range, and vocabulary-constrained classification labels designed for downstream analysis.
 
-**Job market intelligence** *(planned)* — bulk ingestion of job postings at scale, LLM-based classification by role subtype and skill requirements, and market analysis via cloud and local LLMs. Answers questions about market trends, compensation ranges, emerging skill demand, and career trajectory. The role data layer provides ground-truth signal from real market data.
+**Job market intelligence** _(planned)_ — bulk ingestion of job postings at scale, LLM-based classification by role subtype and skill requirements, and market analysis via cloud and local LLMs. Answers questions about market trends, compensation ranges, emerging skill demand, and career trajectory. The role data layer provides ground-truth signal from real market data.
 
-**Career opportunity identification and mapping** *(planned)* — skills gap analysis against a personal profile, career path recommendations driven by market data, and guidance on high-value areas of investment given current market conditions.
+**Career opportunity identification and mapping** _(planned)_ — skills gap analysis against a personal profile, career path recommendations driven by market data, and guidance on high-value areas of investment given current market conditions.
 
 **Testing modules** — a layered test suite covering unit tests for pure functions, integration tests for CLI scripts, and Playwright E2E tests for the UI, all in progress. Built to support Extreme Programming practices — changes can be made confidently with Claude or manually.
 
@@ -85,7 +85,7 @@ npm run test:e2e      # Playwright E2E
 ## Milestones
 
 | Milestone                                                             | Status |
-|-----------------------------------------------------------------------|--------|
+| --------------------------------------------------------------------- | ------ |
 | SQLite schema, seed import, CLI data layer                            | Done   |
 | TypeScript migration, Vitest test suite                               | Done   |
 | Full CLI tooling (import, export, update, delete)                     | Done   |
@@ -116,31 +116,31 @@ Extract single-table `lib/db/` modules (CAR-20), refactor `lib/` orchestration (
 **Contextual status tracking (CAR-116)**
 Decompose the overloaded `role_status` field into separate triage status, application history status, and analysis status fields (CAR-118, CAR-119, CAR-120). Update filters and UI accordingly (CAR-117).
 
-**Playwright full workflow coverage (CAR-63)** *(blocked by CAR-15, CAR-16)*
+**Playwright full workflow coverage (CAR-63)** _(blocked by CAR-15, CAR-16)_
 Roles list (CAR-64), role detail (CAR-65), add role (CAR-66), SQL query (CAR-67), backup (CAR-68).
 
 **Playwright test data management (CAR-91)**
 Fixture-based role creation and cleanup via semantic company name identification.
 
-**Refactor RoleDetail.vue (CAR-99)** *(Backlog)*
+**Refactor RoleDetail.vue (CAR-99)** _(Backlog)_
 Extract DeleteModal, ExportModal, ReasonModal, and AddReasonControl into dedicated components.
 
-**npm workspace restructuring + ES module migration (CAR-4)** *(Backlog)*
+**npm workspace restructuring + ES module migration (CAR-4)** _(Backlog)_
 Restructure into `@career-assistant/data`, `@career-assistant/server`, `@career-assistant/client` (CAR-17). Update import paths (CAR-18). Migrate to ES modules (CAR-19).
 
-**SkillsGapTracker migration (CAR-6)** *(Backlog)*
+**SkillsGapTracker migration (CAR-6)** _(Backlog)_
 Schema design (CAR-23), data layer and scripts (CAR-24), frontend integration (CAR-25).
 
 **Claude workflow migration (CAR-7)**
 Replace triage and career development Claude project workflows with direct API calls.
 
-**LLM-powered job market analysis (CAR-32)** *(Backlog)*
+**LLM-powered job market analysis (CAR-32)** _(Backlog)_
 Bulk ingestion pipeline (CAR-33), role classification and skill extraction (CAR-34), cloud and local LLM integration (CAR-35), market analysis dashboard (CAR-36).
 
-**Server route test suite (CAR-73)** *(Backlog)*
+**Server route test suite (CAR-73)** _(Backlog)_
 Tests for Fastify routes using `inject()`.
 
-**Analytics foundation (CAR-70)** *(Backlog)*
+**Analytics foundation (CAR-70)** _(Backlog)_
 Pre-built aggregate queries and analytics view.
 
 **Known bugs (Backlog)**
@@ -215,14 +215,14 @@ career-assistant/
 
 ### Technology choices
 
-| Concern | Choice | Rationale |
-|---|---|---|
-| Database | SQLite + better-sqlite3 | Local-first, zero infrastructure, synchronous API |
-| Language | TypeScript 6 (strict) | Type safety for domain vocabulary, compile-time correctness |
-| Test framework | Vitest | Native TypeScript, Vite-native, Jest-compatible API |
-| E2E framework | Playwright | Cross-browser, POM support, first-class TypeScript |
-| HTTP server | Fastify | TypeScript-native, performant, plugin architecture |
-| Frontend | Vue 3 (Composition API) | Vite-native, same author as Vite, clean TS integration |
-| CSS | Tailwind CSS v4 | Utility-first, `@theme`-based custom tokens |
-| Runtime | Node.js 24 | LTS, compatible with better-sqlite3 v12+ |
-| License | GPL v3 | Copyleft — derivative works must remain open source |
+| Concern        | Choice                  | Rationale                                                   |
+| -------------- | ----------------------- | ----------------------------------------------------------- |
+| Database       | SQLite + better-sqlite3 | Local-first, zero infrastructure, synchronous API           |
+| Language       | TypeScript 6 (strict)   | Type safety for domain vocabulary, compile-time correctness |
+| Test framework | Vitest                  | Native TypeScript, Vite-native, Jest-compatible API         |
+| E2E framework  | Playwright              | Cross-browser, POM support, first-class TypeScript          |
+| HTTP server    | Fastify                 | TypeScript-native, performant, plugin architecture          |
+| Frontend       | Vue 3 (Composition API) | Vite-native, same author as Vite, clean TS integration      |
+| CSS            | Tailwind CSS v4         | Utility-first, `@theme`-based custom tokens                 |
+| Runtime        | Node.js 24              | LTS, compatible with better-sqlite3 v12+                    |
+| License        | GPL v3                  | Copyleft — derivative works must remain open source         |

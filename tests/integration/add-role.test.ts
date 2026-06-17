@@ -1,18 +1,17 @@
 // tests/integration/add-role.test.ts
 import { describe, test, expect } from 'vitest';
-import { runScript }              from '../helpers/run-script';
-import { RoleInput }              from '../../lib/types';
+import { runScript } from '../helpers/run-script';
+import { RoleInput } from '../../lib/types';
 
 const validRole: RoleInput = {
-  company:     'Acme',
-  title:       'QA Engineer',
-  url:         'https://example.com/job/1',
+  company: 'Acme',
+  title: 'QA Engineer',
+  url: 'https://example.com/job/1',
   role_status: 'Pending Triage',
-  jd:          'This is a job description.',
+  jd: 'This is a job description.',
 };
 
 describe('add-role.ts', () => {
-
   test('outputs a numeric ID on valid input', () => {
     const { stdout, exitCode } = runScript('add-role.ts', JSON.stringify(validRole));
     expect(exitCode).toBe(0);
@@ -31,5 +30,4 @@ describe('add-role.ts', () => {
     expect(exitCode).toBe(1);
     expect(stderr).toContain('Validation failed');
   });
-
 });
