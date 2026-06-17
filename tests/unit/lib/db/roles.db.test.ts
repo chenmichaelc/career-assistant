@@ -19,8 +19,12 @@ const baseRole: RoleInsertData = {
     role_status: 'Pending Triage',
 };
 
-beforeEach(() => { db = createTestDb(); });
-afterEach(()  => { db.close(); });
+beforeEach(() => {
+ db = createTestDb(); 
+});
+afterEach(()  => {
+ db.close(); 
+});
 
 // ─── insertRole ───────────────────────────────────────────────────────────────
 

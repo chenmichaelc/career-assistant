@@ -109,9 +109,11 @@ async function execute() {
       body:   JSON.stringify({ sql: sql.value, writeMode: writeMode.value }),
     });
     results.value = data.results;
-  } catch (err) {
+  }
+ catch (err) {
     error.value = (err as Error).message;
-  } finally {
+  }
+ finally {
     loading.value = false;
   }
 }

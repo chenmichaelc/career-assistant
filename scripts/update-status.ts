@@ -33,7 +33,8 @@ try {
   }
 
   process.stdout.write('\n');
-} catch (err) {
+}
+ catch (err) {
   process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);

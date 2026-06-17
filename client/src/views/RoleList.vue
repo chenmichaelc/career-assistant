@@ -158,9 +158,15 @@ const statusLabel = computed(() => {
 
 // ─── Status selection helpers ─────────────────────────────────────────────────
 
-function selectAll()    { filterStatuses.value = [...VALID_STATUSES]; }
-function selectNone()   { filterStatuses.value = []; }
-function selectActive() { filterStatuses.value = [...ACTIVE_STATUSES]; }
+function selectAll()    {
+ filterStatuses.value = [...VALID_STATUSES]; 
+}
+function selectNone()   {
+ filterStatuses.value = []; 
+}
+function selectActive() {
+ filterStatuses.value = [...ACTIVE_STATUSES]; 
+}
 
 // ─── Close dropdown on outside click ─────────────────────────────────────────
 
