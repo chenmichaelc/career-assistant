@@ -85,6 +85,7 @@ import { ref, computed } from 'vue';
 import { apiFetch }      from '@/composables/useApi';
 
 const sql       = ref('');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- SQL query results are runtime-dynamic; shape depends on user-supplied query
 const results   = ref<any[] | object | null>(null);
 const error     = ref('');
 const loading   = ref(false);
@@ -102,14 +103,17 @@ async function execute() {
   loading.value = true;
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SQL query results are runtime-dynamic; shape depends on user-supplied query
     const data = await apiFetch<{ results: any[] | object }>('/api/query', {
       method: 'POST',
       body:   JSON.stringify({ sql: sql.value, writeMode: writeMode.value }),
     });
     results.value = data.results;
-  } catch (err) {
+  }
+ catch (err) {
     error.value = (err as Error).message;
-  } finally {
+  }
+ finally {
     loading.value = false;
   }
 }

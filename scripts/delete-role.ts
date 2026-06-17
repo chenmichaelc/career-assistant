@@ -78,7 +78,8 @@ try {
     }
 
     process.stdout.write('\n');
-  } else {
+  }
+ else {
     const { role, skip_reasons, termination_reasons, job_descriptions } = deleteRole(db, id, isForce);
 
     process.stdout.write(`\n✓ Deleted: ${role.company} — ${role.title}\n`);
@@ -92,7 +93,8 @@ try {
 
     process.stdout.write('\n');
   }
-} catch (err) {
+}
+ catch (err) {
   process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);
