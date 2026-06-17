@@ -92,9 +92,11 @@ async function submit() {
       body:   JSON.stringify(payload),
     });
     router.push(`/roles/${id}`);
-  } catch (err) {
+  }
+ catch (err) {
     error.value = (err as Error).message;
-  } finally {
+  }
+ finally {
     submitting.value = false;
   }
 }

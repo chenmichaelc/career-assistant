@@ -20,8 +20,12 @@ const baseRole = {
     role_status: 'Closed',
 };
 
-beforeEach(() => { db = createTestDb(); });
-afterEach(()  => { db.close(); });
+beforeEach(() => {
+ db = createTestDb(); 
+});
+afterEach(()  => {
+ db.close(); 
+});
 
 // ─── insertTerminationReason ──────────────────────────────────────────────────
 

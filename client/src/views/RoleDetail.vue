@@ -464,7 +464,11 @@ function statusClass(status: string): string {
   return map[status] ?? 'bg-muted/40 text-dim';
 }
 
-watch(showExport, (val) => { if (val) loadExport(); });
-watch(exportFormat, () => { if (showExport.value) loadExport(); });
+watch(showExport, (val) => {
+ if (val) loadExport(); 
+});
+watch(exportFormat, () => {
+ if (showExport.value) loadExport(); 
+});
 onMounted(load);
 </script>

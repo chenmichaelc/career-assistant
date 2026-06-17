@@ -43,14 +43,16 @@ try {
     const preview = jd.content.slice(0, 120).replace(/\n/g, ' ');
     process.stdout.write(`  Content: ${preview}${jd.content.length > 120 ? '...' : ''}\n`);
     process.stdout.write('\n');
-  } else {
+  }
+ else {
     const { jd, role } = deleteJobDescription(db, roleId);
 
     process.stdout.write(`\n✓ Deleted job description [${jd.id}] for role ${roleId}\n`);
     process.stdout.write(`  Role: [${role.id}] ${role.company} — ${role.title}\n`);
     process.stdout.write('\n');
   }
-} catch (err) {
+}
+ catch (err) {
   process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);

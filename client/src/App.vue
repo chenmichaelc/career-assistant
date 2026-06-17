@@ -31,7 +31,8 @@ async function backup() {
     const data = await res.json();
     backupMsg.value = `Backup saved: ${data.timestamp}`;
     setTimeout(() => backupMsg.value = '', 4000);
-  } catch (err) {
+  }
+ catch (err) {
     console.error('[backup] failed:', err);
     backupMsg.value = 'Backup failed.';
     setTimeout(() => backupMsg.value = '', 4000);

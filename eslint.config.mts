@@ -34,6 +34,8 @@ export default defineConfig([
 
   {
     rules: {
+      'brace-style': 'off',
+      '@/brace-style': ['error', 'stroustrup'],
       '@typescript-eslint/no-unused-vars': ['error', {
         varsIgnorePattern:         '^_',
         argsIgnorePattern:         '^_',

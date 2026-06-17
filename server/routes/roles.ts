@@ -142,7 +142,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- request body validation via Zod tracked in CAR-44
       const id = addRole(db, request.body as any);
       return reply.status(201).send({ id });
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -163,7 +164,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     try {
       const role = updateRole(db, flags);
       return { role };
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -186,7 +188,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       fetchRoleOrThrow(db, id);
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
 
@@ -216,7 +219,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       fetchRoleOrThrow(db, id);
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
 
@@ -237,7 +241,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     try {
       const result = deleteRole(db, parseInt(id, 10), force === 'true');
       return result;
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });
@@ -249,7 +254,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return previewRoleDeletion(db, parseInt(id, 10));
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -286,7 +292,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteSkipReason(db, parseInt(id, 10));
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -298,7 +305,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteTerminationReason(db, parseInt(id, 10));
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });
@@ -310,7 +318,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteJobDescription(db, parseInt(id, 10));
-    } catch (err) {
+    }
+ catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
   });

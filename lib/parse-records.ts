@@ -73,19 +73,24 @@ export function parseRecords(text: string): ParsedRecord[] {
     if (urlMatch) {
       const value  = urlMatch[1].trim();
       current.url  = value !== '' ? value : null;
-    } else if (companyMatch) {
+    }
+ else if (companyMatch) {
       const value      = companyMatch[1].trim();
       current.company  = value !== '' ? value : null;
-    } else if (titleMatch) {
+    }
+ else if (titleMatch) {
       const value    = titleMatch[1].trim();
       current.title  = value !== '' ? value : null;
-    } else if (salaryMinMatch) {
+    }
+ else if (salaryMinMatch) {
       const value        = parseInt(salaryMinMatch[1].trim(), 10);
       current.salary_min = isNaN(value) ? null : value;
-    } else if (salaryMaxMatch) {
+    }
+ else if (salaryMaxMatch) {
       const value        = parseInt(salaryMaxMatch[1].trim(), 10);
       current.salary_max = isNaN(value) ? null : value;
-    } else if (descMatch) {
+    }
+ else if (descMatch) {
       inJd       = true;
       current.jd = '';
     }

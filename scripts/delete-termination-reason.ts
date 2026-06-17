@@ -41,14 +41,16 @@ try {
     process.stdout.write(`  Note:    ${reason.note ?? '—'}\n`);
     process.stdout.write(`  Role:    [${role.id}] ${role.company} — ${role.title}\n`);
     process.stdout.write('\n');
-  } else {
+  }
+ else {
     const { reason, role } = deleteTerminationReason(db, id);
 
     process.stdout.write(`\n✓ Deleted termination reason ${id} — ${reason.reason}\n`);
     process.stdout.write(`  Role: [${role.id}] ${role.company} — ${role.title}\n`);
     process.stdout.write('\n');
   }
-} catch (err) {
+}
+ catch (err) {
   process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);
