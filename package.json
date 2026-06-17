@@ -6,6 +6,7 @@
   "scripts": {
     "client":           "cd client && npm run dev",
     "init":             "ts-node scripts/init-db.ts",
+    "lint":             "eslint .",
     "server":           "ts-node server/index.ts",
     "test":             "vitest",
     "test:e2e":         "playwright test --config e2e/playwright.config.ts",
