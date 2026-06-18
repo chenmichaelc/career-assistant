@@ -19,25 +19,26 @@ export async function queryRouter(fastify: FastifyInstance, options: PluginOptio
     }
 
     const normalized = sql.trim().toUpperCase();
-    const isWrite    = normalized.startsWith('INSERT') ||
-                       normalized.startsWith('UPDATE') ||
-                       normalized.startsWith('DELETE') ||
-                       normalized.startsWith('DROP')   ||
-                       normalized.startsWith('ALTER')  ||
-                       normalized.startsWith('CREATE');
+    const isWrite =
+      normalized.startsWith('INSERT') ||
+      normalized.startsWith('UPDATE') ||
+      normalized.startsWith('DELETE') ||
+      normalized.startsWith('DROP') ||
+      normalized.startsWith('ALTER') ||
+      normalized.startsWith('CREATE');
 
     if (isWrite && !writeMode) {
       return reply.status(403).send({
-        error: 'Write query blocked. Enable write mode to execute INSERT, UPDATE, DELETE, DROP, ALTER, or CREATE statements.',
+        error:
+          'Write query blocked. Enable write mode to execute INSERT, UPDATE, DELETE, DROP, ALTER, or CREATE statements.',
       });
     }
 
     try {
-      const stmt    = db.prepare(sql);
+      const stmt = db.prepare(sql);
       const results = isWrite ? stmt.run() : stmt.all();
       return { results, rowCount: Array.isArray(results) ? results.length : undefined };
-    }
- catch (err) {
+    } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
     }
   });

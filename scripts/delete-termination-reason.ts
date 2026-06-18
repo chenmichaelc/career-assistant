@@ -5,11 +5,11 @@
 //   npx ts-node scripts/delete-termination-reason.ts --id <id> --mode preview
 //   npx ts-node scripts/delete-termination-reason.ts --id <id>
 
-import Database                                                              from 'better-sqlite3';
-import path                                                                  from 'path';
-import { previewTerminationReasonDeletion, deleteTerminationReason }         from '../lib/deletes';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { previewTerminationReasonDeletion, deleteTerminationReason } from '../lib/deletes';
 
-const args  = process.argv.slice(2);
+const args = process.argv.slice(2);
 const flags: Record<string, string> = {};
 
 for (let i = 0; i < args.length; i += 2) {
@@ -41,16 +41,14 @@ try {
     process.stdout.write(`  Note:    ${reason.note ?? '—'}\n`);
     process.stdout.write(`  Role:    [${role.id}] ${role.company} — ${role.title}\n`);
     process.stdout.write('\n');
-  }
- else {
+  } else {
     const { reason, role } = deleteTerminationReason(db, id);
 
     process.stdout.write(`\n✓ Deleted termination reason ${id} — ${reason.reason}\n`);
     process.stdout.write(`  Role: [${role.id}] ${role.company} — ${role.title}\n`);
     process.stdout.write('\n');
   }
-}
- catch (err) {
+} catch (err) {
   process.stderr.write(`Error: ${(err as Error).message}\n`);
   db.close();
   process.exit(1);

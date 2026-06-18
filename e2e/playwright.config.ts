@@ -22,12 +22,10 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [
-    ['html', { outputFolder: './playwright-report' }],
-  ],
+  reporter: [['html', { outputFolder: './playwright-report' }]],
   use: {
     baseURL: 'http://localhost:5173',
-    trace:   'on-first-retry',
+    trace: 'on-first-retry',
   },
 
   /* Configure projects for major browsers */
@@ -69,15 +67,15 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command:             'npm run server',
-      url:                 'http://127.0.0.1:3000/healthcheck',
-      name:                'Fastify Server',
+      command: 'npm run server',
+      url: 'http://127.0.0.1:3000/healthcheck',
+      name: 'Fastify Server',
       reuseExistingServer: !process.env.CI,
     },
     {
-      command:             'npm run client',
-      url:                 'http://localhost:5173',
-      name:                'Vue Client',
+      command: 'npm run client',
+      url: 'http://localhost:5173',
+      name: 'Vue Client',
       reuseExistingServer: !process.env.CI,
     },
   ],

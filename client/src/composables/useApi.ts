@@ -11,7 +11,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     ...options,
     headers: {
       ...headers,
-      ...(options?.headers as Record<string, string> ?? {}),
+      ...((options?.headers as Record<string, string>) ?? {}),
     },
   });
 

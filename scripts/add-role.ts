@@ -6,10 +6,10 @@
 //   cat role.json | ts-node scripts/add-role.ts
 //   ts-node scripts/add-role.ts < role.json
 
-import Database        from 'better-sqlite3';
-import path            from 'path';
-import { addRole }     from '../lib/roles';
-import { RoleInput }   from '../lib/types';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { addRole } from '../lib/roles';
+import { RoleInput } from '../lib/types';
 
 const db = new Database(path.join(__dirname, '../db/career-assistant.sqlite'));
 
@@ -26,8 +26,7 @@ process.stdin.on('end', () => {
 
   try {
     role = JSON.parse(raw) as RoleInput;
-  }
-  catch {
+  } catch {
     process.stderr.write('Error: Invalid JSON input.\n');
     db.close();
     process.exit(1);
@@ -36,8 +35,7 @@ process.stdin.on('end', () => {
   try {
     const id = addRole(db, role);
     process.stdout.write(`${id}\n`);
-  }
-  catch (err) {
+  } catch (err) {
     process.stderr.write(`Error: ${(err as Error).message}\n`);
     db.close();
     process.exit(1);

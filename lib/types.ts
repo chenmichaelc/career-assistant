@@ -32,18 +32,9 @@ export const VALID_STATUSES: RoleStatus[] = [
   'Pending Triage',
 ];
 
-export type Candidacy =
-  | 'Slam Dunk'
-  | 'Competitive'
-  | 'Reach'
-  | 'Skip';
+export type Candidacy = 'Slam Dunk' | 'Competitive' | 'Reach' | 'Skip';
 
-export const VALID_CANDIDACIES: Candidacy[] = [
-  'Slam Dunk',
-  'Competitive',
-  'Reach',
-  'Skip',
-];
+export const VALID_CANDIDACIES: Candidacy[] = ['Slam Dunk', 'Competitive', 'Reach', 'Skip'];
 
 export type SkipReasonType =
   | 'Wrong Industry'
@@ -107,43 +98,43 @@ export const VALID_TERMINATION_REASONS: TerminationReasonType[] = [
 
 export interface SkipReason {
   reason: SkipReasonType;
-  note:   string | null;
+  note: string | null;
 }
 
 export interface TerminationReason {
   reason: TerminationReasonType;
-  note:   string | null;
+  note: string | null;
 }
 
 export interface RoleInput {
-  company:              string;
-  title:                string;
-  url:                  string;
-  role_status:          RoleStatus;
-  candidacy?:           Candidacy | null;
-  applied_date?:        string | null;
-  salary_min?:          number | null;
-  salary_max?:          number | null;
-  notes?:               string | null;
-  jd:                   string;
-  skip_reasons?:        SkipReason[] | null;
+  company: string;
+  title: string;
+  url: string;
+  role_status: RoleStatus;
+  candidacy?: Candidacy | null;
+  applied_date?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  notes?: string | null;
+  jd: string;
+  skip_reasons?: SkipReason[] | null;
   termination_reasons?: TerminationReason[] | null;
 }
 
 // ─── DB row types ─────────────────────────────────────────────────────────────
 
 export interface RoleRow {
-  jd:           string;
-  id:           number;
-  company:      string;
-  title:        string;
-  url:          string | null;
-  role_status:  RoleStatus;
-  candidacy:    Candidacy | null;
+  jd: string;
+  id: number;
+  company: string;
+  title: string;
+  url: string | null;
+  role_status: RoleStatus;
+  candidacy: Candidacy | null;
   applied_date: string | null;
-  salary_min:   number | null;
-  salary_max:   number | null;
-  notes:        string | null;
-  created_at:   string;
-  updated_at:   string;
+  salary_min: number | null;
+  salary_max: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
