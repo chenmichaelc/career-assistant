@@ -1,6 +1,6 @@
 # Architecture
 
-This document goes deeper than the README on the design decisions behind career-assistant. It serves as persistent context for contributors and future development sessions.
+This document goes deeper than the README on the design decisions behind career-assistant. It serves as persistent context for contributors and future development sessions — including future Claude sessions picking up this codebase without the benefit of having been present for the original decisions.
 
 ## Contents
 
@@ -10,10 +10,12 @@ This document goes deeper than the README on the design decisions behind career-
 4. [Validation architecture](#validation-architecture)
 5. [Test philosophy](#test-philosophy)
 6. [Server and client](#server-and-client)
-7. [CI/CD](#cicd)
-8. [TypeScript conventions](#typescript-conventions)
-9. [Configuration co-location](#configuration-co-location)
-10. [Planned evolution](#planned-evolution)
+7. [Code quality and formatting](#code-quality-and-formatting)
+8. [CI/CD](#cicd)
+9. [TypeScript conventions](#typescript-conventions)
+10. [Configuration co-location](#configuration-co-location)
+11. [Observability](#observability)
+12. [Planned evolution](#planned-evolution)
 
 ---
 
@@ -22,10 +24,16 @@ This document goes deeper than the README on the design decisions behind career-
 ```
 career-assistant/
 ├── .nvmrc                          # Node.js version pin (24)
+├── .prettierrc.json                # Prettier formatting configuration
+├── .prettierignore                 # Paths excluded from Prettier
+├── .husky/
+│   └── pre-commit                  # lint-staged (Prettier on staged files), then npm run test:run
 ├── .github/
 │   └── workflows/
-│       ├── push.yml                # CI — runs on every push
-│       └── pull-request.yml        # CI — runs on every pull request
+│       ├── push.yml                # CI — runs on every push, includes lint gate
+│       └── pull-request.yml        # CI — runs on every pull request, includes lint gate
+├── eslint.config.mts               # ESLint flat config — root-level, governs all layers
+├── vitest.config.ts                # Vitest config — excludes Playwright specs from unit/integration runs
 ├── db/
 │   ├── schema.ts                   # Single source of truth for SQLite schema (definitions only)
 │   └── setup.ts                    # Exports applySchema() for server and test use
@@ -35,6 +43,11 @@ career-assistant/
 │   ├── updates.ts                  # Status update validation + orchestration
 │   ├── deletes.ts                  # Delete operations with FK awareness
 │   ├── parse-records.ts            # Plain-text import format parser
+│   ├── db/                         # Single-table CRUD modules (CAR-20, complete)
+│   │   ├── roles.db.ts
+│   │   ├── skip-reasons.db.ts
+│   │   ├── termination-reasons.db.ts
+│   │   └── job-descriptions.db.ts
 │   ├── exporters/
 │   │   ├── index.ts                # Export entry point + format type
 │   │   ├── simple.ts               # company + title + JD format
@@ -52,7 +65,9 @@ career-assistant/
 │       ├── query.ts                # Raw SQL query endpoint
 │       └── backup.ts               # DB backup endpoint
 ├── client/
-│   ├── tsconfig.json               # Browser-targeted TypeScript config
+│   ├── tsconfig.json               # Thin reference file — points to app and node configs
+│   ├── tsconfig.app.json           # Browser-targeted TypeScript config for src/
+│   ├── tsconfig.node.json          # Node-targeted TypeScript config for vite.config.ts
 │   ├── vite.config.ts              # Vite config with Vue plugin + API proxy
 │   └── src/
 │       ├── main.ts                 # Vue app entry point
@@ -68,7 +83,7 @@ career-assistant/
 ├── e2e/
 │   ├── package.json                # E2E-scoped dependencies
 │   ├── playwright.config.ts        # Playwright config — webServer, baseURL, reporters
-│   ├── tsconfig.json               # ESNext TypeScript config for Playwright
+│   ├── tsconfig.json                # ESNext TypeScript config for Playwright
 │   ├── pages/
 │   │   ├── topMenuBarComponent.ts  # Shared nav bar component (data-testid scoped)
 │   │   └── rolesPage.ts            # Roles page object
@@ -79,6 +94,7 @@ career-assistant/
     │   ├── db.ts                   # createTestDb() — in-memory SQLite with schema
     │   └── run-script.ts           # runScript() — spawn CLI scripts as child processes
     ├── unit/                       # Pure function tests
+    │   └── lib/db/                 # Tests for single-table lib/db/ modules
     └── integration/                # CLI script tests (black box via child process)
 ```
 
@@ -106,7 +122,7 @@ All business logic lives in `lib/` with no I/O dependencies. Scripts, server rou
 
 The `scripts/` layer is deliberately thin — open a DB connection, call a `lib/` function, write to stdout, exit. No business logic belongs in scripts.
 
-The `server/routes/` layer is the HTTP projection of the same functions. A known gap (CAR-42, CAR-20 through CAR-22) is that some raw SQL queries exist in route handlers that should be extracted into `lib/` modules.
+The `server/routes/` layer is the HTTP projection of the same functions. A known gap (CAR-42, CAR-21, CAR-22) is that some raw SQL queries still exist directly in route handlers and in `lib/updates.ts` / `lib/deletes.ts`, rather than being composed from the `lib/db/` modules below. The single-table modules themselves (CAR-20) are complete; the orchestration layer has not yet been refactored to use them.
 
 ---
 
@@ -141,6 +157,12 @@ Roles have dependents across three tables: `skip_reasons`, `termination_reasons`
 
 The rationale: skip and termination reasons are analytical annotations. Silently deleting them loses data that may have analytical value. Force delete is explicit and intentional.
 
+### Single-table modules (`lib/db/`)
+
+CRUD operations for individual tables — `roles`, `skip_reasons`, `termination_reasons`, `job_descriptions` — are implemented as dedicated modules under `lib/db/`. Each module owns the row-level types and queries for its table (e.g. `SkipReasonRow`, `TerminationReasonRow` are defined where they're used, not duplicated in callers).
+
+This work (CAR-20) is complete. The next step (CAR-21, CAR-22, in progress) refactors `lib/updates.ts`, `lib/deletes.ts`, and the raw SQL still present in `server/routes/roles.ts` to compose from these modules instead of executing SQL inline. Until that refactor lands, both patterns coexist in the codebase — this is a known, tracked transitional state, not an oversight.
+
 ### Vocabulary types and runtime arrays
 
 Each vocabulary type is defined twice — once as a TypeScript union type, once as a runtime array:
@@ -152,7 +174,7 @@ export const VALID_STATUSES: RoleStatus[] = ['Applied', 'Pending Triage', 'Skipp
 
 The union type enforces valid values at compile time. The runtime array enables validation of external input — CLI arguments, API request bodies — that the type system cannot check because it's erased at runtime. The array is typed as `RoleStatus[]`, so the TypeScript compiler enforces that the two stay in sync.
 
-Both are defined in `lib/types.ts`. The client imports its own copy from `client/src/constants.ts` — a known duplication that will be resolved when CAR-4 (workspace restructuring) introduces shared packages.
+Both are defined in `lib/types.ts`. The client imports its own copy from `client/src/constants.ts` — a known duplication that will be resolved when CAR-4 (workspace restructuring) introduces shared packages. Several `@typescript-eslint/no-explicit-any` suppressions in the client (tracked in CAR-147) exist specifically because of this duplication — `RoleInput` and other shared types currently aren't importable from client code across the module boundary.
 
 ---
 
@@ -233,7 +255,7 @@ The `data-testid` attribute is placed on zone containers only — not on individ
 
 ### The XP safety net
 
-The test suite was designed to enable Extreme Programming practices. With thorough coverage of all pure functions and data layer operations, changes can be made — alone or with an LLM assistant — with high confidence that regressions are caught immediately. The test pyramid (unit → integration → E2E) was deliberately chosen to maximise coverage while keeping each layer independently testable and fast.
+The test suite was designed to enable Extreme Programming practices. With thorough coverage of all pure functions and data layer operations, changes can be made — alone or with an LLM assistant — with high confidence that regressions are caught immediately. The test pyramid (unit → integration → E2E) was deliberately chosen to maximise coverage while keeping each layer independently testable and fast. This is also why the full unit and integration suite is fast enough (low single-digit seconds) to run on every local commit via the pre-commit hook described below, not just in CI.
 
 ---
 
@@ -261,74 +283,117 @@ The server exposes a `/healthcheck` endpoint that returns `{ status: 'ok' }`. Th
 
 ---
 
+## Code quality and formatting
+
+### ESLint (CAR-37)
+
+`eslint.config.mts` lives at the repository root rather than being co-located within a specific module. This is a deliberate exception to the "configuration lives with the module it governs" principle described below — ESLint needs to lint `lib/`, `scripts/`, `server/`, `client/`, `tests/`, and `e2e/` in a single pass, with different rule sets and language options applied per layer based on `files` globs within one config. Splitting it per module would mean multiple invocations and multiple configs to keep in sync, defeating the purpose of the flat config format.
+
+Key conventions enforced:
+
+- **Unused variables and parameters** — `@typescript-eslint/no-unused-vars`, configured with `varsIgnorePattern`, `argsIgnorePattern`, and `caughtErrorsIgnorePattern` all set to `^_`. A parameter or variable prefixed with an underscore signals it's intentionally unused — required by a function signature (e.g. a Fastify route handler that doesn't need `request`) but not referenced in the body. Where neither parameter in a handler is used, the convention is to omit trailing unused parameters entirely (`async () => {}`) rather than prefix them, since JavaScript allows omitting parameters from the right end of a signature but not from the middle — `async (reply) => {}` would silently and incorrectly bind the request object to a variable named `reply`.
+- **`no-explicit-any`** — most `any` usages in the codebase are suppressed with `eslint-disable-next-line` and an inline comment explaining why, referencing the ticket that will resolve the underlying gap (see CAR-147 for suppressions blocked on CAR-4's shared-types work, and CAR-148 for the one blocked on CAR-44's schema validation work). Two suppressions in `SqlQuery.vue` are permanent and intentionally excluded from any cleanup ticket — the SQL query interface accepts arbitrary user-supplied SQL, so the result shape is genuinely unknowable at compile time, by design, with no future state in which a real type becomes possible.
+
+### Prettier and eslint-config-prettier (CAR-52)
+
+`.prettierrc.json` governs all visual formatting. `eslint-config-prettier` is included as the final entry in the `eslint.config.mts` config array, which disables any ESLint formatting rule that would otherwise conflict with Prettier's output — this is the standard, robust mechanism for reconciling the two tools, used here in addition to the manual `brace-style` removal described above, so that any future formatting-rule conflict introduced by an ESLint plugin update is caught automatically rather than requiring another manual removal.
+
+Formatting is enforced automatically, not just available as a manual script, via **Husky** and **lint-staged**, and the local pre-commit gate also runs the test suite:
+
+- Husky manages Git hooks in a way that's tracked by the repository (`.husky/`) and automatically activated for any contributor via the `prepare` script, which npm runs automatically as part of `npm install` (it is one of npm's lifecycle scripts — it is never invoked manually). This avoids the standard problem of raw Git hooks living in the untracked `.git/hooks/` directory and therefore not being shared when the repo is cloned.
+- lint-staged restricts a given command to only the files staged for the current commit, rather than running across the whole codebase on every commit.
+- The `pre-commit` hook runs two steps in sequence:
+
+  ```bash
+  npx lint-staged
+  npm run test:run
+  ```
+
+  `lint-staged` runs `prettier --write` against staged `.ts`, `.mts`, `.vue`, `.js`, `.json`, and `.md` files; any formatting changes are automatically re-staged and included in the commit. `npm run test:run` (`vitest --run`) then runs the full unit and integration suite once, non-interactively, and blocks the commit if anything fails.
+
+This guarantees every commit landing in the repository is correctly formatted and passes the fast test tier, without relying on a contributor's memory or editor configuration. A CI-level Prettier backstop (`prettier --check .` as a workflow step, to catch commits made with `--no-verify` or via any path that bypasses the hook) was considered but not yet implemented — see CAR-52 for the open consideration. A `pre-push` hook additionally running the Playwright E2E suite was considered and deliberately declined: E2E tests are categorically slower than the unit/integration tier, CI already runs the same E2E suite on every push, and a slow `pre-push` hook is exactly the kind of friction that leads to habitual `--no-verify` usage, which defeats the purpose of having a hook at all.
+
+---
+
 ## CI/CD
 
-Two GitHub Actions workflows run the full test suite — unit, integration, and Playwright E2E — on every push and every pull request. Both workflows are identical in steps:
+Two GitHub Actions workflows run linting and the full test suite — unit, integration, and Playwright E2E — on every push and every pull request. Both workflows are identical in steps:
 
 1. Checkout repository
 2. Set up Node.js 24
 3. Install root dependencies (`npm ci`)
 4. Install client dependencies (`npm ci` in `client/`)
-5. Install E2E dependencies (`npm ci` in `e2e/`)
+5. **Run ESLint (`npm run lint`)**
 6. Initialise the database (`npm run init`)
-7. Run Vitest unit and integration tests (`npm run test`)
+7. Run Vitest unit and integration tests (`npm run test:run`)
 8. Install Playwright browsers (`npx playwright install --with-deps`)
 9. Run Playwright E2E tests (`npm run test:e2e`)
 10. Upload Playwright HTML report as a GitHub artifact (retained for 30 days)
 
+The lint step is deliberately sequenced immediately after dependency installation and before any other check — it's the cheapest possible gate, requiring no database initialisation or compilation, so a contributor gets the fastest possible feedback on a style or quality violation before waiting for the rest of the pipeline.
+
 The Playwright report upload runs unconditionally (`if: ${{ !cancelled() }}`) so test results are always available for review even when tests fail.
+
+A merge gate requiring this pipeline to pass before merging is configured via GitHub branch protection rules (CAR-145) — this is a repository setting, not something expressible in the workflow YAML itself.
+
+A meaningful subset of this pipeline — formatting and the fast test tier — also runs locally on every commit via the pre-commit hook described above. CI remains the authoritative gate (it additionally runs ESLint and the full Playwright suite, neither of which run locally on commit), but the local hook catches the most common failures earlier, before a push, let alone a PR review, is needed to discover them.
 
 ---
 
 ## TypeScript conventions
 
-### Three tsconfigs
+### Four tsconfigs
 
-Three distinct TypeScript configurations cover three distinct runtime environments:
+Four distinct TypeScript configurations cover the distinct runtime environments in the project:
 
-| Config                 | Target | Module         | Environment         |
-| ---------------------- | ------ | -------------- | ------------------- |
-| `tsconfig.json` (root) | ES2020 | CommonJS       | Node.js, ts-node    |
-| `client/tsconfig.json` | ESNext | ESNext/bundler | Browser, Vite       |
-| `e2e/tsconfig.json`    | ESNext | ESNext/bundler | Node.js, Playwright |
+| Config                      | Target | Module         | Environment                        |
+| --------------------------- | ------ | -------------- | ---------------------------------- |
+| `tsconfig.json` (root)      | ES2020 | CommonJS       | Node.js, ts-node                   |
+| `client/tsconfig.app.json`  | ESNext | ESNext/bundler | Browser, Vite                      |
+| `client/tsconfig.node.json` | ESNext | ESNext/bundler | Node.js, for `vite.config.ts` only |
+| `e2e/tsconfig.json`         | ESNext | ESNext/bundler | Node.js, Playwright                |
 
 The root config uses CommonJS because `ts-node` — used to run CLI scripts and the server — requires it. The client and e2e configs use ESNext because Vite and Playwright handle their own TypeScript compilation and work with native ES modules.
 
+`client/tsconfig.json` itself is a thin reference file with no compiler options — it exists only to point TypeScript project references at `tsconfig.app.json` and `tsconfig.node.json`. This split exists because `vite.config.ts` uses Node built-ins (`path`, `__dirname`) that don't belong in the browser-targeted app config, and the standard modern Vite scaffold separates these concerns into two files for exactly this reason. `client/tsconfig.node.json` requires `@types/node` as a real devDependency in `client/package.json` — omitting it causes `npm ci` to fail in CI with a lock-file mismatch error, since the package wouldn't be present in `package-lock.json` despite being referenced by the tsconfig's `types` array. This was hit and fixed during development; the failure mode and fix are recorded here as a reference for anyone restructuring the client's TypeScript config in the future.
+
 ### Strict mode
 
-All three configs use `strict: true`. The most impactful strict checks in practice are `strictNullChecks` (variables can't silently be null) and `noImplicitAny` (types must be explicit). These were treated as first-class constraints from the start.
+All configs use `strict: true`. The most impactful strict checks in practice are `strictNullChecks` (variables can't silently be null) and `noImplicitAny` (types must be explicit). These were treated as first-class constraints from the start. `client/tsconfig.app.json` additionally enables `noUnusedLocals` and `noUnusedParameters` — overlapping with, but independent of, ESLint's `no-unused-vars` rule, since one operates at the TypeScript compiler level and the other at the linter level.
 
 ### Brace style
 
-`catch` and `finally` blocks open on a new line, separate from the closing brace of the preceding block:
-
-```typescript
-try {
-  // ...
-} catch (err) {
-  // ...
-} finally {
-  // ...
-}
-```
-
-This is the `stroustrup` brace style. It will be enforced via ESLint when CAR-37 is implemented.
+See [Code quality and formatting](#code-quality-and-formatting) above for the full history. The codebase currently uses Prettier's default same-line brace style for `catch`/`finally`. A `stroustrup` (new-line) convention was adopted briefly via ESLint during CAR-37 and reversed during CAR-52 when Prettier was introduced, since Prettier has no configurable option for brace placement.
 
 ---
 
 ## Configuration co-location
 
-Each module owns its configuration files:
+Each module owns its configuration files, with one deliberate exception:
 
-- `client/tsconfig.json` — Vue frontend TypeScript config
+- `client/tsconfig.app.json` / `client/tsconfig.node.json` — Vue frontend TypeScript config
 - `e2e/playwright.config.ts` — Playwright config
 - `e2e/tsconfig.json` — Playwright TypeScript config
+- `eslint.config.mts` — **the exception.** Lives at the repository root because it needs to govern all layers simultaneously in one pass. See [Code quality and formatting](#code-quality-and-formatting) above.
 
 The root `tsconfig.json` covers the Node.js data layer (`db/`, `lib/`, `scripts/`, `tests/`).
 
 The `server/package.json` and `e2e/package.json` are early steps toward the CAR-4 workspace restructuring — each module beginning to own its own dependency manifest.
 
-This pattern follows the principle that things which change together should live together.
+This pattern follows the principle that things which change together should live together — and that things which must govern everything at once, like ESLint, are the exception to that principle rather than a violation of it.
+
+---
+
+## Observability
+
+Tracked under the CAR-139 epic. Errors on both the client and server were initially either silently swallowed or written to ephemeral outputs — `console.error` to the browser console, or Fastify's default Pino output to terminal stdout — with no persistence across sessions or process restarts.
+
+The work is deliberately sequenced:
+
+1. **Audit first (CAR-141)** — a full pass across `server/`, `client/src/`, `lib/`, and `scripts/` to catalogue every catch block by category: missing logging, named-but-unused error bindings, silent swallows, or already-adequate handling. This audit's findings directly scope the two implementation tickets below, rather than guessing at scope upfront.
+2. **Server-side structured logging (CAR-72)** and **client-side console logging (CAR-140)** are tracked as separate stories because they have genuinely different solutions — the server already has Pino available via Fastify, while the browser has no native persistence mechanism and `console.error` is the realistic baseline for a local-only tool.
+3. **Server-side log persistence (CAR-142)** adds a Pino file transport so server logs survive process restarts — explicitly scoped to the server only, since browser-side persistence requires either a server endpoint to POST to, or is deferred entirely.
+4. **A full-stack persistent error store (CAR-143)** spanning both client and server — via a dedicated logging service, a self-hosted solution, or a SQLite-backed error log table consistent with the rest of the stack — is deliberately deferred as an Idea-stage ticket, not scheduled work. The stated tipping point: implement before the first non-local deployment, since a hosted multi-user system cannot rely on a developer being present to notice and reproduce failures the way a local single-user tool can.
 
 ---
 
@@ -347,11 +412,11 @@ packages/
 
 Each package will have its own `tsconfig.json` and `package.json`. The root `tsconfig.json` will become a thin references file. All packages will migrate from CommonJS to ES modules as part of the same pass.
 
-This resolves the current duplication of vocabulary types between `lib/types.ts` and `client/src/constants.ts` — the client will import directly from `@career-assistant/data`.
+This resolves the current duplication of vocabulary types between `lib/types.ts` and `client/src/constants.ts` — the client will import directly from `@career-assistant/data`. It also unblocks several `@typescript-eslint/no-explicit-any` suppressions currently tracked in CAR-147, which exist specifically because client code cannot yet cleanly import types from `lib/`.
 
-### CAR-5 — Data layer refactor _(In Progress)_
+### CAR-5 — Data layer refactor
 
-Single-table CRUD operations are being extracted into dedicated modules under `lib/db/`:
+Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**):
 
 ```
 lib/db/
@@ -361,8 +426,10 @@ lib/db/
 └── job-descriptions.db.ts
 ```
 
-The orchestration layer in `lib/updates.ts` and `lib/deletes.ts` is being refactored to compose from these modules rather than executing SQL directly.
+Remaining work (CAR-21, CAR-22, **in progress**): the orchestration layer in `lib/updates.ts` and `lib/deletes.ts`, and the raw SQL still present in `server/routes/roles.ts` (including an N+1 query pattern tracked separately in CAR-136), need to be refactored to compose from these `lib/db/` modules rather than executing SQL directly.
+
+A related, currently deferred question (tracked informally under CAR-3): once a database migration (e.g. SQLite to Postgres) or a supplemental data store for job profile analysis (CAR-32) becomes concrete work, the current combined `vitest` invocation (unit + integration together) may need to be split into independently runnable `test:unit` and `test:integration` scripts, since integration tests are likely to be far more sensitive to a database engine change than unit tests are. This was considered during CAR-52's pre-commit setup and explicitly deferred — the combined suite runs in low single-digit seconds today, and splitting it now would add maintenance surface (two script definitions to keep in sync, or a composed `test` script with no current consumer for the granularity) without present benefit. The deferral is recorded here so the reasoning isn't lost if and when the migration becomes real.
 
 ### CAR-32 — LLM-powered job market analysis
 
-The planned market intelligence features will introduce a fourth layer: an analysis pipeline that consumes role data and produces structured market signals. This will likely introduce Pinia stores on the frontend (CAR-100) to manage shared state across analysis views, and a bulk ingestion pipeline on the backend for large-scale job posting data.
+The planned market intelligence features will introduce a fourth layer: an analysis pipeline that consumes role data and produces structured market signals. This will likely introduce Pinia stores on the frontend (CAR-100) to manage shared state across analysis views, and a bulk ingestion pipeline on the backend for large-scale job posting data. Runtime schema validation (CAR-44) is explicitly called out as a prerequisite once this pipeline begins ingesting genuinely untrusted external data — job board APIs, LLM API responses — rather than the internally-controlled data the application currently handles.

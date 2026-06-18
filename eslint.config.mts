@@ -7,6 +7,7 @@ import tseslint from 'typescript-eslint';
 import pluginVue from 'eslint-plugin-vue';
 import playwright from 'eslint-plugin-playwright';
 import vitest from '@vitest/eslint-plugin';
+import prettierConfig from 'eslint-config-prettier';
 import { defineConfig } from 'eslint/config';
 
 export default defineConfig([
@@ -85,4 +86,7 @@ export default defineConfig([
       sourceType: 'module',
     },
   },
+  // ─── Prettier — disables ESLint formatting rules that would conflict ──────
+
+  prettierConfig,
 ]);
