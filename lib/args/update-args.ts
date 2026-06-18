@@ -3,11 +3,11 @@
 // Pure function: takes process.argv slice, returns flags object.
 
 export interface UpdateArgs {
-  id?:          string;
-  status?:      string;
-  reasons:      string[];
-  termination:  string[];
-  note?:        string;
+  id?: string;
+  status?: string;
+  reasons: string[];
+  termination: string[];
+  note?: string;
 }
 
 export function parseArgs(argv: string[]): UpdateArgs {
@@ -16,7 +16,7 @@ export function parseArgs(argv: string[]): UpdateArgs {
   let i = 0;
 
   while (i < argv.length) {
-    const flag:   string   = argv[i].replace('--', '');
+    const flag: string = argv[i].replace('--', '');
     const values: string[] = [];
 
     i++;
@@ -28,17 +28,13 @@ export function parseArgs(argv: string[]): UpdateArgs {
 
     if (flag === 'reasons') {
       flags.reasons = values;
-    }
- else if (flag === 'termination') {
+    } else if (flag === 'termination') {
       flags.termination = values;
-    }
- else if (flag === 'id') {
+    } else if (flag === 'id') {
       flags.id = values[0];
-    }
- else if (flag === 'status') {
+    } else if (flag === 'status') {
       flags.status = values[0];
-    }
- else if (flag === 'note') {
+    } else if (flag === 'note') {
       flags.note = values[0];
     }
   }

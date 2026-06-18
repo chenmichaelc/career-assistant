@@ -1,29 +1,29 @@
 // eslint.config.mts
 // Career Assistant — ESLint Configuration
 
-import js         from '@eslint/js';
-import globals    from 'globals';
-import tseslint   from 'typescript-eslint';
-import pluginVue  from 'eslint-plugin-vue';
+import js from '@eslint/js';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+import pluginVue from 'eslint-plugin-vue';
 import playwright from 'eslint-plugin-playwright';
-import vitest     from '@vitest/eslint-plugin';
+import vitest from '@vitest/eslint-plugin';
+import prettierConfig from 'eslint-config-prettier';
 import { defineConfig } from 'eslint/config';
 
 export default defineConfig([
-
   // ─── Ignored paths ────────────────────────────────────────────────────────────
 
   {
     ignores: [
       'e2e/playwright-report/**',
-      'e2e/test-results/**',       // also generated, worth ignoring preemptively
+      'e2e/test-results/**', // also generated, worth ignoring preemptively
     ],
   },
 
   // ─── Base JS recommended ──────────────────────────────────────────────────
 
   {
-    files:   ['**/*.{js,mjs,cjs,ts,mts,cts,vue}'],
+    files: ['**/*.{js,mjs,cjs,ts,mts,cts,vue}'],
     plugins: { js },
     extends: ['js/recommended'],
   },
@@ -34,28 +34,23 @@ export default defineConfig([
 
   {
     rules: {
-      'brace-style': 'off',
-      '@/brace-style': ['error', 'stroustrup'],
-      '@typescript-eslint/no-unused-vars': ['error', {
-        varsIgnorePattern:         '^_',
-        argsIgnorePattern:         '^_',
-        caughtErrorsIgnorePattern: '^_',
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          varsIgnorePattern: '^_',
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
 
   // ─── Node.js layer — lib/, scripts/, server/, tests/, db/ ────────────────
 
   {
-    files: [
-      'lib/**/*.ts',
-      'scripts/**/*.ts',
-      'server/**/*.ts',
-      'tests/**/*.ts',
-      'db/**/*.ts',
-    ],
+    files: ['lib/**/*.ts', 'scripts/**/*.ts', 'server/**/*.ts', 'tests/**/*.ts', 'db/**/*.ts'],
     languageOptions: {
-      globals:    globals.node,
+      globals: globals.node,
       sourceType: 'commonjs',
     },
   },
@@ -67,8 +62,8 @@ export default defineConfig([
   {
     files: ['client/src/**/*.{ts,vue}'],
     languageOptions: {
-      globals:       globals.browser,
-      sourceType:    'module',
+      globals: globals.browser,
+      sourceType: 'module',
       parserOptions: { parser: tseslint.parser },
     },
   },
@@ -76,9 +71,9 @@ export default defineConfig([
   // ─── Vitest unit + integration tests ─────────────────────────────────────
 
   {
-    files:   ['tests/**/*.test.ts'],
+    files: ['tests/**/*.test.ts'],
     plugins: { vitest },
-    rules:   vitest.configs.recommended.rules,
+    rules: vitest.configs.recommended.rules,
   },
 
   // ─── Playwright E2E tests ─────────────────────────────────────────────────
@@ -87,9 +82,11 @@ export default defineConfig([
     files: ['e2e/**/*.ts'],
     ...playwright.configs['flat/recommended'],
     languageOptions: {
-      globals:    globals.node,
+      globals: globals.node,
       sourceType: 'module',
     },
   },
+  // ─── Prettier — disables ESLint formatting rules that would conflict ──────
 
+  prettierConfig,
 ]);

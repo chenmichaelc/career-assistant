@@ -26,20 +26,23 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
 
   if (!flags.status || flags.status.trim() === '') {
     errors.push('--status is required.');
-  }
- else if (!VALID_STATUSES.includes(flags.status.trim() as RoleStatus)) {
+  } else if (!VALID_STATUSES.includes(flags.status.trim() as RoleStatus)) {
     errors.push(`Invalid status: "${flags.status}". Valid values: ${VALID_STATUSES.join(', ')}.`);
   }
 
   for (const reason of flags.reasons) {
     if (!VALID_SKIP_REASONS.includes(reason.trim() as SkipReasonType)) {
-      errors.push(`Invalid skip reason: "${reason}". Valid values: ${VALID_SKIP_REASONS.join(', ')}.`);
+      errors.push(
+        `Invalid skip reason: "${reason}". Valid values: ${VALID_SKIP_REASONS.join(', ')}.`
+      );
     }
   }
 
   for (const reason of flags.termination) {
     if (!VALID_TERMINATION_REASONS.includes(reason.trim() as TerminationReasonType)) {
-      errors.push(`Invalid termination reason: "${reason}". Valid values: ${VALID_TERMINATION_REASONS.join(', ')}.`);
+      errors.push(
+        `Invalid termination reason: "${reason}". Valid values: ${VALID_TERMINATION_REASONS.join(', ')}.`
+      );
     }
   }
 
@@ -52,7 +55,7 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
   }
 
   if (errors.length > 0) {
-    const errorList = errors.map(e => `  - ${e}`).join('\n');
+    const errorList = errors.map((e) => `  - ${e}`).join('\n');
     throw new Error(`Validation failed:\n${errorList}`);
   }
 }
@@ -60,12 +63,16 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
 // ─── Role existence check ─────────────────────────────────────────────────────
 
 export function fetchRoleOrThrow(db: Database.Database, id: string): RoleRow {
-  const role = db.prepare(`
+  const role = db
+    .prepare(
+      `
     SELECT id, company, title, role_status, candidacy, applied_date,
            salary_min, salary_max, notes, created_at, updated_at
     FROM roles
     WHERE id = ?
-  `).get(id) as RoleRow | undefined;
+  `
+    )
+    .get(id) as RoleRow | undefined;
 
   if (!role) {
     throw new Error(`No role found with ID ${id}.`);
@@ -106,22 +113,22 @@ export function updateRole(db: Database.Database, flags: UpdateArgs): RoleRow {
   const run = db.transaction(() => {
     updateRoleStatus.run({
       role_status: flags.status!.trim(),
-      id:          flags.id,
+      id: flags.id,
     });
 
     for (const reason of flags.reasons) {
       insertSkipReason.run({
         role_id: flags.id,
-        reason:  reason.trim(),
-        note:    flags.note ?? null,
+        reason: reason.trim(),
+        note: flags.note ?? null,
       });
     }
 
     for (const reason of flags.termination) {
       insertTerminationReason.run({
         role_id: flags.id,
-        reason:  reason.trim(),
-        note:    flags.note ?? null,
+        reason: reason.trim(),
+        note: flags.note ?? null,
       });
     }
   });

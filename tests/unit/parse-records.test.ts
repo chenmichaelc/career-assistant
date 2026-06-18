@@ -1,9 +1,8 @@
 // tests/unit/parse-records.test.ts
 import { describe, test, expect } from 'vitest';
-import { parseRecords }           from '../../lib/parse-records';
+import { parseRecords } from '../../lib/parse-records';
 
 describe('parseRecords — basic parsing', () => {
-
   test('parses a single complete record', () => {
     const input = `URL: https://example.com/job/1?i=2&ref=test
 Company: Acme/Turner & Sons
@@ -28,7 +27,9 @@ And a URL: https://example.com/job/1?i=2&ref=test.
     expect(records[0].salary_max).toBe(130000);
     expect(records[0].jd).toContain('This is the job description.');
     expect(records[0].jd).toContain('It spans multiple lines.');
-    expect(records[0].jd).toContain('And special characters: &, /, (, ), comma, "quotes", \'apostrophes\'.');
+    expect(records[0].jd).toContain(
+      'And special characters: &, /, (, ), comma, "quotes", \'apostrophes\'.'
+    );
     expect(records[0].jd).toContain('And a URL: https://example.com/job/1?i=2&ref=test.');
   });
 
@@ -93,11 +94,9 @@ JD text.
     expect(records[0].candidacy).toBeNull();
     expect(records[0].notes).toBeNull();
   });
-
 });
 
 describe('parseRecords — missing fields', () => {
-
   test('sets missing url to null', () => {
     const input = `Company: Acme
 Title: QA Engineer
@@ -159,11 +158,9 @@ Title: QA Engineer
     const records = parseRecords(input);
     expect(records[0].jd).toBeNull();
   });
-
 });
 
 describe('parseRecords — edge cases', () => {
-
   test('handles file that does not end with --', () => {
     const input = `URL: https://example.com/job/1
 Company: Acme
@@ -217,5 +214,4 @@ JD text.
     expect(records[0].company).toBe('Acme');
     expect(records[0].title).toBe('QA Engineer');
   });
-
 });

@@ -1,15 +1,13 @@
 // tests/unit/update-args.test.ts
 import { describe, test, expect } from 'vitest';
-import { parseArgs }              from '../../lib/args/update-args';
+import { parseArgs } from '../../lib/args/update-args';
 
 describe('update-roles parseArgs function', () => {
-
   test('parses --id and --status correctly', () => {
     const flags = parseArgs(['--id', '42', '--status', 'Closed']);
     expect(flags.id).toBe('42');
     expect(flags.status).toBe('Closed');
   });
-
 
   test('parses --status and --id correctly', () => {
     const flags = parseArgs(['--status', 'Closed', '--id', '42']);
@@ -23,14 +21,30 @@ describe('update-roles parseArgs function', () => {
   });
 
   test('parses multiple --reasons values correctly at end of line', () => {
-    const flags = parseArgs(['--id', '1', '--status', 'Skipped', '--reasons', 'Location', 'Compensation']);
+    const flags = parseArgs([
+      '--id',
+      '1',
+      '--status',
+      'Skipped',
+      '--reasons',
+      'Location',
+      'Compensation',
+    ]);
     expect(flags.id).toEqual('1');
     expect(flags.status).toEqual('Skipped');
     expect(flags.reasons).toEqual(['Location', 'Compensation']);
   });
 
   test('parses multiple --reasons values correctly at middle of line correctly', () => {
-    const flags = parseArgs(['--id', '1', '--reasons', 'Location', 'Compensation', '--status', 'Skipped']);
+    const flags = parseArgs([
+      '--id',
+      '1',
+      '--reasons',
+      'Location',
+      'Compensation',
+      '--status',
+      'Skipped',
+    ]);
     expect(flags.id).toEqual('1');
     expect(flags.reasons).toEqual(['Location', 'Compensation']);
     expect(flags.status).toEqual('Skipped');
@@ -42,13 +56,31 @@ describe('update-roles parseArgs function', () => {
   });
 
   test('parses --note correctly', () => {
-    const flags = parseArgs(['--id', '1', '--status', 'Skipped', '--reasons', 'Location', '--note', 'Austin in-office']);
+    const flags = parseArgs([
+      '--id',
+      '1',
+      '--status',
+      'Skipped',
+      '--reasons',
+      'Location',
+      '--note',
+      'Austin in-office',
+    ]);
     expect(flags.note).toBe('Austin in-office');
   });
-  
+
   test('handles single quotes in --note content gracefully', () => {
-    const noteValue = 'O\'Hare Airport'
-    const flags = parseArgs(['--id', '1', '--status', 'Skipped', '--reasons', 'Location', '--note', noteValue]);
+    const noteValue = "O'Hare Airport";
+    const flags = parseArgs([
+      '--id',
+      '1',
+      '--status',
+      'Skipped',
+      '--reasons',
+      'Location',
+      '--note',
+      noteValue,
+    ]);
     expect(flags.note).toBe(noteValue);
   });
 
@@ -65,5 +97,4 @@ describe('update-roles parseArgs function', () => {
     expect(flags.reasons).toEqual([]);
     expect(flags.termination).toEqual([]);
   });
-
 });
