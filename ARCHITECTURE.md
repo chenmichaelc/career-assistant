@@ -255,7 +255,7 @@ The `data-testid` attribute is placed on zone containers only — not on individ
 
 ### The XP safety net
 
-The test suite was designed to enable Extreme Programming practices. With thorough coverage of all pure functions and data layer operations, changes can be made — alone or with an LLM assistant — with high confidence that regressions are caught immediately. The test pyramid (unit → integration → E2E) was deliberately chosen to maximise coverage while keeping each layer independently testable and fast. This is also why the full unit and integration suite is fast enough (low single-digit seconds) to run on every local commit via the pre-commit hook described below, not just in CI.
+The test suite was designed to enable Extreme Programming practices. With thorough coverage of all pure functions and data layer operations, changes can be made — alone or with an LLM assistant — with high confidence that regressions are caught immediately. The test pyramid (unit → integration → E2E) was deliberately chosen to maximise coverage while keeping each layer independently testable and fast.
 
 ---
 
@@ -293,14 +293,15 @@ Key conventions enforced:
 
 - **Unused variables and parameters** — `@typescript-eslint/no-unused-vars`, configured with `varsIgnorePattern`, `argsIgnorePattern`, and `caughtErrorsIgnorePattern` all set to `^_`. A parameter or variable prefixed with an underscore signals it's intentionally unused — required by a function signature (e.g. a Fastify route handler that doesn't need `request`) but not referenced in the body. Where neither parameter in a handler is used, the convention is to omit trailing unused parameters entirely (`async () => {}`) rather than prefix them, since JavaScript allows omitting parameters from the right end of a signature but not from the middle — `async (reply) => {}` would silently and incorrectly bind the request object to a variable named `reply`.
 - **`no-explicit-any`** — most `any` usages in the codebase are suppressed with `eslint-disable-next-line` and an inline comment explaining why, referencing the ticket that will resolve the underlying gap (see CAR-147 for suppressions blocked on CAR-4's shared-types work, and CAR-148 for the one blocked on CAR-44's schema validation work). Two suppressions in `SqlQuery.vue` are permanent and intentionally excluded from any cleanup ticket — the SQL query interface accepts arbitrary user-supplied SQL, so the result shape is genuinely unknowable at compile time, by design, with no future state in which a real type becomes possible.
+- **`brace-style` — added, then removed.** During CAR-37, the codebase adopted `stroustrup` brace style (catch/finally on a new line) as an explicit ESLint rule. When Prettier was introduced (CAR-52), this created an unresolvable conflict: Prettier has no configurable option for brace placement — it always formats `catch`/`finally` on the same line, by hardcoded design, with no override available. Rather than fight Prettier on a single rule, the project let Prettier own all formatting concerns without exception; the stroustrup rule was removed and the codebase reverted to same-line brace style as part of CAR-52's first formatting pass. CAR-51 documents the original decision and remains a record of it, even though it was later reversed.
 
 ### Prettier and eslint-config-prettier (CAR-52)
 
-`.prettierrc.json` governs all visual formatting. `eslint-config-prettier` is included as the final entry in the `eslint.config.mts` config array, which disables any ESLint formatting rule that would otherwise conflict with Prettier's output — this is the standard, robust mechanism for reconciling the two tools, used here in addition to the manual `brace-style` removal described above, so that any future formatting-rule conflict introduced by an ESLint plugin update is caught automatically rather than requiring another manual removal.
+`.prettierrc.json` governs all visual formatting. `eslint-config-prettier` is included as the final entry in the `eslint.config.mts` config array, disabling any ESLint formatting rule that would otherwise conflict with Prettier's output.
 
-Formatting is enforced automatically, not just available as a manual script, via **Husky** and **lint-staged**, and the local pre-commit gate also runs the test suite:
+Formatting and a fast test run are enforced automatically on every commit via **Husky** and **lint-staged**, not just available as manual scripts:
 
-- Husky manages Git hooks in a way that's tracked by the repository (`.husky/`) and automatically activated for any contributor via the `prepare` script, which npm runs automatically as part of `npm install` (it is one of npm's lifecycle scripts — it is never invoked manually). This avoids the standard problem of raw Git hooks living in the untracked `.git/hooks/` directory and therefore not being shared when the repo is cloned.
+- Husky manages Git hooks in a way that's tracked by the repository (`.husky/`) and automatically activated for any contributor via the `prepare` script, which npm runs as part of `npm install`. This avoids the standard problem of raw Git hooks living in the untracked `.git/hooks/` directory and not being shared when the repo is cloned.
 - lint-staged restricts a given command to only the files staged for the current commit, rather than running across the whole codebase on every commit.
 - The `pre-commit` hook runs two steps in sequence:
 
@@ -309,9 +310,9 @@ Formatting is enforced automatically, not just available as a manual script, via
   npm run test:run
   ```
 
-  `lint-staged` runs `prettier --write` against staged `.ts`, `.mts`, `.vue`, `.js`, `.json`, and `.md` files; any formatting changes are automatically re-staged and included in the commit. `npm run test:run` (`vitest --run`) then runs the full unit and integration suite once, non-interactively, and blocks the commit if anything fails.
+  `lint-staged` runs `prettier --write` against staged `.ts`, `.mts`, `.vue`, `.js`, `.json`, and `.md` files; formatting changes are automatically re-staged and included in the commit. `npm run test:run` (`vitest --run`) then runs the full unit and integration suite once, non-interactively, and blocks the commit if anything fails — the bare `npm test` script defaults to Vitest's watch mode, which never exits and would hang the hook indefinitely.
 
-This guarantees every commit landing in the repository is correctly formatted and passes the fast test tier, without relying on a contributor's memory or editor configuration. A CI-level Prettier backstop (`prettier --check .` as a workflow step, to catch commits made with `--no-verify` or via any path that bypasses the hook) was considered but not yet implemented — see CAR-52 for the open consideration. A `pre-push` hook additionally running the Playwright E2E suite was considered and deliberately declined: E2E tests are categorically slower than the unit/integration tier, CI already runs the same E2E suite on every push, and a slow `pre-push` hook is exactly the kind of friction that leads to habitual `--no-verify` usage, which defeats the purpose of having a hook at all.
+This guarantees every commit landing in the repository is correctly formatted and passes the fast test tier, without relying on a contributor's memory or editor configuration. A CI-level Prettier backstop (`prettier --check .`, to catch commits made with `--no-verify`) was considered but not yet implemented — see CAR-52 for the open consideration.
 
 ---
 
@@ -330,13 +331,13 @@ Two GitHub Actions workflows run linting and the full test suite — unit, integ
 9. Run Playwright E2E tests (`npm run test:e2e`)
 10. Upload Playwright HTML report as a GitHub artifact (retained for 30 days)
 
-The lint step is deliberately sequenced immediately after dependency installation and before any other check — it's the cheapest possible gate, requiring no database initialisation or compilation, so a contributor gets the fastest possible feedback on a style or quality violation before waiting for the rest of the pipeline.
+The lint step is deliberately sequenced immediately after dependency installation and before any other check — it's the cheapest possible gate, so a contributor gets the fastest possible feedback before waiting for the rest of the pipeline.
 
 The Playwright report upload runs unconditionally (`if: ${{ !cancelled() }}`) so test results are always available for review even when tests fail.
 
 A merge gate requiring this pipeline to pass before merging is configured via GitHub branch protection rules (CAR-145) — this is a repository setting, not something expressible in the workflow YAML itself.
 
-A meaningful subset of this pipeline — formatting and the fast test tier — also runs locally on every commit via the pre-commit hook described above. CI remains the authoritative gate (it additionally runs ESLint and the full Playwright suite, neither of which run locally on commit), but the local hook catches the most common failures earlier, before a push, let alone a PR review, is needed to discover them.
+A meaningful subset of this pipeline — formatting and the fast test tier — also runs locally on every commit via the pre-commit hook described above. CI remains the authoritative gate, since it additionally runs ESLint and the full Playwright suite, but the local hook catches the most common failures earlier.
 
 ---
 
@@ -355,11 +356,11 @@ Four distinct TypeScript configurations cover the distinct runtime environments 
 
 The root config uses CommonJS because `ts-node` — used to run CLI scripts and the server — requires it. The client and e2e configs use ESNext because Vite and Playwright handle their own TypeScript compilation and work with native ES modules.
 
-`client/tsconfig.json` itself is a thin reference file with no compiler options — it exists only to point TypeScript project references at `tsconfig.app.json` and `tsconfig.node.json`. This split exists because `vite.config.ts` uses Node built-ins (`path`, `__dirname`) that don't belong in the browser-targeted app config, and the standard modern Vite scaffold separates these concerns into two files for exactly this reason. `client/tsconfig.node.json` requires `@types/node` as a real devDependency in `client/package.json` — omitting it causes `npm ci` to fail in CI with a lock-file mismatch error, since the package wouldn't be present in `package-lock.json` despite being referenced by the tsconfig's `types` array. This was hit and fixed during development; the failure mode and fix are recorded here as a reference for anyone restructuring the client's TypeScript config in the future.
+`client/tsconfig.json` itself is a thin reference file with no compiler options — it exists only to point TypeScript project references at `tsconfig.app.json` and `tsconfig.node.json`. This split exists because `vite.config.ts` uses Node built-ins (`path`, `__dirname`) that don't belong in the browser-targeted app config. `client/tsconfig.node.json` requires `@types/node` as a real devDependency in `client/package.json` — omitting it causes `npm ci` to fail in CI with a lock-file mismatch error, since the package wouldn't be present in `package-lock.json` despite being referenced by the tsconfig's `types` array.
 
 ### Strict mode
 
-All configs use `strict: true`. The most impactful strict checks in practice are `strictNullChecks` (variables can't silently be null) and `noImplicitAny` (types must be explicit). These were treated as first-class constraints from the start. `client/tsconfig.app.json` additionally enables `noUnusedLocals` and `noUnusedParameters` — overlapping with, but independent of, ESLint's `no-unused-vars` rule, since one operates at the TypeScript compiler level and the other at the linter level.
+All configs use `strict: true`. `client/tsconfig.app.json` additionally enables `noUnusedLocals` and `noUnusedParameters` — overlapping with, but independent of, ESLint's `no-unused-vars` rule, since one operates at the TypeScript compiler level and the other at the linter level.
 
 ### Brace style
 
@@ -390,7 +391,7 @@ Tracked under the CAR-139 epic. Errors on both the client and server were initia
 
 The work is deliberately sequenced:
 
-1. **Audit first (CAR-141)** — a full pass across `server/`, `client/src/`, `lib/`, and `scripts/` to catalogue every catch block by category: missing logging, named-but-unused error bindings, silent swallows, or already-adequate handling. This audit's findings directly scope the two implementation tickets below, rather than guessing at scope upfront.
+1. **Audit first (CAR-141)** — a full pass across `server/`, `client/src/`, `lib/`, and `scripts/` to catalogue every catch block by category: missing logging, named-but-unused error bindings, silent swallows, or already-adequate handling. This audit's findings directly scope the two implementation tickets below.
 2. **Server-side structured logging (CAR-72)** and **client-side console logging (CAR-140)** are tracked as separate stories because they have genuinely different solutions — the server already has Pino available via Fastify, while the browser has no native persistence mechanism and `console.error` is the realistic baseline for a local-only tool.
 3. **Server-side log persistence (CAR-142)** adds a Pino file transport so server logs survive process restarts — explicitly scoped to the server only, since browser-side persistence requires either a server endpoint to POST to, or is deferred entirely.
 4. **A full-stack persistent error store (CAR-143)** spanning both client and server — via a dedicated logging service, a self-hosted solution, or a SQLite-backed error log table consistent with the rest of the stack — is deliberately deferred as an Idea-stage ticket, not scheduled work. The stated tipping point: implement before the first non-local deployment, since a hosted multi-user system cannot rely on a developer being present to notice and reproduce failures the way a local single-user tool can.
@@ -428,7 +429,7 @@ lib/db/
 
 Remaining work (CAR-21, CAR-22, **in progress**): the orchestration layer in `lib/updates.ts` and `lib/deletes.ts`, and the raw SQL still present in `server/routes/roles.ts` (including an N+1 query pattern tracked separately in CAR-136), need to be refactored to compose from these `lib/db/` modules rather than executing SQL directly.
 
-A related, currently deferred question (tracked informally under CAR-3): once a database migration (e.g. SQLite to Postgres) or a supplemental data store for job profile analysis (CAR-32) becomes concrete work, the current combined `vitest` invocation (unit + integration together) may need to be split into independently runnable `test:unit` and `test:integration` scripts, since integration tests are likely to be far more sensitive to a database engine change than unit tests are. This was considered during CAR-52's pre-commit setup and explicitly deferred — the combined suite runs in low single-digit seconds today, and splitting it now would add maintenance surface (two script definitions to keep in sync, or a composed `test` script with no current consumer for the granularity) without present benefit. The deferral is recorded here so the reasoning isn't lost if and when the migration becomes real.
+A separate, deferred question — splitting the combined `vitest` invocation into independent `test:unit` / `test:integration` scripts ahead of a possible database migration or supplemental NoSQL store (CAR-32) — is tracked under CAR-3; see the README roadmap for the reasoning.
 
 ### CAR-32 — LLM-powered job market analysis
 
