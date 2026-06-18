@@ -8,11 +8,13 @@
     "format": "prettier --write .",
     "init": "ts-node scripts/init-db.ts",
     "lint": "eslint .",
+    "prepare": "husky",
     "server": "ts-node server/index.ts",
     "test": "vitest",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:ui": "playwright test --config e2e/playwright.config.ts --ui",
-    "test:e2e:report": "playwright show-report e2e/playwright-report"
+    "test:e2e:report": "playwright show-report e2e/playwright-report",
+    "test:run": "vitest --run"
   },
   "keywords": [],
   "author": "",
@@ -34,12 +36,17 @@
     "eslint-plugin-playwright": "^2.10.4",
     "eslint-plugin-vue": "^10.9.2",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
     "jiti": "^2.7.0",
+    "lint-staged": "^17.0.7",
     "prettier": "^3.8.4",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.0",
     "vitest": "^4.1.7"
+  },
+  "lint-staged": {
+    "*.{ts,mts,vue,js,json,md}": "prettier --write"
   }
 }
