@@ -54,9 +54,10 @@ export function runScript(
 ): ScriptResult {
   const scriptPath = path.join(__dirname, '../../scripts', scriptName.replace('.js', '.ts'));
 
-  const result: SpawnSyncReturns<string> = spawnSync('ts-node', [scriptPath, ...args], {
+  const result: SpawnSyncReturns<string> = spawnSync('npx', ['ts-node', scriptPath, ...args], {
     input: stdin,
     encoding: 'utf8',
+    shell: true,
   });
 
   const stdout = result.stdout ?? '';
