@@ -1,7 +1,7 @@
 // tests/helpers/run-script.ts
 // Career Assistant — Script runner for E2E tests
 
-import { spawnSync, SpawnSyncReturns } from 'child_process';
+import spawn from 'cross-spawn';
 import path from 'path';
 import fs from 'fs';
 
@@ -54,10 +54,9 @@ export function runScript(
 ): ScriptResult {
   const scriptPath = path.join(__dirname, '../../scripts', scriptName.replace('.js', '.ts'));
 
-  const result: SpawnSyncReturns<string> = spawnSync('npx', ['ts-node', scriptPath, ...args], {
+  const result = spawn.sync('ts-node', [scriptPath, ...args], {
     input: stdin,
     encoding: 'utf8',
-    shell: true,
   });
 
   const stdout = result.stdout ?? '';
