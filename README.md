@@ -11,10 +11,11 @@ _Licensed under the [GNU General Public License v3.0](LICENSE)._
 
 1. [About this project](#about-this-project)
 2. [Overview](#overview)
-3. [Setup](#setup)
-4. [Milestones](#milestones)
-5. [Roadmap](#roadmap)
-6. [Architecture](#architecture)
+3. [Currently working on](#currently-working-on)
+4. [Setup](#setup)
+5. [Milestones](#milestones)
+6. [Roadmap](#roadmap)
+7. [Architecture](#architecture)
 
 ---
 
@@ -50,6 +51,24 @@ The feature set is intentionally modest relative to the engineering investment. 
 - A layered validation architecture (syntactic, semantic, persistence) that catches different failure modes at each layer
 - A CI/CD pipeline with quality gates — linting, formatting, and automated test enforcement — that runs on every push, every pull request, and every local commit
 - Documentation maintained as a living record of _why_ decisions were made, including decisions that were later reversed, and why
+
+---
+
+## Currently working on
+
+**[CAR-21] Refactor `lib/` to orchestrate from `db/` modules**
+
+Refactoring the data layer so that all business logic in `lib/` composes from the single-table modules in `lib/db/` instead of executing SQL directly. This is the prerequisite for replacing the existing CLI-based integration tests with proper HTTP-level integration tests using Fastify's `inject()` method — a necessary step toward a more robust and realistic test suite that covers the actual integration paths the application uses (Vue → Fastify routes → `lib/` → SQLite), rather than a CLI layer that no longer reflects how the application is used in practice.
+
+**Subtasks:**
+
+- CAR-162 — Refactor `lib/deletes.ts` to compose from `lib/db/` modules
+- CAR-163 — Refactor `lib/roles.ts` to compose from `lib/db/` modules
+- CAR-164 — Refactor `server/routes/roles.ts` to remove raw SQL and eliminate N+1 query pattern
+- CAR-165 — Remove CLI scripts layer (except `init-db.ts`)
+- CAR-166 — Remove CLI-based integration tests and `run-script.ts` helper
+- CAR-167 — Write Fastify `inject()` integration tests for HTTP routes
+- CAR-168 — Audit codebase to confirm elimination of SQL outside `lib/db/`
 
 ---
 
