@@ -196,7 +196,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     }
 
     try {
-      fetchRoleOrThrow(db, id);
+      fetchRoleOrThrow(db, Number(id));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
@@ -230,7 +230,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     }
 
     try {
-      fetchRoleOrThrow(db, id);
+      fetchRoleOrThrow(db, Number(id));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
