@@ -139,14 +139,14 @@ describe('validateUpdateFlags — contextual rules', () => {
 describe('fetchRoleOrThrow', () => {
   test('returns role when found', () => {
     const id = addRole(db, baseRole);
-    const role = fetchRoleOrThrow(db, String(id));
+    const role = fetchRoleOrThrow(db, id);
 
     expect(role.company).toBe(baseRole.company);
     expect(role.title).toBe(baseRole.title);
   });
 
   test('throws when role not found', () => {
-    expect(() => fetchRoleOrThrow(db, '999')).toThrow('No role found with ID 999');
+    expect(() => fetchRoleOrThrow(db, 999)).toThrow('No role found with ID 999');
   });
 });
 
