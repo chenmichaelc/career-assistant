@@ -1,7 +1,6 @@
 // lib/updates.ts
 // Career Assistant — Role update operations
 // Owns all update-related logic: validation, role fetching, and DB writes.
-// Callers are responsible for opening and closing the DB connection.
 
 import Database from 'better-sqlite3';
 import {
@@ -14,6 +13,9 @@ import {
   VALID_TERMINATION_REASONS,
 } from './types';
 import { UpdateArgs } from './args/update-args';
+import { getRoleById, updateRoleStatus } from './db/roles.db';
+import { insertSkipReason } from './db/skip-reasons.db';
+import { insertTerminationReason } from './db/termination-reasons.db';
 
 // ─── Syntactic validation (shape of input) ────────────────────────────────────
 
@@ -62,17 +64,8 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
 
 // ─── Role existence check ─────────────────────────────────────────────────────
 
-export function fetchRoleOrThrow(db: Database.Database, id: string): RoleRow {
-  const role = db
-    .prepare(
-      `
-    SELECT id, company, title, role_status, candidacy, applied_date,
-           salary_min, salary_max, notes, created_at, updated_at
-    FROM roles
-    WHERE id = ?
-  `
-    )
-    .get(id) as RoleRow | undefined;
+export function fetchRoleOrThrow(db: Database.Database, id: number): RoleRow {
+  const role = getRoleById(db, Number(id));
 
   if (!role) {
     throw new Error(`No role found with ID ${id}.`);
@@ -86,50 +79,18 @@ export function fetchRoleOrThrow(db: Database.Database, id: string): RoleRow {
 export function updateRole(db: Database.Database, flags: UpdateArgs): RoleRow {
   validateUpdateFlags(flags);
 
-  const role = fetchRoleOrThrow(db, flags.id!);
-
-  const updateRoleStatus = db.prepare(`
-    UPDATE roles
-    SET role_status = @role_status,
-        applied_date = CASE
-            WHEN @role_status = 'Applied' AND applied_date IS NULL
-            THEN date('now')
-            ELSE applied_date
-            END,
-        updated_at  = datetime('now')
-    WHERE id = @id
-  `);
-
-  const insertSkipReason = db.prepare(`
-    INSERT INTO skip_reasons (role_id, reason, note)
-    VALUES (@role_id, @reason, @note)
-  `);
-
-  const insertTerminationReason = db.prepare(`
-    INSERT INTO termination_reasons (role_id, reason, note)
-    VALUES (@role_id, @reason, @note)
-  `);
+  const roleId = Number(flags.id);
+  const role = fetchRoleOrThrow(db, roleId);
 
   const run = db.transaction(() => {
-    updateRoleStatus.run({
-      role_status: flags.status!.trim(),
-      id: flags.id,
-    });
+    updateRoleStatus(db, roleId, flags.status!.trim());
 
     for (const reason of flags.reasons) {
-      insertSkipReason.run({
-        role_id: flags.id,
-        reason: reason.trim(),
-        note: flags.note ?? null,
-      });
+      insertSkipReason(db, roleId, reason.trim(), flags.note ?? null);
     }
 
     for (const reason of flags.termination) {
-      insertTerminationReason.run({
-        role_id: flags.id,
-        reason: reason.trim(),
-        note: flags.note ?? null,
-      });
+      insertTerminationReason(db, roleId, reason.trim(), flags.note ?? null);
     }
   });
 
