@@ -10,41 +10,34 @@ export interface JobDescriptionRow {
   content: string;
 }
 
-export function insertJobDescription(
-  db: Database.Database,
-  roleId: number,
-  content: string
-): number {
-  const result = db
+export function insert(sqlite: Database.Database, roleId: number, content: string): number {
+  const result = sqlite
     .prepare(
       `
-        INSERT INTO job_descriptions (role_id, content)
-        VALUES (@role_id, @content)
-    `
+            INSERT INTO job_descriptions (role_id, content)
+            VALUES (@role_id, @content)
+          `
     )
     .run({ role_id: roleId, content });
 
   return Number(result.lastInsertRowid);
 }
 
-export function getJobDescriptionByRoleId(
-  db: Database.Database,
+export function getByRoleId(
+  sqlite: Database.Database,
   roleId: number
 ): JobDescriptionRow | undefined {
-  return db
+  return sqlite
     .prepare(
       `
-        SELECT id, role_id, content
-        FROM job_descriptions
-        WHERE role_id = ?
-    `
+            SELECT id, role_id, content
+            FROM job_descriptions
+            WHERE role_id = ?
+          `
     )
     .get(roleId) as JobDescriptionRow | undefined;
 }
 
-export function deleteJobDescriptionByRoleId(
-  db: Database.Database,
-  roleId: number
-): Database.RunResult {
-  return db.prepare(`DELETE FROM job_descriptions WHERE role_id = ?`).run(roleId);
+export function deleteByRoleId(sqlite: Database.Database, roleId: number): Database.RunResult {
+  return sqlite.prepare(`DELETE FROM job_descriptions WHERE role_id = ?`).run(roleId);
 }

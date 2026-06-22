@@ -4,7 +4,7 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
 import { addRole } from '../../lib/roles';
-import { updateRole, fetchRoleOrThrow } from '../../lib/updates';
+import { updateRole } from '../../lib/updates';
 import {
   deleteRole,
   deleteSkipReason,
@@ -21,28 +21,15 @@ import {
   VALID_SKIP_REASONS,
   VALID_TERMINATION_REASONS,
 } from '../../lib/types';
+import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
 import { UpdateArgs } from '../../lib/args/update-args';
 
 interface PluginOptions extends FastifyPluginOptions {
   db: Database.Database;
 }
 
-interface SkipReasonRow {
-  id: number;
-  role_id: number;
-  reason: SkipReasonType;
-  note: string | null;
-}
-
-interface TerminationReasonRow {
-  id: number;
-  role_id: number;
-  reason: TerminationReasonType;
-  note: string | null;
-}
-
 export async function rolesRouter(fastify: FastifyInstance, options: PluginOptions) {
-  const db = options.db;
+  const sqlite = options.db;
 
   // ─── GET /api/roles ─────────────────────────────────────────────────────────
 
@@ -94,12 +81,12 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     query += ` ORDER BY ${sortColumn} ${sortOrder}`;
 
-    const roles = db.prepare(query).all(...params) as RoleRow[];
+    const roles = sqlite.prepare(query).all(...params) as RoleRow[];
 
-    const fetchSkipReasons = db.prepare(
+    const fetchSkipReasons = sqlite.prepare(
       `SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`
     );
-    const fetchTerminationReasons = db.prepare(
+    const fetchTerminationReasons = sqlite.prepare(
       `SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`
     );
 
@@ -117,16 +104,16 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    const role = db
+    const role = sqlite
       .prepare(
         `
-      SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
-             r.applied_date, r.salary_min, r.salary_max, r.notes,
-             r.created_at, r.updated_at, jd.content AS jd
-      FROM roles r
-             LEFT JOIN job_descriptions jd ON jd.role_id = r.id
-      WHERE r.id = ?
-    `
+              SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
+                     r.applied_date, r.salary_min, r.salary_max, r.notes,
+                     r.created_at, r.updated_at, jd.content AS jd
+              FROM roles r
+                     LEFT JOIN job_descriptions jd ON jd.role_id = r.id
+              WHERE r.id = ?
+            `
       )
       .get(id) as (RoleRow & { jd: string }) | undefined;
 
@@ -134,10 +121,10 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(404).send({ error: `No role found with ID ${id}` });
     }
 
-    const skipReasons = db
+    const skipReasons = sqlite
       .prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`)
       .all(id) as SkipReasonRow[];
-    const terminationReasons = db
+    const terminationReasons = sqlite
       .prepare(
         `SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`
       )
@@ -151,7 +138,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   fastify.post('/', async (request, reply) => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- request body validation via Zod tracked in CAR-44
-      const id = addRole(db, request.body as any);
+      const id = addRole(sqlite, request.body as any);
       return reply.status(201).send({ id });
     } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
@@ -172,7 +159,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     };
 
     try {
-      const role = updateRole(db, flags);
+      const role = updateRole(sqlite, flags);
       return { role };
     } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
@@ -195,19 +182,12 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       });
     }
 
-    try {
-      fetchRoleOrThrow(db, Number(id));
-    } catch (err) {
-      return reply.status(404).send({ error: (err as Error).message });
+    if (!db.roles.getById(sqlite, Number(id))) {
+      return reply.status(404).send({ error: `No role found with ID ${id}.` });
     }
 
-    const result = db
-      .prepare(
-        `
-      INSERT INTO skip_reasons (role_id, reason, note)
-      VALUES (?, ?, ?)
-    `
-      )
+    const result = sqlite
+      .prepare(`INSERT INTO skip_reasons (role_id, reason, note) VALUES (?, ?, ?)`)
       .run(id, reason.trim(), note?.trim() ?? null);
 
     return reply.status(201).send({ id: result.lastInsertRowid });
@@ -229,19 +209,12 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       });
     }
 
-    try {
-      fetchRoleOrThrow(db, Number(id));
-    } catch (err) {
-      return reply.status(404).send({ error: (err as Error).message });
+    if (!db.roles.getById(sqlite, Number(id))) {
+      return reply.status(404).send({ error: `No role found with ID ${id}.` });
     }
 
-    const result = db
-      .prepare(
-        `
-      INSERT INTO termination_reasons (role_id, reason, note)
-      VALUES (?, ?, ?)
-    `
-      )
+    const result = sqlite
+      .prepare(`INSERT INTO termination_reasons (role_id, reason, note) VALUES (?, ?, ?)`)
       .run(id, reason.trim(), note?.trim() ?? null);
 
     return reply.status(201).send({ id: result.lastInsertRowid });
@@ -254,7 +227,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     const { force } = request.query as { force?: string };
 
     try {
-      const result = deleteRole(db, parseInt(id, 10), force === 'true');
+      const result = deleteRole(sqlite, parseInt(id, 10), force === 'true');
       return result;
     } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
@@ -267,7 +240,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     const { id } = request.params as { id: string };
 
     try {
-      return previewRoleDeletion(db, parseInt(id, 10));
+      return previewRoleDeletion(sqlite, parseInt(id, 10));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
@@ -279,16 +252,16 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     const { id } = request.params as { id: string };
     const { format } = request.query as { format?: string };
 
-    const row = db
+    const row = sqlite
       .prepare(
         `
-      SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
-             r.applied_date, r.salary_min, r.salary_max, r.notes,
-             r.created_at, r.updated_at, jd.content AS jd
-      FROM roles r
-             LEFT JOIN job_descriptions jd ON jd.role_id = r.id
-      WHERE r.id = ?
-    `
+              SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
+                     r.applied_date, r.salary_min, r.salary_max, r.notes,
+                     r.created_at, r.updated_at, jd.content AS jd
+              FROM roles r
+                     LEFT JOIN job_descriptions jd ON jd.role_id = r.id
+              WHERE r.id = ?
+            `
       )
       .get(id) as (RoleRow & { jd: string }) | undefined;
 
@@ -308,7 +281,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     const { id } = request.params as { id: string };
 
     try {
-      return deleteSkipReason(db, parseInt(id, 10));
+      return deleteSkipReason(sqlite, parseInt(id, 10));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
@@ -320,7 +293,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     const { id } = request.params as { id: string };
 
     try {
-      return deleteTerminationReason(db, parseInt(id, 10));
+      return deleteTerminationReason(sqlite, parseInt(id, 10));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
@@ -332,7 +305,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     const { id } = request.params as { id: string };
 
     try {
-      return deleteJobDescription(db, parseInt(id, 10));
+      return deleteJobDescription(sqlite, parseInt(id, 10));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }

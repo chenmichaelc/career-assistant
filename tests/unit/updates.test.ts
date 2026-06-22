@@ -2,7 +2,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../helpers/db';
-import { validateUpdateFlags, fetchRoleOrThrow, updateRole } from '../../lib/updates';
+import { validateUpdateFlags, updateRole } from '../../lib/updates';
 import { UpdateArgs } from '../../lib/args/update-args';
 import { addRole } from '../../lib/roles';
 import { RoleInput } from '../../lib/types';
@@ -131,22 +131,6 @@ describe('validateUpdateFlags — contextual rules', () => {
       termination: ['Screened Out'],
     };
     expect(() => validateUpdateFlags(flags)).not.toThrow();
-  });
-});
-
-// ─── fetchRoleOrThrow ─────────────────────────────────────────────────────────
-
-describe('fetchRoleOrThrow', () => {
-  test('returns role when found', () => {
-    const id = addRole(db, baseRole);
-    const role = fetchRoleOrThrow(db, id);
-
-    expect(role.company).toBe(baseRole.company);
-    expect(role.title).toBe(baseRole.title);
-  });
-
-  test('throws when role not found', () => {
-    expect(() => fetchRoleOrThrow(db, 999)).toThrow('No role found with ID 999');
   });
 });
 

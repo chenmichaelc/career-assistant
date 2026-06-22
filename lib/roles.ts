@@ -1,9 +1,9 @@
 // lib/roles.ts
 // Career Assistant — Role operations
-// All DB write logic lives here. Callers are responsible for opening and closing the DB connection.
 
 import Database from 'better-sqlite3';
 import { RoleInput } from './types';
+import { db } from './db';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ function validate(role: RoleInput): string[] {
 
 // ─── addRole ──────────────────────────────────────────────────────────────────
 
-export function addRole(db: Database.Database, role: RoleInput): number {
+export function addRole(sqlite: Database.Database, role: RoleInput): number {
   const errors = validate(role);
 
   if (errors.length > 0) {
@@ -65,28 +65,8 @@ export function addRole(db: Database.Database, role: RoleInput): number {
 
   let roleId: number;
 
-  const insertRole = db.prepare(`
-    INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
-    VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
-  `);
-
-  const insertJd = db.prepare(`
-    INSERT INTO job_descriptions (role_id, content)
-    VALUES (@role_id, @content)
-  `);
-
-  const insertSkipReason = db.prepare(`
-    INSERT INTO skip_reasons (role_id, reason, note)
-    VALUES (@role_id, @reason, @note)
-  `);
-
-  const insertTerminationReason = db.prepare(`
-    INSERT INTO termination_reasons (role_id, reason, note)
-    VALUES (@role_id, @reason, @note)
-  `);
-
-  const run = db.transaction(() => {
-    const roleData = {
+  const run = sqlite.transaction(() => {
+    roleId = db.roles.insertRole(sqlite, {
       company: role.company,
       title: role.title,
       url: role.url,
@@ -96,33 +76,19 @@ export function addRole(db: Database.Database, role: RoleInput): number {
       salary_min: role.salary_min ?? null,
       salary_max: role.salary_max ?? null,
       notes: role.notes ?? null,
-    };
-
-    const result = insertRole.run(roleData);
-    roleId = Number(result.lastInsertRowid);
-
-    insertJd.run({
-      role_id: roleId,
-      content: role.jd,
     });
+
+    db.jobDescriptions.insert(sqlite, roleId!, role.jd);
 
     if (role.skip_reasons != null) {
       for (const sr of role.skip_reasons) {
-        insertSkipReason.run({
-          role_id: roleId,
-          reason: sr.reason,
-          note: sr.note ?? null,
-        });
+        db.skipReasons.insert(sqlite, roleId!, sr.reason, sr.note ?? null);
       }
     }
 
     if (role.termination_reasons != null) {
       for (const tr of role.termination_reasons) {
-        insertTerminationReason.run({
-          role_id: roleId,
-          reason: tr.reason,
-          note: tr.note ?? null,
-        });
+        db.terminationReasons.insert(sqlite, roleId!, tr.reason, tr.note ?? null);
       }
     }
   });

@@ -17,13 +17,13 @@ export interface RoleInsertData {
   notes?: string | null;
 }
 
-export function insertRole(db: Database.Database, data: RoleInsertData): number {
-  const result = db
+export function insertRole(sqlite: Database.Database, data: RoleInsertData): number {
+  const result = sqlite
     .prepare(
       `
-        INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
-        VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
-    `
+            INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
+            VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
+          `
     )
     .run({
       company: data.company,
@@ -40,41 +40,41 @@ export function insertRole(db: Database.Database, data: RoleInsertData): number 
   return Number(result.lastInsertRowid);
 }
 
-export function getRoleById(db: Database.Database, id: number): RoleRow | undefined {
-  return db
+export function getById(sqlite: Database.Database, id: number): RoleRow | undefined {
+  return sqlite
     .prepare(
       `
-        SELECT id, company, title, url, role_status, candidacy, applied_date,
-               salary_min, salary_max, notes, created_at, updated_at
-        FROM roles
-        WHERE id = ?
-    `
+            SELECT id, company, title, url, role_status, candidacy, applied_date,
+                   salary_min, salary_max, notes, created_at, updated_at
+            FROM roles
+            WHERE id = ?
+          `
     )
     .get(id) as RoleRow | undefined;
 }
 
-export function updateRoleStatus(
-  db: Database.Database,
+export function updateStatus(
+  sqlite: Database.Database,
   id: number,
   status: string
 ): Database.RunResult {
-  return db
+  return sqlite
     .prepare(
       `
-    UPDATE roles
-    SET role_status  = @role_status,
-        applied_date = CASE
-          WHEN @role_status = 'Applied' AND applied_date IS NULL
-          THEN date('now')
-          ELSE applied_date
-        END,
-        updated_at   = datetime('now')
-    WHERE id = @id
-  `
+        UPDATE roles
+        SET role_status  = @role_status,
+            applied_date = CASE
+              WHEN @role_status = 'Applied' AND applied_date IS NULL
+              THEN date('now')
+              ELSE applied_date
+            END,
+            updated_at   = datetime('now')
+        WHERE id = @id
+      `
     )
     .run({ role_status: status, id });
 }
 
-export function deleteRoleById(db: Database.Database, id: number): Database.RunResult {
-  return db.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
+export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {
+  return sqlite.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
 }
