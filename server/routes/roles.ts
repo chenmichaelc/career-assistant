@@ -12,8 +12,7 @@ import {
   deleteJobDescription,
   previewRoleDeletion,
 } from '../../lib/deletes';
-import { exportRole } from '../../lib/exporters';
-import { ExportFormat } from '../../lib/exporters';
+import { exportRole, ExportFormat } from '../../lib/exporters';
 import {
   RoleRow,
   SkipReasonType,
@@ -22,10 +21,46 @@ import {
   VALID_TERMINATION_REASONS,
 } from '../../lib/types';
 import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
+import { RoleSortKey } from '../../lib/db/roles.db';
 import { UpdateArgs } from '../../lib/args/update-args';
 
 interface PluginOptions extends FastifyPluginOptions {
   db: Database.Database;
+}
+
+interface RoleListFilters {
+  statuses: string[];
+  company?: string;
+  sortColumn: RoleSortKey;
+  sortOrder: 'ASC' | 'DESC';
+}
+
+const VALID_SORT_KEYS: RoleSortKey[] = [
+  'id',
+  'company',
+  'title',
+  'role_status',
+  'candidacy',
+  'applied_date',
+];
+
+function parseRoleListFilters(query: Record<string, string | string[]>): RoleListFilters {
+  const rawStatuses = query['status[]'];
+  const statuses: string[] = rawStatuses
+    ? Array.isArray(rawStatuses)
+      ? rawStatuses
+      : [rawStatuses]
+    : [];
+
+  const sort = typeof query['sort'] === 'string' ? query['sort'] : undefined;
+  const order = typeof query['order'] === 'string' ? query['order'] : undefined;
+
+  const sortColumn: RoleSortKey =
+    sort && (VALID_SORT_KEYS as string[]).includes(sort) ? (sort as RoleSortKey) : 'id';
+  const sortOrder: 'ASC' | 'DESC' = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const company = typeof query['company'] === 'string' ? query['company'] : undefined;
+
+  return { statuses, company, sortColumn, sortOrder };
 }
 
 export async function rolesRouter(fastify: FastifyInstance, options: PluginOptions) {
@@ -34,103 +69,54 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   // ─── GET /api/roles ─────────────────────────────────────────────────────────
 
   fastify.get('/', async (request, _reply) => {
-    const { company, sort, order } = request.query as {
-      company?: string;
-      sort?: string;
-      order?: string;
-    };
-
-    const rawStatuses = (request.query as Record<string, string | string[]>)['status[]'];
-    const statuses: string[] = rawStatuses
-      ? Array.isArray(rawStatuses)
-        ? rawStatuses
-        : [rawStatuses]
-      : [];
-
-    const VALID_SORT_COLUMNS: Record<string, string> = {
-      id: 'r.id',
-      company: 'r.company',
-      title: 'r.title',
-      role_status: 'r.role_status',
-      candidacy: 'r.candidacy',
-      applied_date: 'r.applied_date',
-    };
-
-    const sortColumn = VALID_SORT_COLUMNS[sort ?? 'id'] ?? 'r.id';
-    const sortOrder = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-
-    let query = `
-      SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
-             r.applied_date, r.salary_min, r.salary_max, r.notes,
-             r.created_at, r.updated_at
-      FROM roles r
-      WHERE 1=1
-    `;
-    const params: string[] = [];
-
-    if (statuses.length > 0) {
-      const placeholders = statuses.map(() => '?').join(', ');
-      query += ` AND r.role_status IN (${placeholders})`;
-      params.push(...statuses);
-    }
-
-    if (company) {
-      query += ` AND r.company LIKE ?`;
-      params.push(`%${company}%`);
-    }
-
-    query += ` ORDER BY ${sortColumn} ${sortOrder}`;
-
-    const roles = sqlite.prepare(query).all(...params) as RoleRow[];
-
-    const fetchSkipReasons = sqlite.prepare(
-      `SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`
-    );
-    const fetchTerminationReasons = sqlite.prepare(
-      `SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`
+    const filters = parseRoleListFilters(request.query as Record<string, string | string[]>);
+    const roles = db.roles.getAll(
+      sqlite,
+      filters.statuses,
+      filters.company,
+      filters.sortColumn,
+      filters.sortOrder
     );
 
-    const output = roles.map((role) => ({
+    if (roles.length === 0) {
+      return [];
+    }
+
+    const roleIds = roles.map((r) => r.id);
+    const allSkipReasons = db.skipReasons.getAllByRoleIds(sqlite, roleIds);
+    const allTerminationReasons = db.terminationReasons.getAllByRoleIds(sqlite, roleIds);
+
+    const skipByRoleId = Map.groupBy(allSkipReasons, (r: SkipReasonRow) => r.role_id);
+    const termByRoleId = Map.groupBy(allTerminationReasons, (r: TerminationReasonRow) => r.role_id);
+
+    return roles.map((role) => ({
       ...role,
-      skip_reasons: fetchSkipReasons.all(role.id) as SkipReasonRow[],
-      termination_reasons: fetchTerminationReasons.all(role.id) as TerminationReasonRow[],
+      skip_reasons: skipByRoleId.get(role.id) ?? [],
+      termination_reasons: termByRoleId.get(role.id) ?? [],
     }));
-
-    return output;
   });
 
   // ─── GET /api/roles/:id ──────────────────────────────────────────────────────
 
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
+    const numericId = Number(id);
 
-    const role = sqlite
-      .prepare(
-        `
-              SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
-                     r.applied_date, r.salary_min, r.salary_max, r.notes,
-                     r.created_at, r.updated_at, jd.content AS jd
-              FROM roles r
-                     LEFT JOIN job_descriptions jd ON jd.role_id = r.id
-              WHERE r.id = ?
-            `
-      )
-      .get(id) as (RoleRow & { jd: string }) | undefined;
-
+    const role = db.roles.getById(sqlite, numericId);
     if (!role) {
       return reply.status(404).send({ error: `No role found with ID ${id}` });
     }
 
-    const skipReasons = sqlite
-      .prepare(`SELECT id, role_id, reason, note FROM skip_reasons WHERE role_id = ? ORDER BY id`)
-      .all(id) as SkipReasonRow[];
-    const terminationReasons = sqlite
-      .prepare(
-        `SELECT id, role_id, reason, note FROM termination_reasons WHERE role_id = ? ORDER BY id`
-      )
-      .all(id) as TerminationReasonRow[];
+    const jd = db.jobDescriptions.getByRoleId(sqlite, numericId);
+    const skipReasons = db.skipReasons.getAllByRoleId(sqlite, numericId);
+    const terminationReasons = db.terminationReasons.getAllByRoleId(sqlite, numericId);
 
-    return { ...role, skip_reasons: skipReasons, termination_reasons: terminationReasons };
+    return {
+      ...role,
+      jd: jd?.content ?? null,
+      skip_reasons: skipReasons,
+      termination_reasons: terminationReasons,
+    };
   });
 
   // ─── POST /api/roles ─────────────────────────────────────────────────────────
@@ -186,11 +172,8 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(404).send({ error: `No role found with ID ${id}.` });
     }
 
-    const result = sqlite
-      .prepare(`INSERT INTO skip_reasons (role_id, reason, note) VALUES (?, ?, ?)`)
-      .run(id, reason.trim(), note?.trim() ?? null);
-
-    return reply.status(201).send({ id: result.lastInsertRowid });
+    const newId = db.skipReasons.insert(sqlite, Number(id), reason.trim(), note?.trim() ?? null);
+    return reply.status(201).send({ id: newId });
   });
 
   // ─── POST /api/roles/:id/termination-reasons ────────────────────────────────
@@ -213,11 +196,13 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(404).send({ error: `No role found with ID ${id}.` });
     }
 
-    const result = sqlite
-      .prepare(`INSERT INTO termination_reasons (role_id, reason, note) VALUES (?, ?, ?)`)
-      .run(id, reason.trim(), note?.trim() ?? null);
-
-    return reply.status(201).send({ id: result.lastInsertRowid });
+    const newId = db.terminationReasons.insert(
+      sqlite,
+      Number(id),
+      reason.trim(),
+      note?.trim() ?? null
+    );
+    return reply.status(201).send({ id: newId });
   });
 
   // ─── DELETE /api/roles/:id ───────────────────────────────────────────────────
@@ -251,28 +236,20 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
   fastify.get('/:id/export', async (request, reply) => {
     const { id } = request.params as { id: string };
     const { format } = request.query as { format?: string };
+    const numericId = Number(id);
 
-    const row = sqlite
-      .prepare(
-        `
-              SELECT r.id, r.company, r.title, r.url, r.role_status, r.candidacy,
-                     r.applied_date, r.salary_min, r.salary_max, r.notes,
-                     r.created_at, r.updated_at, jd.content AS jd
-              FROM roles r
-                     LEFT JOIN job_descriptions jd ON jd.role_id = r.id
-              WHERE r.id = ?
-            `
-      )
-      .get(id) as (RoleRow & { jd: string }) | undefined;
-
-    if (!row) {
+    const role = db.roles.getById(sqlite, numericId);
+    if (!role) {
       return reply.status(404).send({ error: `No role found with ID ${id}` });
     }
+
+    const jd = db.jobDescriptions.getByRoleId(sqlite, numericId);
+    const roleWithJd: RoleRow = { ...role, jd: jd?.content ?? '' };
 
     const validFormats: ExportFormat[] = ['simple', 'rich'];
     const fmt = (validFormats.includes(format as ExportFormat) ? format : 'simple') as ExportFormat;
 
-    return { content: exportRole(row, fmt), format: fmt };
+    return { content: exportRole(roleWithJd, fmt), format: fmt };
   });
 
   // ─── DELETE /api/skip-reasons/:id ────────────────────────────────────────────

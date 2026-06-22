@@ -21,9 +21,9 @@ export function insert(
   const result = sqlite
     .prepare(
       `
-            INSERT INTO termination_reasons (role_id, reason, note)
-            VALUES (@role_id, @reason, @note)
-          `
+                INSERT INTO termination_reasons (role_id, reason, note)
+                VALUES (@role_id, @reason, @note)
+            `
     )
     .run({ role_id: roleId, reason, note });
 
@@ -34,23 +34,40 @@ export function getAllByRoleId(sqlite: Database.Database, roleId: number): Termi
   return sqlite
     .prepare(
       `
-            SELECT id, role_id, reason, note
-            FROM termination_reasons
-            WHERE role_id = ?
-            ORDER BY id
-          `
+                SELECT id, role_id, reason, note
+                FROM termination_reasons
+                WHERE role_id = ?
+                ORDER BY id
+            `
     )
     .all(roleId) as TerminationReasonRow[];
+}
+
+export function getAllByRoleIds(
+  sqlite: Database.Database,
+  roleIds: number[]
+): TerminationReasonRow[] {
+  if (roleIds.length === 0) return [];
+  return sqlite
+    .prepare(
+      `
+                SELECT id, role_id, reason, note
+                FROM termination_reasons
+                WHERE role_id IN (SELECT value FROM json_each(?))
+                ORDER BY role_id, id
+            `
+    )
+    .all(JSON.stringify(roleIds)) as TerminationReasonRow[];
 }
 
 export function getById(sqlite: Database.Database, id: number): TerminationReasonRow | undefined {
   return sqlite
     .prepare(
       `
-            SELECT id, role_id, reason, note
-            FROM termination_reasons
-            WHERE id = ?
-          `
+                SELECT id, role_id, reason, note
+                FROM termination_reasons
+                WHERE id = ?
+            `
     )
     .get(id) as TerminationReasonRow | undefined;
 }
