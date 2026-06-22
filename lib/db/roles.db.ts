@@ -17,6 +17,8 @@ export interface RoleInsertData {
   notes?: string | null;
 }
 
+export type RoleSortKey = 'id' | 'company' | 'title' | 'role_status' | 'candidacy' | 'applied_date';
+
 export function insertRole(sqlite: Database.Database, data: RoleInsertData): number {
   const result = sqlite
     .prepare(
@@ -38,6 +40,37 @@ export function insertRole(sqlite: Database.Database, data: RoleInsertData): num
     });
 
   return Number(result.lastInsertRowid);
+}
+
+export function getAll(
+  sqlite: Database.Database,
+  statuses: string[] = [],
+  company?: string,
+  sortColumn: RoleSortKey = 'id',
+  sortOrder: 'ASC' | 'DESC' = 'DESC'
+): RoleRow[] {
+  let query = `
+    SELECT id, company, title, url, role_status, candidacy,
+           applied_date, salary_min, salary_max, notes, created_at, updated_at
+    FROM roles
+    WHERE 1=1
+  `;
+  const params: (string | number)[] = [];
+
+  if (statuses.length > 0) {
+    const placeholders = statuses.map(() => '?').join(', ');
+    query += ` AND role_status IN (${placeholders})`;
+    params.push(...statuses);
+  }
+
+  if (company) {
+    query += ` AND company LIKE ?`;
+    params.push(`%${company}%`);
+  }
+
+  query += ` ORDER BY ${sortColumn} ${sortOrder}`;
+
+  return sqlite.prepare(query).all(...params) as RoleRow[];
 }
 
 export function getById(sqlite: Database.Database, id: number): RoleRow | undefined {
