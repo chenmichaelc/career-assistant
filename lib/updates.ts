@@ -79,7 +79,7 @@ export function updateRole(sqlite: Database.Database, flags: UpdateArgs): RoleRo
   validateUpdateFlags(flags);
 
   const roleId = Number(flags.id);
-  const role = requireRole(sqlite, roleId);
+  requireRole(sqlite, roleId);
 
   const run = sqlite.transaction(() => {
     db.roles.updateStatus(sqlite, roleId, flags.status!.trim());
@@ -94,5 +94,5 @@ export function updateRole(sqlite: Database.Database, flags: UpdateArgs): RoleRo
   });
 
   run();
-  return role;
+  return db.roles.getById(sqlite, roleId)!;
 }
