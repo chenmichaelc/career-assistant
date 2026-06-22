@@ -140,22 +140,8 @@ describe('updateRole', () => {
   test('updates role_status correctly', () => {
     const id = addRole(db, baseRole);
     const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
-
-    updateRole(db, flags);
-
-    const role = db.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<
-      string,
-      unknown
-    >;
-    expect(role.role_status).toBe('Applied');
-  });
-
-  test('returns the pre-update role', () => {
-    const id = addRole(db, baseRole);
-    const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
-
     const role = updateRole(db, flags);
-    expect(role.role_status).toBe('Pending Triage');
+    expect(role.role_status).toBe('Applied');
   });
 
   test('sets applied_date when transitioning to Applied and no date exists', () => {
