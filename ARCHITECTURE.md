@@ -38,12 +38,13 @@ career-assistant/
 │   ├── schema.ts                   # Single source of truth for SQLite schema (definitions only)
 │   └── setup.ts                    # Exports applySchema() for server and test use
 ├── lib/                            # Business logic — no I/O, independently testable
-│   ├── types.ts                    # Shared types + runtime vocabulary arrays
+│   ├── types.ts                    # Domain vocabulary types and runtime arrays
 │   ├── roles.ts                    # Role insertion with validation
 │   ├── updates.ts                  # Status update validation + orchestration
 │   ├── deletes.ts                  # Delete operations with FK awareness
 │   ├── parse-records.ts            # Plain-text import format parser
-│   ├── db/                         # Single-table CRUD modules (CAR-20, complete)
+│   ├── db/                         # Single-table CRUD modules
+│   │   ├── index.ts                # db namespace — aggregates all modules for callers
 │   │   ├── roles.db.ts
 │   │   ├── skip-reasons.db.ts
 │   │   ├── termination-reasons.db.ts
@@ -111,18 +112,16 @@ CLI scripts (scripts/)     HTTP routes (server/routes/)     Tests (tests/)
                                     │
                               lib/ — business logic
                                     │
+                              lib/db/ — data access layer
+                                    │
                               SQLite database
 ```
 
-All business logic lives in `lib/` with no I/O dependencies. Scripts, server routes, and tests are all callers of the same `lib/` functions. This means:
-
-- The data layer is independently testable without starting a server or spawning a process
-- Logic is never duplicated between CLI and HTTP surfaces
-- Tests exercise the real implementation, not a mock
+All business logic lives in `lib/` with no I/O dependencies. Scripts, server routes, and tests are all callers of the same `lib/` functions. The `lib/db/` layer sits between the orchestration logic and SQLite, providing the single-table primitives that the orchestration layer composes into business operations.
 
 The `scripts/` layer is deliberately thin — open a DB connection, call a `lib/` function, write to stdout, exit. No business logic belongs in scripts.
 
-The `server/routes/` layer is the HTTP projection of the same functions. A known gap (CAR-42, CAR-21, CAR-22) is that some raw SQL queries still exist directly in route handlers and in `lib/updates.ts` / `lib/deletes.ts`, rather than being composed from the `lib/db/` modules below. The single-table modules themselves (CAR-20) are complete; the orchestration layer has not yet been refactored to use them.
+The `server/routes/` layer is the HTTP projection of the same orchestration functions. A known gap (CAR-164) is that some raw SQL queries still exist directly in route handlers rather than being composed from the `lib/db/` modules. This is slated to be addressed at a later point in time.
 
 ---
 
@@ -159,9 +158,41 @@ The rationale: skip and termination reasons are analytical annotations. Silently
 
 ### Single-table modules (`lib/db/`)
 
-CRUD operations for individual tables — `roles`, `skip_reasons`, `termination_reasons`, `job_descriptions` — are implemented as dedicated modules under `lib/db/`. Each module owns the row-level types and queries for its table (e.g. `SkipReasonRow`, `TerminationReasonRow` are defined where they're used, not duplicated in callers).
+CRUD operations for individual tables are implemented as dedicated modules under `lib/db/`. Each module owns the primitives for its table and defines its own row-level types (`SkipReasonRow`, `TerminationReasonRow`, etc.) co-located with the SQL that produces and consumes them.
 
-This work (CAR-20) is complete. The next step (CAR-21, CAR-22, in progress) refactors `lib/updates.ts`, `lib/deletes.ts`, and the raw SQL still present in `server/routes/roles.ts` to compose from these modules instead of executing SQL inline. Until that refactor lands, both patterns coexist in the codebase — this is a known, tracked transitional state, not an oversight.
+**The `db` namespace**
+
+`lib/db/index.ts` aggregates all modules into a single `db` namespace object:
+
+```typescript
+import { db } from './db';
+
+db.roles.getById(sqlite, id);
+db.skipReasons.getAllByRoleId(sqlite, roleId);
+db.jobDescriptions.deleteByRoleId(sqlite, roleId);
+```
+
+This mirrors the call pattern of ORM clients (Drizzle, Prisma) and makes the data layer boundary visible at every call site — `db.tableName.operation()` is always a data layer call, never business logic. The raw `better-sqlite3` connection parameter is named `sqlite` throughout the codebase; `db` is reserved exclusively for this namespace object. This architectural pattern was selected to stage the codebase for future ORM usage and database migration onto a cloud-ready infrastructure.
+
+**Policy decisions belong in the orchestration layer**
+
+`lib/db/` functions are neutral primitives. They return `undefined` for missing records — they never throw on missing data, and they never enforce domain rules. The decision of whether a missing record is an error belongs to the orchestration layer.
+
+**Type ownership**
+
+Row-level types (`SkipReasonRow`, `TerminationReasonRow`, `JobDescriptionRow`, `RoleInsertData`) are defined in their respective `lib/db/` modules, co-located with the queries that use them. This is intentional — these types describe persistence shapes that change together with the SQL that produces them. A database schema change touches the module and its types in one place.
+
+The `lib/db/index.ts` barrel re-exports all row types so callers can import from one place:
+
+```typescript
+import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
+```
+
+Domain vocabulary types (`RoleStatus`, `SkipReasonType`, etc.) remain in `lib/types.ts` — they are not persistence-specific and are imported by `lib/db/` modules, not defined there. The dependency direction is: `lib/types.ts` → `lib/db/` → `lib/` orchestration → callers.
+
+**ORM consideration (CAR-4)**
+
+The current `lib/db/` design positions the codebase well for a future ORM migration. The `db.tableName.operation()` call pattern at orchestration layer call sites is intentionally consistent with how Drizzle and Prisma clients work. CAR-4 includes an explicit decision point (CAR-170) to evaluate Drizzle, Prisma, or continued manual SQL before restructuring the workspace — whichever is chosen, the call sites require minimal change.
 
 ### Vocabulary types and runtime arrays
 
@@ -174,7 +205,7 @@ export const VALID_STATUSES: RoleStatus[] = ['Applied', 'Pending Triage', 'Skipp
 
 The union type enforces valid values at compile time. The runtime array enables validation of external input — CLI arguments, API request bodies — that the type system cannot check because it's erased at runtime. The array is typed as `RoleStatus[]`, so the TypeScript compiler enforces that the two stay in sync.
 
-Both are defined in `lib/types.ts`. The client imports its own copy from `client/src/constants.ts` — a known duplication that will be resolved when CAR-4 (workspace restructuring) introduces shared packages. Several `@typescript-eslint/no-explicit-any` suppressions in the client (tracked in CAR-147) exist specifically because of this duplication — `RoleInput` and other shared types currently aren't importable from client code across the module boundary.
+Both are defined in `lib/types.ts`. The client imports its own copy from `client/src/constants.ts` — a known duplication that will be resolved when CAR-4 (workspace restructuring) introduces shared packages. Several `@typescript-eslint/no-explicit-any` suppressions in the client (tracked in CAR-147) exist specifically because of this duplication.
 
 ---
 
@@ -239,7 +270,7 @@ expect(exitCode).toBe(0);
 expect(stdout.trim()).toMatch(/^\d+$/);
 ```
 
-These are black-box tests — they test the CLI contract (exit codes, stdout format, error messages) independently of the implementation. A structured log records inserted IDs for cleanup between test runs.
+These are black-box tests — they test the CLI contract (exit codes, stdout format, error messages) independently of the implementation. This layer is being retired as part of CAR-165 and CAR-166 — the CLI scripts no longer reflect the application's actual integration paths. Replacement tests using Fastify's `inject()` method will cover the HTTP route layer directly (CAR-167).
 
 ### E2E tests (`e2e/`)
 
@@ -413,21 +444,24 @@ packages/
 
 Each package will have its own `tsconfig.json` and `package.json`. The root `tsconfig.json` will become a thin references file. All packages will migrate from CommonJS to ES modules as part of the same pass.
 
-This resolves the current duplication of vocabulary types between `lib/types.ts` and `client/src/constants.ts` — the client will import directly from `@career-assistant/data`. It also unblocks several `@typescript-eslint/no-explicit-any` suppressions currently tracked in CAR-147, which exist specifically because client code cannot yet cleanly import types from `lib/`.
+This resolves the current duplication of vocabulary types between `lib/types.ts` and `client/src/constants.ts` — the client will import directly from `@career-assistant/data`. It also unblocks several `@typescript-eslint/no-explicit-any` suppressions currently tracked in CAR-147.
+
+CAR-4 includes an explicit prerequisite decision (CAR-170): evaluate and select an ORM strategy — Drizzle, Prisma, or continued manual SQL — before restructuring begins. This decision affects the package boundary design and may eliminate the need to manually maintain row types and migration scripts. Background reading is tracked in CAR-171.
 
 ### CAR-5 — Data layer refactor
 
-Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**):
+Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**), and the `lib/` orchestration layer (`lib/updates.ts`, `lib/deletes.ts`, `lib/roles.ts`) has been refactored to compose from these modules (CAR-21, **complete** for orchestration layer):
 
 ```
 lib/db/
+├── index.ts                # db namespace and type re-exports
 ├── roles.db.ts
 ├── skip-reasons.db.ts
 ├── termination-reasons.db.ts
 └── job-descriptions.db.ts
 ```
 
-Remaining work (CAR-21, CAR-22, **in progress**): the orchestration layer in `lib/updates.ts` and `lib/deletes.ts`, and the raw SQL still present in `server/routes/roles.ts` (including an N+1 query pattern tracked separately in CAR-136), need to be refactored to compose from these `lib/db/` modules rather than executing SQL directly.
+Remaining work: the raw SQL still present in `server/routes/roles.ts`, including the N+1 query pattern in `GET /api/roles`, needs to be refactored to compose from `lib/db/` modules (CAR-164). The CLI scripts layer is being retired (CAR-165, CAR-166) and replaced with Fastify `inject()` integration tests covering the actual HTTP route layer (CAR-167). A codebase audit will confirm complete elimination of SQL outside `lib/db/` (CAR-168).
 
 A separate, deferred question — splitting the combined `vitest` invocation into independent `test:unit` / `test:integration` scripts ahead of a possible database migration or supplemental NoSQL store (CAR-32) — is tracked under CAR-3; see the README roadmap for the reasoning.
 

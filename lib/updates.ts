@@ -1,6 +1,7 @@
 // lib/updates.ts
 // Career Assistant — Role update operations
 // Owns all update-related logic: validation, role fetching, and DB writes.
+// Callers are responsible for opening and closing the DB connection.
 
 import Database from 'better-sqlite3';
 import {
@@ -13,9 +14,19 @@ import {
   VALID_TERMINATION_REASONS,
 } from './types';
 import { UpdateArgs } from './args/update-args';
-import { getRoleById, updateRoleStatus } from './db/roles.db';
-import { insertSkipReason } from './db/skip-reasons.db';
-import { insertTerminationReason } from './db/termination-reasons.db';
+import { db } from './db';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function requireRole(sqlite: Database.Database, id: number): RoleRow {
+  const role = db.roles.getById(sqlite, id);
+
+  if (!role) {
+    throw new Error(`No role found with ID ${id}.`);
+  }
+
+  return role;
+}
 
 // ─── Syntactic validation (shape of input) ────────────────────────────────────
 
@@ -62,35 +73,23 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
   }
 }
 
-// ─── Role existence check ─────────────────────────────────────────────────────
-
-export function fetchRoleOrThrow(db: Database.Database, id: number): RoleRow {
-  const role = getRoleById(db, Number(id));
-
-  if (!role) {
-    throw new Error(`No role found with ID ${id}.`);
-  }
-
-  return role;
-}
-
 // ─── updateRole ───────────────────────────────────────────────────────────────
 
-export function updateRole(db: Database.Database, flags: UpdateArgs): RoleRow {
+export function updateRole(sqlite: Database.Database, flags: UpdateArgs): RoleRow {
   validateUpdateFlags(flags);
 
   const roleId = Number(flags.id);
-  const role = fetchRoleOrThrow(db, roleId);
+  const role = requireRole(sqlite, roleId);
 
-  const run = db.transaction(() => {
-    updateRoleStatus(db, roleId, flags.status!.trim());
+  const run = sqlite.transaction(() => {
+    db.roles.updateStatus(sqlite, roleId, flags.status!.trim());
 
     for (const reason of flags.reasons) {
-      insertSkipReason(db, roleId, reason.trim(), flags.note ?? null);
+      db.skipReasons.insert(sqlite, roleId, reason.trim(), flags.note ?? null);
     }
 
     for (const reason of flags.termination) {
-      insertTerminationReason(db, roleId, reason.trim(), flags.note ?? null);
+      db.terminationReasons.insert(sqlite, roleId, reason.trim(), flags.note ?? null);
     }
   });
 

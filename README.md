@@ -62,8 +62,8 @@ Refactoring the data layer so that all business logic in `lib/` composes from th
 
 **Subtasks:**
 
-- CAR-162 — Refactor `lib/deletes.ts` to compose from `lib/db/` modules
-- CAR-163 — Refactor `lib/roles.ts` to compose from `lib/db/` modules
+- ~~CAR-162 — Refactor `lib/deletes.ts` to compose from `lib/db/` modules~~ ✓
+- ~~CAR-163 — Refactor `lib/roles.ts` to compose from `lib/db/` modules~~ ✓
 - CAR-164 — Refactor `server/routes/roles.ts` to remove raw SQL and eliminate N+1 query pattern
 - CAR-165 — Remove CLI scripts layer (except `init-db.ts`)
 - CAR-166 — Remove CLI-based integration tests and `run-script.ts` helper
@@ -157,7 +157,7 @@ Items in rough priority order. Backlog items are lower priority.
 Test database isolation via DB_PATH environment variable (CAR-16) to enable clean CI runs against an in-memory database. Splitting `test` into separate unit and integration scripts was considered during CAR-52's pre-commit setup, in anticipation of a future database migration (CAR-5) and a possible supplemental NoSQL store for job profile analysis (CAR-32) — deferred for now, since the current combined suite runs in seconds and the split would add maintenance surface without present benefit. Revisit when either migration becomes concrete.
 
 **Data layer refactor (CAR-5)** _(In Progress)_
-Single-table `lib/db/` modules are complete (CAR-20). Remaining: refactor `lib/` orchestration to compose from these modules instead of executing SQL directly (CAR-21), fill one-to-many test coverage gaps (CAR-22).
+Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer is being refactored to compose from these modules (CAR-21), the CLI scripts layer is being retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167), and raw SQL in `server/routes/roles.ts` is being eliminated alongside an N+1 query fix (CAR-164). See [Currently working on](#currently-working-on) for the full subtask breakdown.
 
 **Observability — error logging and persistence (CAR-139)**
 Audit existing error handling across the codebase first (CAR-141), then implement consistent logging on the client (CAR-140) and server (CAR-72). Persist server logs to disk via Pino file transport (CAR-142). A full-stack persistent error store, spanning both client and server, is deferred until cloud migration planning begins (CAR-143).
@@ -175,7 +175,7 @@ Fixture-based role creation and cleanup via semantic company name identification
 Extract DeleteModal, ExportModal, ReasonModal, and AddReasonControl into dedicated components.
 
 **npm workspace restructuring + ES module migration (CAR-4)** _(Backlog)_
-Restructure into `@career-assistant/data`, `@career-assistant/server`, `@career-assistant/client` (CAR-17). Update import paths (CAR-18). Migrate to ES modules (CAR-19). Resolves the current vocabulary type duplication between `lib/types.ts` and `client/src/constants.ts`, and unblocks several `any`-suppression cleanups tracked in CAR-147.
+Restructure into `@career-assistant/data`, `@career-assistant/server`, `@career-assistant/client` (CAR-17). Update import paths (CAR-18). Migrate to ES modules (CAR-19). Resolves the current vocabulary type duplication between `lib/types.ts` and `client/src/constants.ts`, and unblocks several `any`-suppression cleanups tracked in CAR-147. Includes an explicit decision point on ORM strategy (Prisma, Drizzle, or manual) — see CAR-170.
 
 **SkillsGapTracker migration (CAR-6)** _(Backlog)_
 Schema design (CAR-23), data layer and scripts (CAR-24), frontend integration (CAR-25).
@@ -185,9 +185,6 @@ Replace triage and career development Claude project workflows with direct API c
 
 **LLM-powered job market analysis (CAR-32)** _(Backlog)_
 Bulk ingestion pipeline (CAR-33), role classification and skill extraction (CAR-34), cloud and local LLM integration (CAR-35), market analysis dashboard (CAR-36).
-
-**Server route test suite (CAR-73)** _(Backlog)_
-Tests for Fastify routes using `inject()`.
 
 **Analytics foundation (CAR-70)** _(Backlog)_
 Pre-built aggregate queries and analytics view.
@@ -223,12 +220,17 @@ career-assistant/
 │   ├── schema.ts            # Single source of truth for SQLite schema (definitions only)
 │   └── setup.ts             # Exports applySchema() for server and test use
 ├── lib/                     # Business logic — no I/O
-│   ├── types.ts             # Shared types + runtime vocabulary arrays
+│   ├── types.ts             # Domain vocabulary types and runtime arrays
 │   ├── roles.ts             # Role insertion with validation
 │   ├── updates.ts           # Status update validation + orchestration
 │   ├── deletes.ts           # Delete operations with FK awareness
 │   ├── parse-records.ts     # Plain-text import format parser
-│   ├── db/                  # Single-table CRUD modules (CAR-20)
+│   ├── db/                  # Single-table CRUD modules
+│   │   ├── index.ts         # db namespace — aggregates all modules for callers
+│   │   ├── roles.db.ts
+│   │   ├── skip-reasons.db.ts
+│   │   ├── termination-reasons.db.ts
+│   │   └── job-descriptions.db.ts
 │   ├── exporters/           # Role export (simple + rich formats)
 │   └── args/                # CLI argument parsers
 ├── scripts/                 # CLI entry points — thin I/O wrappers over lib/
@@ -259,6 +261,10 @@ career-assistant/
 ### Key design decisions
 
 **lib/ and scripts/ separation** — all business logic lives in `lib/` with no I/O. Scripts, server routes, and tests are all callers of the same `lib/` functions. Chosen for: independent testability, shared logic across CLI, HTTP, and test contexts.
+
+**lib/db/ as the data access layer** — single-table CRUD modules accessed via a db namespace object (db.roles, db.skipReasons, etc.), making the data layer boundary visible at every call site. The raw connection is sqlite; db is reserved for the namespace. See ARCHITECTURE.md for the full rationale.
+
+**Policy decisions belong in the orchestration layer** — `lib/db/` functions return `undefined` for missing records and never throw. Whether a missing record is an error is decided by the orchestration layer, not the data layer.
 
 **Validation in layers** — syntactic validation in argument parsers, semantic validation in `lib/`, DB-layer enforcement via CHECK constraints and FK constraints. Each layer catches different failure modes.
 
