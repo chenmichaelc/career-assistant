@@ -54,10 +54,9 @@ career-assistant/
 │   │   ├── simple.ts               # company + title + JD format
 │   │   └── rich.ts                 # Importer-compatible format
 │   └── args/
-│       ├── update-args.ts          # CLI argument parser for update-status
-│       └── list-args.ts            # CLI argument parser for list-roles
-├── scripts/                        # CLI entry points — thin I/O wrappers over lib/
-│   ├── init-db.ts                  # One-time DB initialization — calls applySchema()
+│       └── update-args.ts          # CLI argument parser — pending removal (CAR-173)
+├── scripts/
+│   └── init-db.ts                  # One-time DB initialization — calls applySchema() only
 ├── server/
 │   ├── package.json                # Server-scoped dependencies (early workspace structure)
 │   ├── index.ts                    # Fastify server setup + route registration
@@ -84,7 +83,7 @@ career-assistant/
 ├── e2e/
 │   ├── package.json                # E2E-scoped dependencies
 │   ├── playwright.config.ts        # Playwright config — webServer, baseURL, reporters
-│   ├── tsconfig.json                # ESNext TypeScript config for Playwright
+│   ├── tsconfig.json               # ESNext TypeScript config for Playwright
 │   ├── pages/
 │   │   ├── topMenuBarComponent.ts  # Shared nav bar component (data-testid scoped)
 │   │   └── rolesPage.ts            # Roles page object
@@ -92,36 +91,45 @@ career-assistant/
 │       └── smoke.spec.ts           # Smoke test — full stack connectivity
 └── tests/
     ├── helpers/
-    │   ├── db.ts                   # createTestDb() — in-memory SQLite with schema
-    │   └── run-script.ts           # runScript() — spawn CLI scripts as child processes
+    │   └── db.ts                   # createTestDb() — in-memory SQLite with schema
     ├── unit/                       # Pure function tests
     │   └── lib/db/                 # Tests for single-table lib/db/ modules
-    └── integration/                # CLI script tests (black box via child process)
+    └── integration/                # Fastify inject() HTTP route tests
+        └── routes/
+            └── roles.test.ts
 ```
 
 ---
 
 ## Layer architecture
 
-The codebase has three caller layers and one logic layer:
+The codebase has three layers with a strict dependency direction: each layer may only depend on layers below it, never above.
 
 ```
-CLI scripts (scripts/)     HTTP routes (server/routes/)     Tests (tests/)
-        │                           │                              │
-        └───────────────────────────┴──────────────────────────────┘
-                                    │
-                              lib/ — business logic
-                                    │
-                              lib/db/ — data access layer
-                                    │
-                              SQLite database
+HTTP routes (server/routes/)     Tests (tests/)
+        │                              │
+        └──────────────────────────────┘
+                        │
+                  lib/ — orchestration layer
+                        │
+                  lib/db/ — data access layer
+                        │
+                  SQLite database
 ```
 
-All business logic lives in `lib/` with no I/O dependencies. Scripts, server routes, and tests are all callers of the same `lib/` functions. The `lib/db/` layer sits between the orchestration logic and SQLite, providing the single-table primitives that the orchestration layer composes into business operations.
+**HTTP layer (`server/routes/`)** — owns everything about the HTTP protocol: request parsing, response shaping, status codes, content negotiation. Route handlers translate HTTP input into domain types, call the orchestration layer, and translate the result back into HTTP responses. They contain almost no logic of their own — any conditional that isn't about HTTP concerns belongs in `lib/`.
 
-The `scripts/` layer is deliberately thin — open a DB connection, call a `lib/` function, write to stdout, exit. No business logic belongs in scripts.
+**Orchestration layer (`lib/`)** — owns business domain rules: what constitutes a valid status transition, what dependents must be cleaned up on delete, what the `applied_date` auto-set rule is. Has no knowledge of how it was called (HTTP, test, or otherwise).
 
-The `server/routes/` layer is the HTTP projection of the same orchestration functions. A known gap (CAR-164) is that some raw SQL queries still exist directly in route handlers rather than being composed from the `lib/db/` modules. This is slated to be addressed at a later point in time.
+**Data layer (`lib/db/`)** — owns single-table primitives. Returns `undefined` for missing records. Never throws on missing data. Never enforces domain rules. The boundary is enforced at every call site by the `db` namespace pattern: `db.roles.getById(sqlite, id)` is always a data layer call.
+
+**Boundary rules**
+
+- The HTTP layer may call the orchestration layer and the data layer directly. It never contains business logic.
+- The orchestration layer may call the data layer. It never knows about HTTP.
+- The data layer is table-scoped and stateless. It never calls up to the orchestration layer.
+
+All business logic lives in `lib/` with no I/O dependencies. Scripts, server routes, and tests are all callers of the same `lib/` functions.
 
 ---
 
@@ -190,6 +198,16 @@ import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
 
 Domain vocabulary types (`RoleStatus`, `SkipReasonType`, etc.) remain in `lib/types.ts` — they are not persistence-specific and are imported by `lib/db/` modules, not defined there. The dependency direction is: `lib/types.ts` → `lib/db/` → `lib/` orchestration → callers.
 
+**Bulk fetching with `json_each`**
+
+The `getAllByRoleIds` functions on `skip-reasons.db.ts` and `termination-reasons.db.ts` use SQLite's `json_each()` to avoid the 999-variable limit on `IN (?, ?, ...)` queries:
+
+```sql
+WHERE role_id IN (SELECT value FROM json_each(?))
+```
+
+The array is passed as `JSON.stringify(roleIds)` — a single bound parameter regardless of list size. This also benefits prepared statement reuse since the query shape is constant.
+
 **ORM consideration (CAR-4)**
 
 The current `lib/db/` design positions the codebase well for a future ORM migration. The `db.tableName.operation()` call pattern at orchestration layer call sites is intentionally consistent with how Drizzle and Prisma clients work. CAR-4 includes an explicit decision point (CAR-170) to evaluate Drizzle, Prisma, or continued manual SQL before restructuring the workspace — whichever is chosen, the call sites require minimal change.
@@ -203,7 +221,7 @@ export type RoleStatus = 'Applied' | 'Pending Triage' | 'Skipped' | ...;
 export const VALID_STATUSES: RoleStatus[] = ['Applied', 'Pending Triage', 'Skipped', ...];
 ```
 
-The union type enforces valid values at compile time. The runtime array enables validation of external input — CLI arguments, API request bodies — that the type system cannot check because it's erased at runtime. The array is typed as `RoleStatus[]`, so the TypeScript compiler enforces that the two stay in sync.
+The union type enforces valid values at compile time. The runtime array enables validation of external input — API request bodies — that the type system cannot check because it's erased at runtime. The array is typed as `RoleStatus[]`, so the TypeScript compiler enforces that the two stay in sync.
 
 Both are defined in `lib/types.ts`. The client imports its own copy from `client/src/constants.ts` — a known duplication that will be resolved when CAR-4 (workspace restructuring) introduces shared packages. Several `@typescript-eslint/no-explicit-any` suppressions in the client (tracked in CAR-147) exist specifically because of this duplication.
 
@@ -213,17 +231,13 @@ Both are defined in `lib/types.ts`. The client imports its own copy from `client
 
 Validation is split across three layers with different concerns:
 
-### Layer 1 — Argument parsers (`lib/args/`)
+### Layer 1 — HTTP layer (`server/routes/`)
 
-Syntactic validity: is the input well-formed? Are required flags present? Are values non-empty? Are there unknown flags?
+Structural validity: is the wire input well-formed? Are required fields present? Are values non-empty? Are vocabulary values in the allowed set?
 
-```typescript
-// Example: unknown flag detection
-const unknownFlags = Object.keys(args).filter((k) => !KNOWN_FLAGS.includes(k));
-if (unknownFlags.length > 0) throw new Error(`Unknown flags: ${unknownFlags.join(', ')}`);
-```
+The last point — vocabulary validation — currently lives in the HTTP layer for the reason management endpoints (skip reasons, termination reasons). This is a known mis-placement: vocabulary validity is a domain rule, not a structural concern, and belongs in the orchestration layer. Tracked for cleanup in CAR-178.
 
-### Layer 2 — `lib/` functions
+### Layer 2 — Orchestration layer (`lib/`)
 
 Semantic validity: does the input make sense in domain terms? Is the status transition legal? Are skip reasons required for this status? Does the role exist?
 
@@ -238,7 +252,7 @@ if (newStatus === 'Skipped' && reasons.length === 0) {
 
 Persistence-layer enforcement: the database rejects values that violate the schema regardless of application-layer validation.
 
-Each layer catches different failure modes. Layer 1 catches malformed CLI invocations. Layer 2 catches domain rule violations. Layer 3 is the final backstop that prevents data corruption even if the application layers have a bug.
+Each layer catches different failure modes. Layer 1 catches malformed requests. Layer 2 catches domain rule violations. Layer 3 is the final backstop that prevents data corruption even if the application layers have a bug.
 
 ---
 
@@ -262,15 +276,25 @@ afterEach(() => {
 
 ### Integration tests (`tests/integration/`)
 
-CLI script tests via child process spawning using `runScript()`. Each test invokes the actual script binary with stdin/stdout/stderr capture:
+HTTP route tests using Fastify's built-in `inject()` method. Each test registers a fresh Fastify instance and a fresh in-memory SQLite database, keeping tests completely isolated:
 
 ```typescript
-const { stdout, exitCode } = runScript('add-role.ts', JSON.stringify(validRole));
-expect(exitCode).toBe(0);
-expect(stdout.trim()).toMatch(/^\d+$/);
+beforeEach(async () => {
+  sqlite = createTestDb();
+  app = Fastify();
+  await app.register(rolesRouter, { prefix: '/api/roles', db: sqlite });
+  await app.ready();
+});
+
+afterEach(async () => {
+  await app.close();
+  sqlite.close();
+});
 ```
 
-These are black-box tests — they test the CLI contract (exit codes, stdout format, error messages) independently of the implementation. This layer is being retired as part of CAR-165 and CAR-166 — the CLI scripts no longer reflect the application's actual integration paths. Replacement tests using Fastify's `inject()` method will cover the HTTP route layer directly (CAR-167).
+`inject()` fires requests directly against the route handlers in-process without opening a network socket. This makes the tests fast, reliable, and independent of any running server process — they run alongside the unit tests as part of `npm run test:run`.
+
+**Test variable naming conventions** — response variables are named to reflect what the request is doing, not what it is: `roleCreationResponse`, `invalidRoleDeletionResponse`, `exportResponse`, `previewResponse`. This is especially important in tests with multiple `inject()` calls.
 
 ### E2E tests (`e2e/`)
 
@@ -297,7 +321,7 @@ The test suite was designed to enable Extreme Programming practices. With thorou
 The Fastify server (port 3000) and Vue client (port 5173) run as separate processes communicating over HTTP. This is more architecture than a purely local tool requires. The rationale:
 
 - Keeps the backend deployment-ready for future cloud architecture without structural changes
-- Enables the API to be called independently of the frontend — useful for testing and CLI workflows
+- Enables the API to be called independently of the frontend — useful for testing workflows
 - Forces a clean separation between data concerns (server) and presentation concerns (client)
 
 In development, Vite proxies `/api` requests to the server:
@@ -380,7 +404,7 @@ Four distinct TypeScript configurations cover the distinct runtime environments 
 
 | Config                      | Target | Module         | Environment                        |
 | --------------------------- | ------ | -------------- | ---------------------------------- |
-| `tsconfig.json` (root)      | ES2020 | CommonJS       | Node.js, ts-node                   |
+| `tsconfig.json` (root)      | ES2024 | CommonJS       | Node.js, ts-node                   |
 | `client/tsconfig.app.json`  | ESNext | ESNext/bundler | Browser, Vite                      |
 | `client/tsconfig.node.json` | ESNext | ESNext/bundler | Node.js, for `vite.config.ts` only |
 | `e2e/tsconfig.json`         | ESNext | ESNext/bundler | Node.js, Playwright                |
@@ -393,10 +417,6 @@ The root config uses CommonJS because `ts-node` — used to run CLI scripts and 
 
 All configs use `strict: true`. `client/tsconfig.app.json` additionally enables `noUnusedLocals` and `noUnusedParameters` — overlapping with, but independent of, ESLint's `no-unused-vars` rule, since one operates at the TypeScript compiler level and the other at the linter level.
 
-### Brace style
-
-See [Code quality and formatting](#code-quality-and-formatting) above for the full history. The codebase currently uses Prettier's default same-line brace style for `catch`/`finally`. A `stroustrup` (new-line) convention was adopted briefly via ESLint during CAR-37 and reversed during CAR-52 when Prettier was introduced, since Prettier has no configurable option for brace placement.
-
 ---
 
 ## Configuration co-location
@@ -408,7 +428,7 @@ Each module owns its configuration files, with one deliberate exception:
 - `e2e/tsconfig.json` — Playwright TypeScript config
 - `eslint.config.mts` — **the exception.** Lives at the repository root because it needs to govern all layers simultaneously in one pass. See [Code quality and formatting](#code-quality-and-formatting) above.
 
-The root `tsconfig.json` covers the Node.js data layer (`db/`, `lib/`, `scripts/`, `tests/`).
+The root `tsconfig.json` covers the Node.js data layer (`db/`, `lib/`, `scripts/`, `server/`, `tests/`).
 
 The `server/package.json` and `e2e/package.json` are early steps toward the CAR-4 workspace restructuring — each module beginning to own its own dependency manifest.
 
@@ -450,20 +470,15 @@ CAR-4 includes an explicit prerequisite decision (CAR-170): evaluate and select 
 
 ### CAR-5 — Data layer refactor
 
-Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**), and the `lib/` orchestration layer (`lib/updates.ts`, `lib/deletes.ts`, `lib/roles.ts`) has been refactored to compose from these modules (CAR-21, **complete** for orchestration layer):
+Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**). The `lib/` orchestration layer has been refactored to compose from these modules (CAR-21, **complete** for orchestration and route layers):
 
-```
-lib/db/
-├── index.ts                # db namespace and type re-exports
-├── roles.db.ts
-├── skip-reasons.db.ts
-├── termination-reasons.db.ts
-└── job-descriptions.db.ts
-```
+- `lib/deletes.ts`, `lib/roles.ts`, `lib/updates.ts` — refactored (CAR-162, CAR-163)
+- `server/routes/roles.ts` — refactored, N+1 eliminated (CAR-164)
+- CLI scripts layer retired (CAR-165, CAR-166)
+- Fastify `inject()` integration tests in progress (CAR-167)
+- Final SQL audit pending (CAR-168)
 
-Remaining work: the raw SQL still present in `server/routes/roles.ts`, including the N+1 query pattern in `GET /api/roles`, needs to be refactored to compose from `lib/db/` modules (CAR-164). The CLI scripts layer is being retired (CAR-165, CAR-166) and replaced with Fastify `inject()` integration tests covering the actual HTTP route layer (CAR-167). A codebase audit will confirm complete elimination of SQL outside `lib/db/` (CAR-168).
-
-A separate, deferred question — splitting the combined `vitest` invocation into independent `test:unit` / `test:integration` scripts ahead of a possible database migration or supplemental NoSQL store (CAR-32) — is tracked under CAR-3; see the README roadmap for the reasoning.
+Remaining cleanup tracked separately under CAR-5: decoupling `lib/updates.ts` from `lib/args/` (CAR-173), moving vocabulary validation to the orchestration layer (CAR-178), resolving the `url` nullability mismatch between `RoleInsertData` and the schema (CAR-172).
 
 ### CAR-32 — LLM-powered job market analysis
 
