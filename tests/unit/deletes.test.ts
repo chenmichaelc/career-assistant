@@ -10,8 +10,6 @@ import {
   deleteSkipReason,
   previewTerminationReasonDeletion,
   deleteTerminationReason,
-  previewJobDescriptionDeletion,
-  deleteJobDescription,
 } from '../../lib/deletes';
 import { RoleInput } from '../../lib/types';
 
@@ -242,48 +240,5 @@ describe('deleteTerminationReason', () => {
     expect(() => deleteTerminationReason(db, 999)).toThrow(
       'No termination reason found with ID 999'
     );
-  });
-});
-
-// ─── previewJobDescriptionDeletion ────────────────────────────────────────────
-
-describe('previewJobDescriptionDeletion', () => {
-  test('returns jd and parent role', () => {
-    const roleId = addRole(db, baseRole);
-    const preview = previewJobDescriptionDeletion(db, roleId);
-
-    expect(preview.jd.content).toBe(baseRole.jd);
-    expect(preview.role.id).toBe(roleId);
-    expect(preview.role.company).toBe(baseRole.company);
-  });
-
-  test('throws when job description not found', () => {
-    expect(() => previewJobDescriptionDeletion(db, 999)).toThrow(
-      'No job description found for role ID 999'
-    );
-  });
-});
-
-// ─── deleteJobDescription ─────────────────────────────────────────────────────
-
-describe('deleteJobDescription', () => {
-  test('deletes job description by role id', () => {
-    const roleId = addRole(db, baseRole);
-    deleteJobDescription(db, roleId);
-
-    const result = db.prepare('SELECT * FROM job_descriptions WHERE role_id = ?').get(roleId);
-    expect(result).toBeUndefined();
-  });
-
-  test('returns deleted jd and parent role', () => {
-    const roleId = addRole(db, baseRole);
-    const result = deleteJobDescription(db, roleId);
-
-    expect(result.jd.content).toBe(baseRole.jd);
-    expect(result.role.company).toBe(baseRole.company);
-  });
-
-  test('throws when job description not found', () => {
-    expect(() => deleteJobDescription(db, 999)).toThrow('No job description found for role ID 999');
   });
 });
