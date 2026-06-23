@@ -3,13 +3,9 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../../../helpers/db';
 import { insertRole } from '../../../../lib/db/roles.db';
-import {
-  insertJobDescription,
-  getJobDescriptionByRoleId,
-  deleteJobDescriptionByRoleId,
-} from '../../../../lib/db/job-descriptions.db';
+import { db } from '../../../../lib/db';
 
-let db: Database.Database;
+let sqlite: Database.Database;
 
 const baseRole = {
   company: 'Acme Corp',
@@ -19,107 +15,111 @@ const baseRole = {
 };
 
 beforeEach(() => {
-  db = createTestDb();
+  sqlite = createTestDb();
 });
 afterEach(() => {
-  db.close();
+  sqlite.close();
 });
 
-// ─── insertJobDescription ─────────────────────────────────────────────────────
+// ─── insert ─────────────────────────────────────────────────────
 
-describe('insertJobDescription', () => {
+describe('insert', () => {
   test('inserts a job description and returns a numeric ID', () => {
     const jobDescriptionContent = 'This is a job description.';
-    const roleId = insertRole(db, baseRole);
-    const id = insertJobDescription(db, roleId, jobDescriptionContent);
+    const roleId = insertRole(sqlite, baseRole);
+    const id = db.jobDescriptions.insert(sqlite, roleId, jobDescriptionContent);
     expect(typeof id).toBe('number');
     expect(id).toBeGreaterThan(0);
   });
 
   test('inserted content is retrievable', () => {
     const jobDescriptionContent = 'This is a job description.';
-    const roleId = insertRole(db, baseRole);
-    insertJobDescription(db, roleId, jobDescriptionContent);
-    const jd = getJobDescriptionByRoleId(db, roleId);
+    const roleId = insertRole(sqlite, baseRole);
+    db.jobDescriptions.insert(sqlite, roleId, jobDescriptionContent);
+    const jd = db.jobDescriptions.getByRoleId(sqlite, roleId);
     expect(jd!.content).toBe(jobDescriptionContent);
   });
 
   test('stores empty string content', () => {
     const jobDescriptionContent = '';
-    const roleId = insertRole(db, baseRole);
-    insertJobDescription(db, roleId, jobDescriptionContent);
-    const jd = getJobDescriptionByRoleId(db, roleId);
+    const roleId = insertRole(sqlite, baseRole);
+    db.jobDescriptions.insert(sqlite, roleId, jobDescriptionContent);
+    const jd = db.jobDescriptions.getByRoleId(sqlite, roleId);
     expect(jd!.content).toBe(jobDescriptionContent);
   });
 
   test('throws on duplicate role_id — UNIQUE constraint', () => {
     const firstJobDescriptionContent = 'First JD';
     const secondJobDescriptionContent = 'Second JD';
-    const roleId = insertRole(db, baseRole);
-    insertJobDescription(db, roleId, firstJobDescriptionContent);
-    expect(() => insertJobDescription(db, roleId, secondJobDescriptionContent)).toThrow();
+    const roleId = insertRole(sqlite, baseRole);
+    db.jobDescriptions.insert(sqlite, roleId, firstJobDescriptionContent);
+    expect(() => db.jobDescriptions.insert(sqlite, roleId, secondJobDescriptionContent)).toThrow();
   });
 
   test('throws on non-existent role_id — FK constraint', () => {
     const jobDescriptionContent = 'This is a job description.';
-    expect(() => insertJobDescription(db, 999, jobDescriptionContent)).toThrow();
+    expect(() => db.jobDescriptions.insert(sqlite, 999, jobDescriptionContent)).toThrow();
   });
 
   test('allows job descriptions for different roles', () => {
     const firstJobDescriptionContent = 'First JD';
     const secondJobDescriptionContent = 'Second JD';
-    const roleId1 = insertRole(db, baseRole);
-    const roleId2 = insertRole(db, baseRole);
-    expect(() => insertJobDescription(db, roleId1, firstJobDescriptionContent)).not.toThrow();
-    expect(() => insertJobDescription(db, roleId2, secondJobDescriptionContent)).not.toThrow();
+    const roleId1 = insertRole(sqlite, baseRole);
+    const roleId2 = insertRole(sqlite, baseRole);
+    expect(() =>
+      db.jobDescriptions.insert(sqlite, roleId1, firstJobDescriptionContent)
+    ).not.toThrow();
+    expect(() =>
+      db.jobDescriptions.insert(sqlite, roleId2, secondJobDescriptionContent)
+    ).not.toThrow();
   });
 });
 
-// ─── getJobDescriptionByRoleId ────────────────────────────────────────────────
+// ─── getByRoleId ────────────────────────────────────────────────
 
-describe('getJobDescriptionByRoleId', () => {
+describe('getByRoleId', () => {
   test('returns job description when found', () => {
     const jobDescriptionContent = 'This is a job description.';
-    const roleId = insertRole(db, baseRole);
-    insertJobDescription(db, roleId, jobDescriptionContent);
-    const jd = getJobDescriptionByRoleId(db, roleId);
+    const roleId = insertRole(sqlite, baseRole);
+    db.jobDescriptions.insert(sqlite, roleId, jobDescriptionContent);
+    const jd = db.jobDescriptions.getByRoleId(sqlite, roleId);
     expect(jd).toBeDefined();
     expect(jd!.role_id).toBe(roleId);
     expect(jd!.content).toBe(jobDescriptionContent);
   });
 
   test('returns undefined when not found', () => {
-    const roleId = insertRole(db, baseRole);
-    const jd = getJobDescriptionByRoleId(db, roleId);
+    const roleId = insertRole(sqlite, baseRole);
+    const jd = db.jobDescriptions.getByRoleId(sqlite, roleId);
     expect(jd).toBeUndefined();
   });
 });
 
-// ─── deleteJobDescriptionByRoleId ─────────────────────────────────────────────
+// ─── deleteByRoleId ─────────────────────────────────────────────
 
-describe('deleteJobDescriptionByRoleId', () => {
+describe('deleteByRoleId', () => {
   test('deletes the job description', () => {
     const jobDescriptionContent = 'This is a job description.';
-    const roleId = insertRole(db, baseRole);
-    insertJobDescription(db, roleId, jobDescriptionContent);
-    deleteJobDescriptionByRoleId(db, roleId);
-    expect(getJobDescriptionByRoleId(db, roleId)).toBeUndefined();
+    const roleId = insertRole(sqlite, baseRole);
+    db.jobDescriptions.insert(sqlite, roleId, jobDescriptionContent);
+    db.jobDescriptions.deleteByRoleId(sqlite, roleId);
+    expect(db.jobDescriptions.getByRoleId(sqlite, roleId)).toBeUndefined();
   });
 
   test('does not affect job descriptions for other roles', () => {
     const jobDescriptionContent = 'This is a job description.';
-    const roleId1 = insertRole(db, baseRole);
-    const roleId2 = insertRole(db, baseRole);
-    insertJobDescription(db, roleId1, jobDescriptionContent);
-    insertJobDescription(db, roleId2, jobDescriptionContent);
-    deleteJobDescriptionByRoleId(db, roleId1);
-    expect(getJobDescriptionByRoleId(db, roleId1)).toBeUndefined();
-    expect(getJobDescriptionByRoleId(db, roleId2)).toBeDefined();
+    const roleId1 = insertRole(sqlite, baseRole);
+    const roleId2 = insertRole(sqlite, baseRole);
+    db.jobDescriptions.insert(sqlite, roleId1, jobDescriptionContent);
+    db.jobDescriptions.insert(sqlite, roleId2, jobDescriptionContent);
+    db.jobDescriptions.deleteByRoleId(sqlite, roleId1);
+    expect(db.jobDescriptions.getByRoleId(sqlite, roleId1)).toBeUndefined();
+    expect(db.jobDescriptions.getByRoleId(sqlite, roleId2)).toBeDefined();
   });
 
   test('safely makes no change when target job description does not exist', () => {
-    const roleId = insertRole(db, baseRole);
-    const result = deleteJobDescriptionByRoleId(db, roleId);
+    const roleId = insertRole(sqlite, baseRole);
+    const result = db.jobDescriptions.deleteByRoleId(sqlite, roleId);
     expect(result.changes).toBe(0);
   });
 });
