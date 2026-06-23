@@ -96,7 +96,9 @@ career-assistant/
     │   └── lib/db/                 # Tests for single-table lib/db/ modules
     └── integration/                # Fastify inject() HTTP route tests
         └── routes/
-            └── roles.test.ts
+            ├── roles.test.ts
+            ├── query.test.ts
+            └── backup.test.ts      # HTTP contract only — pending CAR-104/CAR-179
 ```
 
 ---
@@ -475,7 +477,7 @@ Single-table CRUD operations have been extracted into dedicated modules under `l
 - `lib/deletes.ts`, `lib/roles.ts`, `lib/updates.ts` — refactored (CAR-162, CAR-163)
 - `server/routes/roles.ts` — refactored, N+1 eliminated (CAR-164)
 - CLI scripts layer retired (CAR-165, CAR-166)
-- Fastify `inject()` integration tests in progress (CAR-167)
+- Fastify `inject()` integration tests complete (CAR-167). The backup test is intentionally limited to HTTP contract verification pending CAR-104 and CAR-179.
 - Final SQL audit pending (CAR-168)
 
 Remaining cleanup tracked separately under CAR-5: decoupling `lib/updates.ts` from `lib/args/` (CAR-173), moving vocabulary validation to the orchestration layer (CAR-178), resolving the `url` nullability mismatch between `RoleInsertData` and the schema (CAR-172).

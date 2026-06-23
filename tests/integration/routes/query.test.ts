@@ -91,12 +91,11 @@ describe('POST /api/query', () => {
   });
 
   test('returns 400 for invalid SQL', async () => {
-    // Suppressing Jetbrains linter from checking intentionally malformed SQL
-    // noinspection ALL
+    const malformedSql = 'INVALID SELECT FROM WHERE';
     const invalidQueryResponse = await app.inject({
       method: 'POST',
       url: '/api/query',
-      payload: { sql: 'SELECT FROM WHERE', writeMode: false },
+      payload: { sql: malformedSql, writeMode: false },
     });
     expect(invalidQueryResponse.statusCode).toBe(400);
     expect(invalidQueryResponse.json().error).toBeDefined();

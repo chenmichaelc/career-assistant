@@ -67,7 +67,7 @@ Refactoring the data layer so that all business logic in `lib/` composes from th
 - ~~CAR-164 — Refactor `server/routes/roles.ts` to remove raw SQL and eliminate N+1 query pattern~~ ✓
 - ~~CAR-165 — Remove CLI scripts layer (except `init-db.ts`)~~ ✓
 - ~~CAR-166 — Remove CLI-based integration tests and `run-script.ts` helper~~ ✓
-- CAR-167 — Write Fastify `inject()` integration tests for HTTP routes _(In Progress)_
+- ~~CAR-167 — Write Fastify `inject()` integration tests for HTTP routes~~ ✓
 - CAR-168 — Audit codebase to confirm elimination of SQL outside `lib/db/`
 
 ---
@@ -158,7 +158,7 @@ Items in rough priority order. Backlog items are lower priority.
 Test database isolation via DB_PATH environment variable (CAR-16) to enable clean CI runs against an in-memory database. Splitting `test` into separate unit and integration scripts was considered during CAR-52's pre-commit setup, in anticipation of a future database migration (CAR-5) and a possible supplemental NoSQL store for job profile analysis (CAR-32) — deferred for now, since the current combined suite runs in seconds and the split would add maintenance surface without present benefit. Revisit when either migration becomes concrete.
 
 **Data layer refactor (CAR-5)** _(In Progress)_
-Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166). Fastify `inject()` integration tests covering the HTTP route layer are in progress (CAR-167). A final audit to confirm complete elimination of SQL outside `lib/db/` closes the epic (CAR-168).
+Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166). Fastify `inject()` integration tests covering the HTTP route layer are complete (CAR-167). A final audit to confirm complete elimination of SQL outside `lib/db/` closes the epic (CAR-168).
 
 **Observability — error logging and persistence (CAR-139)**
 Audit existing error handling across the codebase first (CAR-141), then implement consistent logging on the client (CAR-140) and server (CAR-72). Persist server logs to disk via Pino file transport (CAR-142). A full-stack persistent error store, spanning both client and server, is deferred until cloud migration planning begins (CAR-143).
@@ -258,7 +258,9 @@ career-assistant/
     │   └── lib/db/          # Tests for single-table lib/db/ modules
     └── integration/         # Cross-layer integration tests
         └── routes/          # Fastify inject() HTTP route tests
-            └── roles.test.ts
+            ├── roles.test.ts
+            ├── query.test.ts
+            └── backup.test.ts  # HTTP contract only — pending CAR-104/CAR-179
 ```
 
 ### Key design decisions
