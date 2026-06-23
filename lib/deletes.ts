@@ -136,29 +136,3 @@ export function deleteTerminationReason(
   db.terminationReasons.deleteById(sqlite, id);
   return { reason, role };
 }
-
-// ─── Job description deletion ─────────────────────────────────────────────────
-
-export function previewJobDescriptionDeletion(
-  sqlite: Database.Database,
-  roleId: number
-): { jd: JobDescriptionRow; role: RoleRow } {
-  const jd = db.jobDescriptions.getByRoleId(sqlite, roleId);
-
-  if (!jd) {
-    throw new Error(`No job description found for role ID ${roleId}.`);
-  }
-
-  const role = requireRole(sqlite, roleId);
-
-  return { jd, role };
-}
-
-export function deleteJobDescription(
-  sqlite: Database.Database,
-  roleId: number
-): { jd: JobDescriptionRow; role: RoleRow } {
-  const { jd, role } = previewJobDescriptionDeletion(sqlite, roleId);
-  db.jobDescriptions.deleteByRoleId(sqlite, roleId);
-  return { jd, role };
-}

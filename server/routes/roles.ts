@@ -9,7 +9,6 @@ import {
   deleteRole,
   deleteSkipReason,
   deleteTerminationReason,
-  deleteJobDescription,
   previewRoleDeletion,
 } from '../../lib/deletes';
 import { exportRole, ExportFormat } from '../../lib/exporters';
@@ -271,18 +270,6 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
     try {
       return deleteTerminationReason(sqlite, parseInt(id, 10));
-    } catch (err) {
-      return reply.status(404).send({ error: (err as Error).message });
-    }
-  });
-
-  // ─── DELETE /api/roles/:id/job-description ───────────────────────────────────
-
-  fastify.delete('/:id/job-description', async (request, reply) => {
-    const { id } = request.params as { id: string };
-
-    try {
-      return deleteJobDescription(sqlite, parseInt(id, 10));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
     }
