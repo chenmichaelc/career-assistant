@@ -1,10 +1,15 @@
+// e2e/tests/roles.spec.ts
+
 import { test, expect } from '@playwright/test';
 import { RolesPage } from '../pages/rolesPage';
+import { TopMenuBarComponent } from '../pages/topMenuBarComponent';
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+});
 
 test('Static smoke test of Default Page on Index', async ({ page }) => {
   const indexPage = new RolesPage(page);
-
-  await page.goto('/');
 
   // Expect "Career Assistant" to be the page title
   await expect(page).toHaveTitle(/Career Assistant/);
@@ -21,4 +26,10 @@ test('Static smoke test of Default Page on Index', async ({ page }) => {
   // Expect key elements of Roles table header to appear on the index page
   await expect(indexPage.rolesTableHeading).toBeVisible();
   await expect(indexPage.searchButton).toBeVisible();
+});
+
+test('Top Menu Bar Query option takes user to Roles page', async ({ page }) => {
+  const topMenuBarComponent = new TopMenuBarComponent(page);
+  await topMenuBarComponent.rolesLink.click();
+  await expect(page).toHaveURL('/');
 });
