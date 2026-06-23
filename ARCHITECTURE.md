@@ -88,7 +88,7 @@ career-assistant/
 │   │   ├── topMenuBarComponent.ts  # Shared nav bar component (data-testid scoped)
 │   │   └── rolesPage.ts            # Roles page object
 │   └── tests/
-│       └── smoke.spec.ts           # Smoke test — full stack connectivity
+│       └── roles.spec.ts           # Smoke test — full stack connectivity
 └── tests/
     ├── helpers/
     │   └── db.ts                   # createTestDb() — in-memory SQLite with schema

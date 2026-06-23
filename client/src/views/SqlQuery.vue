@@ -7,14 +7,19 @@
         <button
           @click="writeMode = !writeMode"
           :class="writeMode ? 'bg-danger border-danger' : 'bg-surface border-border'"
-          class="relative w-10 h-5 border rounded-full transition-colors"
+          class="relative w-10 h-5 border rounded-full transition-colors overflow-hidden"
+          data-testid="write-mode-toggle"
         >
           <span
-            :class="writeMode ? 'translate-x-5 bg-surface' : 'translate-x-0.5 bg-dim'"
-            class="absolute top-0.5 w-4 h-4 rounded-full transition-transform"
+            :class="writeMode ? 'translate-x-[22px] bg-surface' : 'translate-x-0.5 bg-dim'"
+            class="absolute left-0 top-0.5 w-4 h-4 rounded-full transition-transform"
           />
         </button>
-        <span :class="writeMode ? 'text-danger' : 'text-dim'" class="font-mono text-xs font-medium">
+        <span
+          :class="writeMode ? 'text-danger' : 'text-dim'"
+          class="font-mono text-xs font-medium"
+          data-testid="write-mode-label"
+        >
           {{ writeMode ? 'WRITE ENABLED' : 'read only' }}
         </span>
       </div>
@@ -23,6 +28,7 @@
     <div
       v-if="writeMode"
       class="bg-danger/10 border border-danger text-danger font-mono text-xs px-4 py-2 rounded mb-4"
+      data-testid="write-mode-warning"
     >
       ⚠ Write mode enabled. INSERT, UPDATE, DELETE, DROP, ALTER, and CREATE statements will execute
       against the live database.
