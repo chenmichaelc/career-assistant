@@ -4,29 +4,12 @@
 // Callers are responsible for opening and closing the DB connection.
 
 import Database from 'better-sqlite3';
-import { RoleRow, SkipReasonType, TerminationReasonType } from './types';
+import { RoleRow } from './types';
+import { db, SkipReasonRow, TerminationReasonRow, JobDescriptionRow } from './db';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface SkipReasonRow {
-  id: number;
-  role_id: number;
-  reason: SkipReasonType;
-  note: string | null;
-}
-
-export interface TerminationReasonRow {
-  id: number;
-  role_id: number;
-  reason: TerminationReasonType;
-  note: string | null;
-}
-
-export interface JobDescriptionRow {
-  id: number;
-  role_id: number;
-  content: string;
-}
+export type { SkipReasonRow, TerminationReasonRow, JobDescriptionRow };
 
 export interface RoleDependents {
   role: RoleRow;
@@ -37,82 +20,46 @@ export interface RoleDependents {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fetchRole(db: Database.Database, id: number): RoleRow | undefined {
-  return db
-    .prepare(
-      `
-    SELECT id, company, title, url, role_status, candidacy, applied_date,
-           salary_min, salary_max, notes, created_at, updated_at
-    FROM roles
-    WHERE id = ?
-  `
-    )
-    .get(id) as RoleRow | undefined;
+function requireRole(sqlite: Database.Database, id: number): RoleRow {
+  const role = db.roles.getById(sqlite, id);
+
+  if (!role) {
+    throw new Error(`No role found with ID ${id}.`);
+  }
+
+  return role;
 }
 
-function fetchDependents(db: Database.Database, roleId: number): Omit<RoleDependents, 'role'> {
-  const skip_reasons = db
-    .prepare(
-      `
-    SELECT id, role_id, reason, note
-    FROM skip_reasons
-    WHERE role_id = ?
-    ORDER BY id
-  `
-    )
-    .all(roleId) as SkipReasonRow[];
+function fetchDependents(sqlite: Database.Database, roleId: number): Omit<RoleDependents, 'role'> {
+  const skip_reasons = db.skipReasons.getAllByRoleId(sqlite, roleId);
+  const termination_reasons = db.terminationReasons.getAllByRoleId(sqlite, roleId);
 
-  const termination_reasons = db
-    .prepare(
-      `
-    SELECT id, role_id, reason, note
-    FROM termination_reasons
-    WHERE role_id = ?
-    ORDER BY id
-  `
-    )
-    .all(roleId) as TerminationReasonRow[];
-
-  const job_descriptions = db
-    .prepare(
-      `
-    SELECT id, role_id, content
-    FROM job_descriptions
-    WHERE role_id = ?
-    ORDER BY id
-  `
-    )
-    .all(roleId) as JobDescriptionRow[];
+  // job_descriptions is modelled as an array here for interface consistency with RoleDependents,
+  // even though the schema enforces a one-to-one relationship between roles and job_descriptions.
+  // The singular/array inconsistency is tracked separately and not addressed in this refactor.
+  const jd = db.jobDescriptions.getByRoleId(sqlite, roleId);
+  const job_descriptions: JobDescriptionRow[] = jd ? [jd] : [];
 
   return { skip_reasons, termination_reasons, job_descriptions };
 }
 
 // ─── Role deletion ────────────────────────────────────────────────────────────
 
-export function previewRoleDeletion(db: Database.Database, id: number): RoleDependents {
-  const role = fetchRole(db, id);
-
-  if (!role) {
-    throw new Error(`No role found with ID ${id}.`);
-  }
-
-  const dependents = fetchDependents(db, id);
+export function previewRoleDeletion(sqlite: Database.Database, id: number): RoleDependents {
+  const role = requireRole(sqlite, id);
+  const dependents = fetchDependents(sqlite, id);
 
   return { role, ...dependents };
 }
 
 export function deleteRole(
-  db: Database.Database,
+  sqlite: Database.Database,
   id: number,
   force: boolean = false
 ): RoleDependents {
-  const role = fetchRole(db, id);
+  const role = requireRole(sqlite, id);
+  const dependents = fetchDependents(sqlite, id);
 
-  if (!role) {
-    throw new Error(`No role found with ID ${id}.`);
-  }
-
-  const dependents = fetchDependents(db, id);
   const hasDependents =
     dependents.skip_reasons.length > 0 || dependents.termination_reasons.length > 0;
 
@@ -124,13 +71,13 @@ export function deleteRole(
     );
   }
 
-  const run = db.transaction(() => {
+  const run = sqlite.transaction(() => {
     if (force) {
-      db.prepare(`DELETE FROM skip_reasons WHERE role_id = ?`).run(id);
-      db.prepare(`DELETE FROM termination_reasons WHERE role_id = ?`).run(id);
+      db.skipReasons.deleteAllByRoleId(sqlite, id);
+      db.terminationReasons.deleteAllByRoleId(sqlite, id);
     }
-    db.prepare(`DELETE FROM job_descriptions WHERE role_id = ?`).run(id);
-    db.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
+    db.jobDescriptions.deleteByRoleId(sqlite, id);
+    db.roles.deleteById(sqlite, id);
   });
 
   run();
@@ -141,113 +88,51 @@ export function deleteRole(
 // ─── Skip reason deletion ─────────────────────────────────────────────────────
 
 export function previewSkipReasonDeletion(
-  db: Database.Database,
+  sqlite: Database.Database,
   id: number
 ): { reason: SkipReasonRow; role: RoleRow } {
-  const reason = db
-    .prepare(
-      `
-    SELECT id, role_id, reason, note
-    FROM skip_reasons
-    WHERE id = ?
-  `
-    )
-    .get(id) as SkipReasonRow | undefined;
+  const reason = db.skipReasons.getById(sqlite, id);
 
   if (!reason) {
     throw new Error(`No skip reason found with ID ${id}.`);
   }
 
-  const role = fetchRole(db, reason.role_id);
-
-  if (!role) {
-    throw new Error(`No role found with ID ${reason.role_id}.`);
-  }
+  const role = requireRole(sqlite, reason.role_id);
 
   return { reason, role };
 }
 
 export function deleteSkipReason(
-  db: Database.Database,
+  sqlite: Database.Database,
   id: number
 ): { reason: SkipReasonRow; role: RoleRow } {
-  const { reason, role } = previewSkipReasonDeletion(db, id);
-  db.prepare(`DELETE FROM skip_reasons WHERE id = ?`).run(id);
+  const { reason, role } = previewSkipReasonDeletion(sqlite, id);
+  db.skipReasons.deleteById(sqlite, id);
   return { reason, role };
 }
 
 // ─── Termination reason deletion ──────────────────────────────────────────────
 
 export function previewTerminationReasonDeletion(
-  db: Database.Database,
+  sqlite: Database.Database,
   id: number
 ): { reason: TerminationReasonRow; role: RoleRow } {
-  const reason = db
-    .prepare(
-      `
-    SELECT id, role_id, reason, note
-    FROM termination_reasons
-    WHERE id = ?
-  `
-    )
-    .get(id) as TerminationReasonRow | undefined;
+  const reason = db.terminationReasons.getById(sqlite, id);
 
   if (!reason) {
     throw new Error(`No termination reason found with ID ${id}.`);
   }
 
-  const role = fetchRole(db, reason.role_id);
-
-  if (!role) {
-    throw new Error(`No role found with ID ${reason.role_id}.`);
-  }
+  const role = requireRole(sqlite, reason.role_id);
 
   return { reason, role };
 }
 
 export function deleteTerminationReason(
-  db: Database.Database,
+  sqlite: Database.Database,
   id: number
 ): { reason: TerminationReasonRow; role: RoleRow } {
-  const { reason, role } = previewTerminationReasonDeletion(db, id);
-  db.prepare(`DELETE FROM termination_reasons WHERE id = ?`).run(id);
+  const { reason, role } = previewTerminationReasonDeletion(sqlite, id);
+  db.terminationReasons.deleteById(sqlite, id);
   return { reason, role };
-}
-
-// ─── Job description deletion ─────────────────────────────────────────────────
-
-export function previewJobDescriptionDeletion(
-  db: Database.Database,
-  roleId: number
-): { jd: JobDescriptionRow; role: RoleRow } {
-  const jd = db
-    .prepare(
-      `
-    SELECT id, role_id, content
-    FROM job_descriptions
-    WHERE role_id = ?
-  `
-    )
-    .get(roleId) as JobDescriptionRow | undefined;
-
-  if (!jd) {
-    throw new Error(`No job description found for role ID ${roleId}.`);
-  }
-
-  const role = fetchRole(db, roleId);
-
-  if (!role) {
-    throw new Error(`No role found with ID ${roleId}.`);
-  }
-
-  return { jd, role };
-}
-
-export function deleteJobDescription(
-  db: Database.Database,
-  roleId: number
-): { jd: JobDescriptionRow; role: RoleRow } {
-  const { jd, role } = previewJobDescriptionDeletion(db, roleId);
-  db.prepare(`DELETE FROM job_descriptions WHERE role_id = ?`).run(roleId);
-  return { jd, role };
 }

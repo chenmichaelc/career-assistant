@@ -2,7 +2,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../helpers/db';
-import { validateUpdateFlags, fetchRoleOrThrow, updateRole } from '../../lib/updates';
+import { validateUpdateFlags, updateRole } from '../../lib/updates';
 import { UpdateArgs } from '../../lib/args/update-args';
 import { addRole } from '../../lib/roles';
 import { RoleInput } from '../../lib/types';
@@ -134,44 +134,14 @@ describe('validateUpdateFlags — contextual rules', () => {
   });
 });
 
-// ─── fetchRoleOrThrow ─────────────────────────────────────────────────────────
-
-describe('fetchRoleOrThrow', () => {
-  test('returns role when found', () => {
-    const id = addRole(db, baseRole);
-    const role = fetchRoleOrThrow(db, String(id));
-
-    expect(role.company).toBe(baseRole.company);
-    expect(role.title).toBe(baseRole.title);
-  });
-
-  test('throws when role not found', () => {
-    expect(() => fetchRoleOrThrow(db, '999')).toThrow('No role found with ID 999');
-  });
-});
-
 // ─── updateRole ───────────────────────────────────────────────────────────────
 
 describe('updateRole', () => {
   test('updates role_status correctly', () => {
     const id = addRole(db, baseRole);
     const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
-
-    updateRole(db, flags);
-
-    const role = db.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<
-      string,
-      unknown
-    >;
-    expect(role.role_status).toBe('Applied');
-  });
-
-  test('returns the pre-update role', () => {
-    const id = addRole(db, baseRole);
-    const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
-
     const role = updateRole(db, flags);
-    expect(role.role_status).toBe('Pending Triage');
+    expect(role.role_status).toBe('Applied');
   });
 
   test('sets applied_date when transitioning to Applied and no date exists', () => {
