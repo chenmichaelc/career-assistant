@@ -31,7 +31,7 @@ The system is organized around four modules:
 
 **Career opportunity identification and mapping** _(planned)_ — skills gap analysis against a personal profile, career path recommendations driven by market data, and guidance on high-value areas of investment given current market conditions.
 
-**Testing modules** — a layered test suite covering unit tests for pure functions, integration tests for CLI scripts, and Playwright E2E tests for the UI. Built to support Extreme Programming practices — changes can be made confidently with Claude or manually, with a safety net designed to catch regressions immediately.
+**Testing modules** — a layered test suite covering unit tests for pure functions, HTTP-level integration tests, and Playwright E2E tests for the UI. Built to support Extreme Programming practices — changes can be made confidently with Claude or manually, with a safety net designed to catch regressions immediately.
 
 Role lifecycle tracking — statuses, skip reasons, and termination reasons — is supported as a lightweight mechanism for feeding real-world outcome data back into the market analysis layer.
 
@@ -58,16 +58,16 @@ The feature set is intentionally modest relative to the engineering investment. 
 
 **[CAR-21] Refactor `lib/` to orchestrate from `db/` modules**
 
-Refactoring the data layer so that all business logic in `lib/` composes from the single-table modules in `lib/db/` instead of executing SQL directly. This is the prerequisite for replacing the existing CLI-based integration tests with proper HTTP-level integration tests using Fastify's `inject()` method — a necessary step toward a more robust and realistic test suite that covers the actual integration paths the application uses (Vue → Fastify routes → `lib/` → SQLite), rather than a CLI layer that no longer reflects how the application is used in practice.
+Refactoring the data layer so that all business logic in `lib/` composes from the single-table modules in `lib/db/` instead of executing SQL directly. This included retiring the CLI scripts layer in favour of HTTP-level integration tests using Fastify's `inject()` method — a necessary step toward a more robust and realistic test suite that covers the actual integration paths the application uses (Vue → Fastify routes → `lib/` → SQLite), rather than a CLI layer that no longer reflects how the application is used in practice.
 
 **Subtasks:**
 
 - ~~CAR-162 — Refactor `lib/deletes.ts` to compose from `lib/db/` modules~~ ✓
 - ~~CAR-163 — Refactor `lib/roles.ts` to compose from `lib/db/` modules~~ ✓
-- CAR-164 — Refactor `server/routes/roles.ts` to remove raw SQL and eliminate N+1 query pattern
-- CAR-165 — Remove CLI scripts layer (except `init-db.ts`)
-- CAR-166 — Remove CLI-based integration tests and `run-script.ts` helper
-- CAR-167 — Write Fastify `inject()` integration tests for HTTP routes
+- ~~CAR-164 — Refactor `server/routes/roles.ts` to remove raw SQL and eliminate N+1 query pattern~~ ✓
+- ~~CAR-165 — Remove CLI scripts layer (except `init-db.ts`)~~ ✓
+- ~~CAR-166 — Remove CLI-based integration tests and `run-script.ts` helper~~ ✓
+- CAR-167 — Write Fastify `inject()` integration tests for HTTP routes _(In Progress)_
 - CAR-168 — Audit codebase to confirm elimination of SQL outside `lib/db/`
 
 ---
@@ -129,23 +129,24 @@ Formatting and a full non-interactive test run are also enforced automatically o
 
 ## Milestones
 
-| Milestone                                                             | Status |
-| --------------------------------------------------------------------- | ------ |
-| SQLite schema, seed import, CLI data layer                            | Done   |
-| TypeScript migration, Vitest test suite                               | Done   |
-| Full CLI tooling (import, export, update, delete)                     | Done   |
-| Layered validation architecture                                       | Done   |
-| Unit and integration test suite                                       | Done   |
-| Vue 3 frontend + Fastify REST API                                     | Done   |
-| Frontend stabilization and bug fixes (CAR-2)                          | Done   |
-| Rename e2e → integration tests (CAR-14)                               | Done   |
-| Node.js upgrade to v24 (CAR-31)                                       | Done   |
-| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | Done   |
-| GitHub merge gate (CAR-56)                                            | Done   |
-| ESLint implementation across full codebase (CAR-37)                   | Done   |
-| Single-table data layer modules — `lib/db/` (CAR-20)                  | Done   |
-| Prettier formatting + automatic pre-commit enforcement (CAR-52)       | Done   |
-| CI/CD quality gates — lint as a merge gate (CAR-145)                  | Done   |
+| Milestone                                                             | Status      |
+| --------------------------------------------------------------------- | ----------- |
+| SQLite schema, seed import, CLI data layer                            | Done        |
+| TypeScript migration, Vitest test suite                               | Done        |
+| Full CLI tooling (import, export, update, delete)                     | Done        |
+| Layered validation architecture                                       | Done        |
+| Unit and integration test suite                                       | Done        |
+| Vue 3 frontend + Fastify REST API                                     | Done        |
+| Frontend stabilization and bug fixes (CAR-2)                          | Done        |
+| Rename e2e → integration tests (CAR-14)                               | Done        |
+| Node.js upgrade to v24 (CAR-31)                                       | Done        |
+| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | Done        |
+| GitHub merge gate (CAR-56)                                            | Done        |
+| ESLint implementation across full codebase (CAR-37)                   | Done        |
+| Single-table data layer modules — `lib/db/` (CAR-20)                  | Done        |
+| Prettier formatting + automatic pre-commit enforcement (CAR-52)       | Done        |
+| CI/CD quality gates — lint as a merge gate (CAR-145)                  | Done        |
+| Data layer refactor — lib/ orchestrates from lib/db/ (CAR-21)         | In Progress |
 
 ---
 
@@ -157,7 +158,7 @@ Items in rough priority order. Backlog items are lower priority.
 Test database isolation via DB_PATH environment variable (CAR-16) to enable clean CI runs against an in-memory database. Splitting `test` into separate unit and integration scripts was considered during CAR-52's pre-commit setup, in anticipation of a future database migration (CAR-5) and a possible supplemental NoSQL store for job profile analysis (CAR-32) — deferred for now, since the current combined suite runs in seconds and the split would add maintenance surface without present benefit. Revisit when either migration becomes concrete.
 
 **Data layer refactor (CAR-5)** _(In Progress)_
-Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer is being refactored to compose from these modules (CAR-21), the CLI scripts layer is being retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167), and raw SQL in `server/routes/roles.ts` is being eliminated alongside an N+1 query fix (CAR-164). See [Currently working on](#currently-working-on) for the full subtask breakdown.
+Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166). Fastify `inject()` integration tests covering the HTTP route layer are in progress (CAR-167). A final audit to confirm complete elimination of SQL outside `lib/db/` closes the epic (CAR-168).
 
 **Observability — error logging and persistence (CAR-139)**
 Audit existing error handling across the codebase first (CAR-141), then implement consistent logging on the client (CAR-140) and server (CAR-72). Persist server logs to disk via Pino file transport (CAR-142). A full-stack persistent error store, spanning both client and server, is deferred until cloud migration planning begins (CAR-143).
@@ -190,7 +191,7 @@ Bulk ingestion pipeline (CAR-33), role classification and skill extraction (CAR-
 Pre-built aggregate queries and analytics view.
 
 **Known bugs (Backlog)**
-Role can simultaneously have skip and termination reasons (CAR-53). `request.body as any` on POST /api/roles, suppressed pending CAR-44 (CAR-61, CAR-148). `ref<any>` in Vue components, suppressed pending CAR-4 (CAR-62, CAR-147). POST reason endpoints pass role ID as string (CAR-103). Backup route blocks event loop with sync fs calls (CAR-104). N+1 query pattern in `GET /api/roles` (CAR-136). Backup failure toast renders in success colours (CAR-138).
+Role can simultaneously have skip and termination reasons (CAR-53). `request.body as any` on POST /api/roles, suppressed pending CAR-44 (CAR-61, CAR-148). `ref<any>` in Vue components, suppressed pending CAR-4 (CAR-62, CAR-147). POST reason endpoints pass role ID as string (CAR-103). Backup route blocks event loop with sync fs calls (CAR-104). Backup failure toast renders in success colours (CAR-138).
 
 **Ideas under consideration (Backlog)**
 Runtime schema validation — Zod / TypeBox / Valibot (CAR-44). Contract testing — Pact / OpenAPI (CAR-45). Deprecate raw SQL query endpoint before non-local deployment (CAR-71). Persistent error store spanning client and server, ahead of cloud migration (CAR-143). Automated job post scraping (CAR-93). Resume storage and analysis (CAR-94). Custom resume builder (CAR-95).
@@ -232,8 +233,8 @@ career-assistant/
 │   │   ├── termination-reasons.db.ts
 │   │   └── job-descriptions.db.ts
 │   ├── exporters/           # Role export (simple + rich formats)
-│   └── args/                # CLI argument parsers
-├── scripts/                 # CLI entry points — thin I/O wrappers over lib/
+│   └── args/                # CLI argument parsers (update-args.ts — pending removal in CAR-173)
+├── scripts/                 # Miscellaneous scripts
 ├── server/                  # Fastify REST API
 │   ├── package.json         # Server-scoped dependencies (early workspace structure)
 │   └── routes/              # roles, query, backup
@@ -252,48 +253,52 @@ career-assistant/
 │   ├── pages/               # Page Object Model classes
 │   └── tests/               # Playwright specs
 └── tests/
-    ├── helpers/             # createTestDb(), runScript()
+    ├── helpers/             # createTestDb()
     ├── unit/                # Pure function tests
     │   └── lib/db/          # Tests for single-table lib/db/ modules
-    └── integration/         # CLI script tests (black box)
+    └── integration/         # Cross-layer integration tests
+        └── routes/          # Fastify inject() HTTP route tests
+            └── roles.test.ts
 ```
 
 ### Key design decisions
 
-**lib/ and scripts/ separation** — all business logic lives in `lib/` with no I/O. Scripts, server routes, and tests are all callers of the same `lib/` functions. Chosen for: independent testability, shared logic across CLI, HTTP, and test contexts.
+**lib/ and server/ separation** — all business logic lives in `lib/` with no I/O. Server routes and tests are callers of the same `lib/` functions. Chosen for: independent testability, shared logic across HTTP and test contexts.
 
-**lib/db/ as the data access layer** — single-table CRUD modules accessed via a db namespace object (db.roles, db.skipReasons, etc.), making the data layer boundary visible at every call site. The raw connection is sqlite; db is reserved for the namespace. See ARCHITECTURE.md for the full rationale.
+**Three-layer architecture** — the codebase separates concerns across three distinct layers with a strict dependency direction: the HTTP layer owns transport concerns; the orchestration layer (`lib/`) owns business domain rules; the data layer (`lib/db/`) owns single-table primitives.
 
-**Policy decisions belong in the orchestration layer** — `lib/db/` functions return `undefined` for missing records and never throw. Whether a missing record is an error is decided by the orchestration layer, not the data layer.
+**lib/db/ as the data access layer** — single-table CRUD modules accessed via a db namespace object (db.roles, db.skipReasons, etc.)
 
-**Validation in layers** — syntactic validation in argument parsers, semantic validation in `lib/`, DB-layer enforcement via CHECK constraints and FK constraints. Each layer catches different failure modes.
+**Validation in layers** — structural validation at the HTTP layer (is the input well-formed?), semantic/domain validation in `lib/` (is the status transition legal? are reasons required?), DB-layer enforcement via CHECK constraints and FK constraints. Each layer catches different failure modes.
 
-**Runtime vocabulary arrays alongside union types** — TypeScript union types (`RoleStatus`, `SkipReasonType`, etc.) enforce vocabulary at compile time. Parallel runtime arrays (`VALID_STATUSES`, etc.) enable validation of external input at the network boundary. Both defined in `lib/types.ts`, typed so the compiler keeps them in sync.
+**Runtime vocabulary arrays alongside union types** — TypeScript union types (`RoleStatus`, `SkipReasonType`, etc.) enforce vocabulary at compile time. Parallel runtime arrays (`VALID_STATUSES`, etc.) enable validation of external input at the network boundary. Both defined in `lib/types.ts`.
 
 **SQLite with FK enforcement** — `PRAGMA foreign_keys = ON` in schema. Delete operations use preview/normal/force modes. UNIQUE constraint on `job_descriptions.role_id` enforces one-to-one relationship.
 
-**In-memory test databases** — unit tests use `better-sqlite3`'s `:memory:` mode via `createTestDb()`. Each test gets a fresh isolated instance via `beforeEach`/`afterEach`. Real SQL, real constraints, no cleanup.
+**In-memory test databases** — all tests use `better-sqlite3`'s `:memory:` mode via `createTestDb()`. Each test gets a fresh isolated instance via `beforeEach`/`afterEach`. Real SQL, real constraints, no cleanup.
+
+**HTTP integration tests via Fastify inject()** — integration tests use Fastify's built-in `inject()` method to fire requests directly against route handlers in-process. Each test registers a fresh Fastify instance and in-memory SQLite database, keeping tests isolated and fast.
 
 **Server/client split** — Fastify on port 3000, Vite on port 5173 proxying `/api` in development. Chosen to keep the backend deployment-ready for future cloud architecture without structural changes.
 
-**Co-located configuration, with one deliberate exception** — each module owns its TypeScript and tool configuration: `client/tsconfig.app.json` / `tsconfig.node.json` for the Vue frontend, `e2e/playwright.config.ts` and `e2e/tsconfig.json` for Playwright. Root `tsconfig.json` covers the Node.js data layer. ESLint is the deliberate exception — `eslint.config.mts` lives at the repository root because it needs to govern all layers simultaneously in a single pass, rather than being scoped to one module. See ARCHITECTURE.md for the full rationale.
+**Co-located configuration** — each module owns its TypeScript and tool configuration: Vue, Playwright, and the root Node.js data layer. ESLint is a deliberate exception.
 
-**Formatting owned entirely by Prettier** — ESLint enforces code quality rules; Prettier owns all visual formatting, including brace placement. `eslint-config-prettier` is included as the final entry in `eslint.config.mts`, disabling any ESLint rule that would otherwise conflict with Prettier's output. This was a deliberate late decision — see ARCHITECTURE.md's "Code quality and formatting" section for the full history of why a brace-style rule was added via ESLint, then removed in favor of full Prettier ownership.
+**Formatting owned entirely by Prettier** — ESLint enforces code quality rules; Prettier owns all visual formatting, including brace placement.
 
-**Quality gates enforced locally, not just in CI** — a Husky pre-commit hook runs Prettier (via lint-staged, scoped to staged files only) and the full unit/integration suite (via `npm run test:run`, since the full suite runs in seconds and scoping it to changed files only is unreliable — see ARCHITECTURE.md for why). This catches formatting and regression issues before they're committed, not just before they're merged.
+**Quality gates enforced locally, not just in CI** — a Husky pre-commit hook runs Prettier (via lint-staged, scoped to staged files only) and the full unit/integration suite.
 
 ### Technology choices
 
 | Concern        | Choice                                                  | Rationale                                                                |
 | -------------- | ------------------------------------------------------- | ------------------------------------------------------------------------ |
 | Database       | SQLite + better-sqlite3                                 | Local-first, zero infrastructure, synchronous API                        |
-| Language       | TypeScript 6 (strict)                                   | Type safety for domain vocabulary, compile-time correctness              |
+| Language       | TypeScript 6 (strict), ES2024 target                    | Type safety for domain vocabulary, compile-time correctness, Map.groupBy |
 | Test framework | Vitest                                                  | Native TypeScript, Vite-native, Jest-compatible API                      |
 | E2E framework  | Playwright                                              | Cross-browser, POM support, first-class TypeScript                       |
-| HTTP server    | Fastify                                                 | TypeScript-native, performant, plugin architecture                       |
+| HTTP server    | Fastify                                                 | TypeScript-native, performant, plugin architecture, inject() for testing |
 | Frontend       | Vue 3 (Composition API)                                 | Vite-native, same author as Vite, clean TS integration                   |
 | CSS            | Tailwind CSS v4                                         | Utility-first, `@theme`-based custom tokens                              |
 | Linting        | ESLint (flat config)                                    | TypeScript-aware, Vue-aware, Playwright-aware rule sets in one pass      |
 | Formatting     | Prettier + eslint-config-prettier + Husky + lint-staged | Automatic, zero-decision formatting and test enforcement on every commit |
-| Runtime        | Node.js 24                                              | LTS, compatible with better-sqlite3 v12+                                 |
+| Runtime        | Node.js 24                                              | LTS, compatible with better-sqlite3 v12+, json_each SQLite 3.38+         |
 | License        | GPL v3                                                  | Copyleft — derivative works must remain open source                      |
