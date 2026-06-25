@@ -9,6 +9,7 @@ import { applySchema } from '../db/setup';
 import { rolesRouter } from './routes/roles';
 import { queryRouter } from './routes/query';
 import { backupRouter } from './routes/backup';
+import { adminRouter } from './routes/admin';
 
 const dbPath = process.env.DB_PATH ?? path.join(__dirname, '../db/career-assistant.sqlite');
 const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
@@ -27,6 +28,7 @@ fastify.get('/healthcheck', async () => ({ status: 'ok' }));
 fastify.register(rolesRouter, { prefix: '/api/roles', db });
 fastify.register(queryRouter, { prefix: '/api/query', db });
 fastify.register(backupRouter, { prefix: '/api/backup', db });
+fastify.register(adminRouter, { prefix: '/api/admin', db });
 
 fastify.listen({ port: 3000, host: '127.0.0.1' }, (err) => {
   if (err) {
