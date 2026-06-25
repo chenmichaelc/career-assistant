@@ -72,7 +72,9 @@ CAR-21 (refactor `lib/` to orchestrate from `lib/db/`) is complete. The remainin
 
 **[CAR-63] Playwright E2E — full workflow coverage**
 
-Playwright setup and the POM foundation are complete (CAR-15). Full workflow coverage across all application pages is now in progress. Existing page objects cover the roles page and nav bar; coverage gaps across RoleList, RoleDetail, AddRole, and SqlQuery are being scoped and ticketed as subtasks under CAR-63.
+Page objects and smoke tests now cover all four pages (RoleList, RoleDetail, AddRole, SqlQuery). The POM pattern is established: `data-testid` on zone containers, `getByRole`/`getByTestId` within them — no structural or CSS-class-based locators.
+
+Behavioral coverage includes role creation with full field verification, write mode UI behavior on the SQL Query page, and top menu bar navigation across all pages. Remaining gaps: role detail behavioral flows (status update, export, delete modals), SQL query execution, and test data isolation (CAR-16).
 
 ---
 
@@ -133,24 +135,25 @@ Formatting and a full non-interactive test run are also enforced automatically o
 
 ## Milestones
 
-| Milestone                                                             | Status |
-| --------------------------------------------------------------------- | ------ |
-| SQLite schema, seed import, CLI data layer                            | Done   |
-| TypeScript migration, Vitest test suite                               | Done   |
-| Full CLI tooling (import, export, update, delete)                     | Done   |
-| Layered validation architecture                                       | Done   |
-| Unit and integration test suite                                       | Done   |
-| Vue 3 frontend + Fastify REST API                                     | Done   |
-| Frontend stabilization and bug fixes (CAR-2)                          | Done   |
-| Rename e2e → integration tests (CAR-14)                               | Done   |
-| Node.js upgrade to v24 (CAR-31)                                       | Done   |
-| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | Done   |
-| GitHub merge gate (CAR-56)                                            | Done   |
-| ESLint implementation across full codebase (CAR-37)                   | Done   |
-| Single-table data layer modules — `lib/db/` (CAR-20)                  | Done   |
-| Prettier formatting + automatic pre-commit enforcement (CAR-52)       | Done   |
-| CI/CD quality gates — lint as a merge gate (CAR-145)                  | Done   |
-| Data layer refactor — lib/ orchestrates from lib/db/ (CAR-21)         | Done   |
+| Milestone                                                              | Status      |
+| ---------------------------------------------------------------------- | ----------- |
+| SQLite schema, seed import, CLI data layer                             | Done        |
+| TypeScript migration, Vitest test suite                                | Done        |
+| Full CLI tooling (import, export, update, delete)                      | Done        |
+| Layered validation architecture                                        | Done        |
+| Unit and integration test suite                                        | Done        |
+| Vue 3 frontend + Fastify REST API                                      | Done        |
+| Frontend stabilization and bug fixes (CAR-2)                           | Done        |
+| Rename e2e → integration tests (CAR-14)                                | Done        |
+| Node.js upgrade to v24 (CAR-31)                                        | Done        |
+| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15)  | Done        |
+| GitHub merge gate (CAR-56)                                             | Done        |
+| ESLint implementation across full codebase (CAR-37)                    | Done        |
+| Single-table data layer modules — `lib/db/` (CAR-20)                   | Done        |
+| Prettier formatting + automatic pre-commit enforcement (CAR-52)        | Done        |
+| CI/CD quality gates — lint as a merge gate (CAR-145)                   | Done        |
+| Data layer refactor — lib/ orchestrates from lib/db/ (CAR-21)          | Done        |
+| Playwright E2E — POM foundation + initial behavioral coverage (CAR-63) | In Progress |
 
 ---
 
@@ -171,7 +174,7 @@ Audit existing error handling across the codebase first (CAR-141), then implemen
 Decompose the overloaded `role_status` field into separate triage status, application history status, and analysis status fields (CAR-118, CAR-119, CAR-120). Update filters and UI accordingly (CAR-117).
 
 **Playwright full workflow coverage (CAR-63)** _(In Progress)_
-Roles list (CAR-64), role detail (CAR-65), add role (CAR-66), SQL query (CAR-67), backup (CAR-68).
+Page objects and smoke tests cover all four pages. Role creation is tested end-to-end with field verification. Write mode UI behavior is covered on the SQL Query page. Remaining: role detail behavioral flows (status update, export, delete modals), SQL query execution, and test data isolation (CAR-16). A new epic (CAR-183) tracks decomposition of `RoleDetail.vue` into composables, which will improve the testability of the detail page flows before those E2E tests are written.
 
 **Playwright test data management (CAR-91)**
 Fixture-based role creation and cleanup via semantic company name identification.
