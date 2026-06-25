@@ -13,23 +13,30 @@ test('Static smoke test of SQL Query page', async ({ page }) => {
 
   await sqlQueryPage.goto();
 
-  // Expect the page heading to be present
-  await expect(sqlQueryPage.heading).toBeVisible();
+  await test.step('Arrange: Navigate to Query Page', async () => {
+    await sqlQueryPage.goto();
+    await expect(sqlQueryPage.heading).toBeVisible();
+  });
 
-  // Expect the SQL text area and execution controls to be present
-  await expect(sqlQueryPage.sqlTextarea).toBeVisible();
-  await expect(sqlQueryPage.executeButton).toBeVisible();
-  await expect(sqlQueryPage.clearButton).toBeVisible();
+  await test.step('Assert: Confirm static UI elements on initial page load', async () => {
+    // Expect the page heading to be present
+    await expect(sqlQueryPage.heading).toBeVisible();
 
-  // Expect the write mode toggle to be present and read-only by default
-  await expect(sqlQueryPage.writeModeToggle).toBeVisible();
-  await expect(sqlQueryPage.writeModeLabel).toBeVisible();
+    // Expect the SQL text area and execution controls to be present
+    await expect(sqlQueryPage.sqlTextarea).toBeVisible();
+    await expect(sqlQueryPage.executeButton).toBeVisible();
+    await expect(sqlQueryPage.clearButton).toBeVisible();
 
-  // Expect the top menu bar to be present
-  await expect(sqlQueryPage.topMenuBar.rolesLink).toBeVisible();
-  await expect(sqlQueryPage.topMenuBar.addLink).toBeVisible();
-  await expect(sqlQueryPage.topMenuBar.queryLink).toBeVisible();
-  await expect(sqlQueryPage.topMenuBar.backupButton).toBeVisible();
+    // Expect the write mode toggle to be present and read-only by default
+    await expect(sqlQueryPage.writeModeToggle).toBeVisible();
+    await expect(sqlQueryPage.writeModeLabel).toBeVisible();
+
+    // Expect the top menu bar to be present
+    await expect(sqlQueryPage.topMenuBar.rolesLink).toBeVisible();
+    await expect(sqlQueryPage.topMenuBar.addLink).toBeVisible();
+    await expect(sqlQueryPage.topMenuBar.queryLink).toBeVisible();
+    await expect(sqlQueryPage.topMenuBar.backupButton).toBeVisible();
+  });
 });
 
 test('Verify Write Mode UI Restrictions and Behavior', async ({ page }) => {
@@ -68,7 +75,12 @@ test('Top Menu Bar Query option takes user to Query page', async ({ page }) => {
   const topMenuBarComponent = new TopMenuBarComponent(page);
   const sqlQueryPage = new SqlQueryPage(page);
 
-  await topMenuBarComponent.queryLink.click();
-  await expect(page).toHaveURL('/query');
-  await expect(sqlQueryPage.heading).toBeVisible();
+  await test.step('Act: Click on Query link in Navigation Menu', async () => {
+    await topMenuBarComponent.queryLink.click();
+  });
+
+  await test.step('Assert: Check page redirected to Query page; Query page header appears', async () => {
+    await expect(page).toHaveURL('/query');
+    await expect(sqlQueryPage.heading).toBeVisible();
+  });
 });
