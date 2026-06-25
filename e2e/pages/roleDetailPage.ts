@@ -54,6 +54,10 @@ export class RoleDetailPage {
   readonly addTerminationReasonButton: Locator;
   readonly addTerminationReasonError: Locator;
 
+  // ─── Job Description ──────────────────────────────────────────────────────
+
+  readonly jobDescriptionSection: Locator;
+
   // ─── Export modal ─────────────────────────────────────────────────────────
 
   readonly exportModal: Locator;
@@ -121,6 +125,9 @@ export class RoleDetailPage {
       name: 'add',
     });
     this.addTerminationReasonError = this.terminationReasonsSection.locator('.text-danger');
+
+    // Job Description
+    this.jobDescriptionSection = page.getByTestId('job-description-section');
 
     // Export modal
     this.exportModal = page.getByTestId('export-modal');

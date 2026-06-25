@@ -219,7 +219,10 @@
     </div>
 
     <!-- Job Description -->
-    <div class="bg-panel border border-border rounded p-4 mb-6">
+    <div
+      class="bg-panel border border-border rounded p-4 mb-6"
+      data-testid="job-description-section"
+    >
       <div class="font-mono text-xs text-dim mb-3">job description</div>
       <div v-if="role.jd" class="font-mono text-sm text-text whitespace-pre-wrap leading-relaxed">
         {{ role.jd }}
@@ -255,12 +258,13 @@
           <option v-for="r in modalReasonOptions" :key="r" :value="r">{{ r }}</option>
         </select>
 
-        <div class="font-mono text-xs text-dim mb-1" data-testid="note-field">
+        <div class="font-mono text-xs text-dim mb-1">
           note <span class="text-dim">(optional)</span>
         </div>
         <input
           v-model="modalNote"
           class="w-full bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent mb-5"
+          data-testid="note-field"
         />
 
         <div v-if="modalError" class="font-mono text-danger text-xs mb-3">{{ modalError }}</div>
@@ -290,7 +294,7 @@
     >
       <div
         class="bg-panel border border-border rounded p-6 w-full max-w-2xl mx-4"
-        data-testid="delete-modal"
+        data-testid="export-modal"
       >
         <div class="font-mono text-sm font-semibold text-text mb-4">export role</div>
         <div class="flex gap-3 mb-4">
