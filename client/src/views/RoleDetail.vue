@@ -27,12 +27,15 @@
     <div class="mb-8">
       <div class="flex items-start gap-4">
         <div class="flex-1">
-          <h1 class="font-mono text-2xl font-semibold text-text mb-1">{{ role.company }}</h1>
-          <p class="font-mono text-dim text-base">{{ role.title }}</p>
+          <h1 class="font-mono text-2xl font-semibold text-text mb-1" data-testid="company-name">
+            {{ role.company }}
+          </h1>
+          <p class="font-mono text-dim text-base" data-testid="role-name">{{ role.title }}</p>
         </div>
         <span
           :class="statusClass(role.role_status)"
           class="px-3 py-1 rounded font-mono text-sm font-medium shrink-0"
+          data-testid="role-status-badge"
         >
           {{ role.role_status }}
         </span>
@@ -41,15 +44,15 @@
 
     <!-- Meta grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-panel border border-border rounded p-4">
+      <div class="bg-panel border border-border rounded p-4" data-testid="candidacy-card">
         <div class="font-mono text-xs text-dim mb-1">candidacy</div>
         <div class="font-mono text-sm text-text">{{ role.candidacy ?? '—' }}</div>
       </div>
-      <div class="bg-panel border border-border rounded p-4">
+      <div class="bg-panel border border-border rounded p-4" data-testid="applied-card">
         <div class="font-mono text-xs text-dim mb-1">applied</div>
         <div class="font-mono text-sm text-text">{{ role.applied_date ?? '—' }}</div>
       </div>
-      <div class="bg-panel border border-border rounded p-4">
+      <div class="bg-panel border border-border rounded p-4" data-testid="salary-card">
         <div class="font-mono text-xs text-dim mb-1">salary</div>
         <div class="font-mono text-sm text-text">
           {{ role.salary_min ? `$${(role.salary_min / 1000).toFixed(0)}K` : '?' }}
@@ -57,7 +60,7 @@
           {{ role.salary_max ? `$${(role.salary_max / 1000).toFixed(0)}K` : '?' }}
         </div>
       </div>
-      <div class="bg-panel border border-border rounded p-4">
+      <div class="bg-panel border border-border rounded p-4" data-testid="url-card">
         <div class="font-mono text-xs text-dim mb-1">url</div>
         <a
           v-if="role.url"
@@ -77,7 +80,7 @@
     </div>
 
     <!-- Update Status -->
-    <div class="bg-panel border border-border rounded p-4 mb-6">
+    <div class="bg-panel border border-border rounded p-4 mb-6" data-testid="update-status-card">
       <div class="font-mono text-xs text-dim mb-3">update status</div>
       <div class="flex gap-3 flex-wrap">
         <select
@@ -102,7 +105,11 @@
     </div>
 
     <!-- Skip Reasons -->
-    <div v-if="role.skip_reasons?.length" class="bg-panel border border-border rounded p-4 mb-6">
+    <div
+      v-if="role.skip_reasons?.length"
+      class="bg-panel border border-border rounded p-4 mb-6"
+      data-testid="skip-reasons-section"
+    >
       <div class="font-mono text-xs text-dim mb-3">skip reasons</div>
       <div
         v-for="sr in role.skip_reasons"
@@ -158,6 +165,7 @@
     <div
       v-if="role.termination_reasons?.length"
       class="bg-panel border border-border rounded p-4 mb-6"
+      data-testid="termination-reasons-section"
     >
       <div class="font-mono text-xs text-dim mb-3">termination reasons</div>
       <div
@@ -224,7 +232,10 @@
       v-if="showReasonModal"
       class="fixed inset-0 bg-surface/80 flex items-center justify-center z-50"
     >
-      <div class="bg-panel border border-border rounded p-6 w-full max-w-md mx-4">
+      <div
+        class="bg-panel border border-border rounded p-6 w-full max-w-md mx-4"
+        data-testid="reason-modal"
+      >
         <div class="font-mono text-sm font-semibold text-text mb-1">reason required</div>
         <div class="font-mono text-xs text-dim mb-5">provide at least one reason to continue</div>
 
@@ -244,12 +255,11 @@
           <option v-for="r in modalReasonOptions" :key="r" :value="r">{{ r }}</option>
         </select>
 
-        <div class="font-mono text-xs text-dim mb-1">
+        <div class="font-mono text-xs text-dim mb-1" data-testid="note-field">
           note <span class="text-dim">(optional)</span>
         </div>
         <input
           v-model="modalNote"
-          placeholder="optional note..."
           class="w-full bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent mb-5"
         />
 
@@ -278,7 +288,10 @@
       v-if="showExport"
       class="fixed inset-0 bg-surface/80 flex items-center justify-center z-50"
     >
-      <div class="bg-panel border border-border rounded p-6 w-full max-w-2xl mx-4">
+      <div
+        class="bg-panel border border-border rounded p-6 w-full max-w-2xl mx-4"
+        data-testid="delete-modal"
+      >
         <div class="font-mono text-sm font-semibold text-text mb-4">export role</div>
         <div class="flex gap-3 mb-4">
           <button
@@ -326,7 +339,10 @@
       v-if="showDelete"
       class="fixed inset-0 bg-surface/80 flex items-center justify-center z-50"
     >
-      <div class="bg-panel border border-border rounded p-6 w-full max-w-lg mx-4">
+      <div
+        class="bg-panel border border-border rounded p-6 w-full max-w-lg mx-4"
+        data-testid="delete-modal"
+      >
         <div class="font-mono text-sm font-semibold text-danger mb-4">
           delete role {{ role.id }}
         </div>

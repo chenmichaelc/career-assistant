@@ -3,55 +3,43 @@
     <h1 class="font-mono text-2xl font-semibold text-text mb-6">Add Role</h1>
 
     <div class="space-y-4">
-      <div>
-        <label class="font-mono text-xs text-dim block mb-1">company *</label>
-        <input v-model="form.company" class="input w-full" placeholder="Acme Corp" />
+      <div id="company-name-region">
+        <label class="font-mono text-xs text-dim block mb-1">Company Name *</label>
+        <input v-model="form.company" class="input w-full" />
       </div>
-      <div>
-        <label class="font-mono text-xs text-dim block mb-1">title *</label>
-        <input v-model="form.title" class="input w-full" placeholder="Senior QA Engineer" />
+      <div id="job-title-region">
+        <label class="font-mono text-xs text-dim block mb-1">Job Title *</label>
+        <input v-model="form.title" class="input w-full" />
       </div>
-      <div>
-        <label class="font-mono text-xs text-dim block mb-1">url *</label>
-        <input v-model="form.url" class="input w-full" placeholder="https://..." />
+      <div id="posting-url-region">
+        <label class="font-mono text-xs text-dim block mb-1">Posting URL *</label>
+        <input v-model="form.url" class="input w-full" />
       </div>
-      <div>
-        <label class="font-mono text-xs text-dim block mb-1">status *</label>
+      <div id="role-status-region">
+        <label class="font-mono text-xs text-dim block mb-1">Role Status *</label>
         <select v-model="form.role_status" class="input w-full">
-          <option v-for="s in VALID_STATUSES" :key="s" :value="s">{{ s }}</option>
+          <option v-for="status in VALID_STATUSES" :key="status" :value="status">
+            {{ status }}
+          </option>
         </select>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="font-mono text-xs text-dim block mb-1">salary min</label>
-          <input
-            v-model.number="form.salary_min"
-            type="number"
-            class="input w-full"
-            placeholder="110000"
-          />
+        <div id="salary-minimum-region">
+          <label class="font-mono text-xs text-dim block mb-1">Salary Minimum</label>
+          <input v-model.number="form.salary_min" type="number" class="input w-full" />
         </div>
-        <div>
-          <label class="font-mono text-xs text-dim block mb-1">salary max</label>
-          <input
-            v-model.number="form.salary_max"
-            type="number"
-            class="input w-full"
-            placeholder="130000"
-          />
+        <div id="salary-maximum-region">
+          <label class="font-mono text-xs text-dim block mb-1">Salary Maximum</label>
+          <input v-model.number="form.salary_max" type="number" class="input w-full" />
         </div>
       </div>
-      <div>
-        <label class="font-mono text-xs text-dim block mb-1">notes</label>
-        <input v-model="form.notes" class="input w-full" placeholder="Optional notes..." />
+      <div id="notes-region">
+        <label class="font-mono text-xs text-dim block mb-1">Notes</label>
+        <input v-model="form.notes" class="input w-full" />
       </div>
-      <div>
-        <label class="font-mono text-xs text-dim block mb-1">job description *</label>
-        <textarea
-          v-model="form.jd"
-          class="input w-full h-64 resize-y"
-          placeholder="Paste the full job description here..."
-        />
+      <div id="job-description-region">
+        <label class="font-mono text-xs text-dim block mb-1">Job Description *</label>
+        <textarea v-model="form.jd" class="input w-full h-64 resize-y" />
       </div>
 
       <div
