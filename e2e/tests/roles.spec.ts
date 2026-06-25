@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('Static smoke test of Default Page on Index', async ({ page }) => {
-  const indexPage = new RolesPage(page);
+  const rolesPage = new RolesPage(page);
 
   // Expect "Career Assistant" to be the page title
   await expect(page).toHaveTitle(/Career Assistant/);
@@ -18,18 +18,26 @@ test('Static smoke test of Default Page on Index', async ({ page }) => {
   await expect(page.getByText('career-assistant')).toBeVisible();
 
   // Expect all top menu items to appear on the index page
-  await expect(indexPage.topMenuBar.rolesLink).toBeVisible();
-  await expect(indexPage.topMenuBar.addLink).toBeVisible();
-  await expect(indexPage.topMenuBar.queryLink).toBeVisible();
-  await expect(indexPage.topMenuBar.backupButton).toBeVisible();
+  await expect(rolesPage.topMenuBar.rolesLink).toBeVisible();
+  await expect(rolesPage.topMenuBar.addLink).toBeVisible();
+  await expect(rolesPage.topMenuBar.queryLink).toBeVisible();
+  await expect(rolesPage.topMenuBar.backupButton).toBeVisible();
 
   // Expect key elements of Roles table header to appear on the index page
-  await expect(indexPage.rolesTableHeading).toBeVisible();
-  await expect(indexPage.searchButton).toBeVisible();
+  await expect(rolesPage.heading).toBeVisible();
+  await expect(rolesPage.searchButton).toBeVisible();
 });
 
-test('Top Menu Bar Query option takes user to Roles page', async ({ page }) => {
+test('Top Menu Bar Roles option takes user to Roles page', async ({ page }) => {
   const topMenuBarComponent = new TopMenuBarComponent(page);
-  await topMenuBarComponent.rolesLink.click();
-  await expect(page).toHaveURL('/');
+  const rolesPage = new RolesPage(page);
+
+  await test.step('Act: Click on Roles link in Navigation Menu', async () => {
+    await topMenuBarComponent.rolesLink.click();
+  });
+
+  await test.step('Assert: Check page redirected to Roles page; Roles page header appears', async () => {
+    await expect(page).toHaveURL('/');
+    await expect(rolesPage.heading).toBeVisible();
+  });
 });
