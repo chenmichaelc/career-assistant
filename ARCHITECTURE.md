@@ -85,10 +85,16 @@ career-assistant/
 │   ├── playwright.config.ts        # Playwright config — webServer, baseURL, reporters
 │   ├── tsconfig.json               # ESNext TypeScript config for Playwright
 │   ├── pages/
-│   │   ├── topMenuBarComponent.ts  # Shared nav bar component (data-testid scoped)
-│   │   └── rolesPage.ts            # Roles page object
+│   │   ├── topMenuBarComponent.ts  # Shared nav bar — data-testid scoped, getByRole within
+│   │   ├── rolesPage.ts            # Roles list page object
+│   │   ├── roleDetailPage.ts       # Role detail page object — zones + modals
+│   │   ├── addRolePage.ts          # Add role form page object
+│   │   └── sqlQueryPage.ts         # SQL query page object — toggle, textarea, results
 │   └── tests/
-│       └── smoke.spec.ts           # Smoke test — full stack connectivity
+│       ├── roles.spec.ts           # Roles list — smoke test, nav
+│       ├── roleDetail.spec.ts      # Role detail — smoke test
+│       ├── addRole.spec.ts         # Add role — smoke test, role creation E2E
+│       └── sqlQuery.spec.ts        # SQL query — smoke test, write mode behavior
 └── tests/
     ├── helpers/
     │   └── db.ts                   # createTestDb() — in-memory SQLite with schema
@@ -300,15 +306,26 @@ afterEach(async () => {
 
 ### E2E tests (`e2e/`)
 
-Playwright browser tests against the running application. The Page Object Model pattern is used throughout, with shared UI zones extracted into component classes:
+Playwright browser tests against the running application. The Page Object Model pattern is used throughout, with shared UI zones extracted into component classes.
+
+**Locator strategy** — `data-testid` attributes are placed on zone containers (modals, card sections, major page regions), not on individual interactive elements. Within a scoped container, natural ARIA role and name selectors are used:
 
 ```typescript
-// TopMenuBarComponent scopes locators to the data-testid="menu-bar" container
+// TopMenuBarComponent scopes all locators to the menu-bar zone
 this.topMenuBarContainer = page.getByTestId('menu-bar');
 this.rolesLink = this.topMenuBarContainer.getByRole('link', { name: 'roles' });
+
+// RoleDetailPage scopes interactive elements to their zone
+this.updateStatusCard = page.getByTestId('update-status-card');
+this.statusSelect = this.updateStatusCard.locator('select');
+this.updateStatusButton = this.updateStatusCard.getByRole('button', { name: 'update' });
 ```
 
-The `data-testid` attribute is placed on zone containers only — not on individual interactive elements. Natural ARIA role/name selectors are used within the scoped container.
+This avoids CSS class selectors and structural position selectors, which break on styling changes. `data-testid` on individual interactive elements is avoided — those are locatable by role and name without test-only attributes.
+
+**Test structure** — tests use `test.step()` with Arrange/Act/Assert labels. The `beforeEach` navigates to `/` before each test; individual tests navigate to their target page explicitly via the page object's `goto()` method.
+
+**Current coverage** — smoke tests on all four pages (RoleList, RoleDetail, AddRole, SqlQuery); role creation end-to-end with field verification on the detail page; write mode UI behavior on the SQL Query page; top menu bar navigation across all pages. Test data isolation (CAR-16) is not yet in place — tests that create roles write to the live database and do not clean up.
 
 ### The XP safety net
 
@@ -472,15 +489,26 @@ CAR-4 includes an explicit prerequisite decision (CAR-170): evaluate and select 
 
 ### CAR-5 — Data layer refactor
 
-Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**). The `lib/` orchestration layer has been refactored to compose from these modules (CAR-21, **complete** for orchestration and route layers):
+Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**). The `lib/` orchestration layer has been refactored to compose from these modules (CAR-21, **complete**):
 
 - `lib/deletes.ts`, `lib/roles.ts`, `lib/updates.ts` — refactored (CAR-162, CAR-163)
 - `server/routes/roles.ts` — refactored, N+1 eliminated (CAR-164)
 - CLI scripts layer retired (CAR-165, CAR-166)
 - Fastify `inject()` integration tests complete (CAR-167). The backup test is intentionally limited to HTTP contract verification pending CAR-104 and CAR-179.
-- Final SQL audit pending (CAR-168)
+- SQL audit passed cleanly (CAR-168) — no raw SQL outside `lib/db/`
 
-Remaining cleanup tracked separately under CAR-5: decoupling `lib/updates.ts` from `lib/args/` (CAR-173), moving vocabulary validation to the orchestration layer (CAR-178), resolving the `url` nullability mismatch between `RoleInsertData` and the schema (CAR-172).
+Remaining cleanup under CAR-5: decoupling `lib/updates.ts` from `lib/args/` (CAR-173), moving vocabulary validation to the orchestration layer (CAR-178), resolving the `url` nullability mismatch between `RoleInsertData` and the schema (CAR-172), and filling one-to-many test coverage gaps (CAR-22 subtasks).
+
+Note: `lib/args/update-args.ts` still exists and is still imported by `lib/updates.ts` and `server/routes/roles.ts`. It is a CLI artifact with no CLI consumers. Do not remove it until CAR-173 is implemented.
+
+### CAR-183 — Decompose RoleDetail.vue
+
+`RoleDetail.vue` has grown to ~620 lines with business logic co-located alongside UI state. Two categories of work are tracked under this epic:
+
+1. **Shared domain constants** — `REASON_REQUIRED_STATUSES` and the status-to-reason-vocabulary mapping are currently defined in the component. They are domain rules that belong in `lib/types.ts`, accessible to both server and client (CAR-184).
+2. **Composable extraction** — the script block will be decomposed into focused composables: `useStatusUpdate` (CAR-185), reason modal logic (CAR-186), `useAddReason` (CAR-187), and a `statusClass` utility extracted and unit-tested separately (CAR-188).
+
+This work does not change any API contracts. It is a client-side restructuring that improves testability and internal separation of concerns.
 
 ### CAR-32 — LLM-powered job market analysis
 

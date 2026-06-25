@@ -56,19 +56,25 @@ The feature set is intentionally modest relative to the engineering investment. 
 
 ## Currently working on
 
-**[CAR-21] Refactor `lib/` to orchestrate from `db/` modules**
+**[CAR-5] Data layer refactor — orchestration layer cleanup**
 
-Refactoring the data layer so that all business logic in `lib/` composes from the single-table modules in `lib/db/` instead of executing SQL directly. This included retiring the CLI scripts layer in favour of HTTP-level integration tests using Fastify's `inject()` method — a necessary step toward a more robust and realistic test suite that covers the actual integration paths the application uses (Vue → Fastify routes → `lib/` → SQLite), rather than a CLI layer that no longer reflects how the application is used in practice.
+CAR-21 (refactor `lib/` to orchestrate from `lib/db/`) is complete. The remaining CAR-5 work cleans up scar tissue left by the CLI-to-HTTP migration and fills test coverage gaps.
 
-**Subtasks:**
+**Open tickets:**
 
-- ~~CAR-162 — Refactor `lib/deletes.ts` to compose from `lib/db/` modules~~ ✓
-- ~~CAR-163 — Refactor `lib/roles.ts` to compose from `lib/db/` modules~~ ✓
-- ~~CAR-164 — Refactor `server/routes/roles.ts` to remove raw SQL and eliminate N+1 query pattern~~ ✓
-- ~~CAR-165 — Remove CLI scripts layer (except `init-db.ts`)~~ ✓
-- ~~CAR-166 — Remove CLI-based integration tests and `run-script.ts` helper~~ ✓
-- ~~CAR-167 — Write Fastify `inject()` integration tests for HTTP routes~~ ✓
-- CAR-168 — Audit codebase to confirm elimination of SQL outside `lib/db/`
+- CAR-173 — Decouple `lib/updates.ts` from `lib/args/` — define a caller-agnostic `UpdateRoleInput` type, remove the CLI-shaped `UpdateArgs` interface from the orchestration layer, delete `lib/args/` once empty. Prerequisite for CAR-50 and CAR-178.
+- CAR-178 — Move skip/termination reason vocabulary validation from `server/routes/roles.ts` into the orchestration layer, consistent with how status validation is handled.
+- CAR-172 — Resolve `url` field nullability mismatch between `RoleInsertData` (typed `string`) and the schema (`TEXT`, nullable).
+- CAR-22 — Fill test coverage gaps for one-to-many relationships (subtasks CAR-174 through CAR-177).
+- CAR-50 — Extend status transition to support multiple reasons with per-reason notes. Blocked on CAR-173 and CAR-178.
+
+---
+
+**[CAR-63] Playwright E2E — full workflow coverage**
+
+Page objects and smoke tests now cover all four pages (RoleList, RoleDetail, AddRole, SqlQuery). The POM pattern is established: `data-testid` on zone containers, `getByRole`/`getByTestId` within them — no structural or CSS-class-based locators.
+
+Behavioral coverage includes role creation with full field verification, write mode UI behavior on the SQL Query page, and top menu bar navigation across all pages. Remaining gaps: role detail behavioral flows (status update, export, delete modals), SQL query execution, and test data isolation (CAR-16).
 
 ---
 
@@ -129,24 +135,25 @@ Formatting and a full non-interactive test run are also enforced automatically o
 
 ## Milestones
 
-| Milestone                                                             | Status      |
-| --------------------------------------------------------------------- | ----------- |
-| SQLite schema, seed import, CLI data layer                            | Done        |
-| TypeScript migration, Vitest test suite                               | Done        |
-| Full CLI tooling (import, export, update, delete)                     | Done        |
-| Layered validation architecture                                       | Done        |
-| Unit and integration test suite                                       | Done        |
-| Vue 3 frontend + Fastify REST API                                     | Done        |
-| Frontend stabilization and bug fixes (CAR-2)                          | Done        |
-| Rename e2e → integration tests (CAR-14)                               | Done        |
-| Node.js upgrade to v24 (CAR-31)                                       | Done        |
-| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15) | Done        |
-| GitHub merge gate (CAR-56)                                            | Done        |
-| ESLint implementation across full codebase (CAR-37)                   | Done        |
-| Single-table data layer modules — `lib/db/` (CAR-20)                  | Done        |
-| Prettier formatting + automatic pre-commit enforcement (CAR-52)       | Done        |
-| CI/CD quality gates — lint as a merge gate (CAR-145)                  | Done        |
-| Data layer refactor — lib/ orchestrates from lib/db/ (CAR-21)         | In Progress |
+| Milestone                                                              | Status      |
+| ---------------------------------------------------------------------- | ----------- |
+| SQLite schema, seed import, CLI data layer                             | Done        |
+| TypeScript migration, Vitest test suite                                | Done        |
+| Full CLI tooling (import, export, update, delete)                      | Done        |
+| Layered validation architecture                                        | Done        |
+| Unit and integration test suite                                        | Done        |
+| Vue 3 frontend + Fastify REST API                                      | Done        |
+| Frontend stabilization and bug fixes (CAR-2)                           | Done        |
+| Rename e2e → integration tests (CAR-14)                                | Done        |
+| Node.js upgrade to v24 (CAR-31)                                        | Done        |
+| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15)  | Done        |
+| GitHub merge gate (CAR-56)                                             | Done        |
+| ESLint implementation across full codebase (CAR-37)                    | Done        |
+| Single-table data layer modules — `lib/db/` (CAR-20)                   | Done        |
+| Prettier formatting + automatic pre-commit enforcement (CAR-52)        | Done        |
+| CI/CD quality gates — lint as a merge gate (CAR-145)                   | Done        |
+| Data layer refactor — lib/ orchestrates from lib/db/ (CAR-21)          | Done        |
+| Playwright E2E — POM foundation + initial behavioral coverage (CAR-63) | In Progress |
 
 ---
 
@@ -158,7 +165,7 @@ Items in rough priority order. Backlog items are lower priority.
 Test database isolation via DB_PATH environment variable (CAR-16) to enable clean CI runs against an in-memory database. Splitting `test` into separate unit and integration scripts was considered during CAR-52's pre-commit setup, in anticipation of a future database migration (CAR-5) and a possible supplemental NoSQL store for job profile analysis (CAR-32) — deferred for now, since the current combined suite runs in seconds and the split would add maintenance surface without present benefit. Revisit when either migration becomes concrete.
 
 **Data layer refactor (CAR-5)** _(In Progress)_
-Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166). Fastify `inject()` integration tests covering the HTTP route layer are complete (CAR-167). A final audit to confirm complete elimination of SQL outside `lib/db/` closes the epic (CAR-168).
+Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21 — done), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167, CAR-168). Remaining work: decouple `lib/updates.ts` from the CLI-shaped `UpdateArgs` interface (CAR-173), move vocabulary validation into the orchestration layer (CAR-178), resolve `url` nullability mismatch (CAR-172), and fill one-to-many test coverage gaps (CAR-22 subtasks).
 
 **Observability — error logging and persistence (CAR-139)**
 Audit existing error handling across the codebase first (CAR-141), then implement consistent logging on the client (CAR-140) and server (CAR-72). Persist server logs to disk via Pino file transport (CAR-142). A full-stack persistent error store, spanning both client and server, is deferred until cloud migration planning begins (CAR-143).
@@ -166,8 +173,8 @@ Audit existing error handling across the codebase first (CAR-141), then implemen
 **Contextual status tracking (CAR-116)**
 Decompose the overloaded `role_status` field into separate triage status, application history status, and analysis status fields (CAR-118, CAR-119, CAR-120). Update filters and UI accordingly (CAR-117).
 
-**Playwright full workflow coverage (CAR-63)** _(blocked by CAR-15, CAR-16)_
-Roles list (CAR-64), role detail (CAR-65), add role (CAR-66), SQL query (CAR-67), backup (CAR-68).
+**Playwright full workflow coverage (CAR-63)** _(In Progress)_
+Page objects and smoke tests cover all four pages. Role creation is tested end-to-end with field verification. Write mode UI behavior is covered on the SQL Query page. Remaining: role detail behavioral flows (status update, export, delete modals), SQL query execution, and test data isolation (CAR-16). A new epic (CAR-183) tracks decomposition of `RoleDetail.vue` into composables, which will improve the testability of the detail page flows before those E2E tests are written.
 
 **Playwright test data management (CAR-91)**
 Fixture-based role creation and cleanup via semantic company name identification.
