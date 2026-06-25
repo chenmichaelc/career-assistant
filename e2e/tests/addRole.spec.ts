@@ -3,6 +3,7 @@
 import { test, expect } from '@playwright/test';
 import { AddRolePage } from '../pages/addRolePage';
 import { TopMenuBarComponent } from '../pages/topMenuBarComponent';
+import { RoleDetailPage } from '../pages/roleDetailPage';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -11,15 +12,13 @@ test.beforeEach(async ({ page }) => {
 test('Static smoke test of Add Role page', async ({ page }) => {
   const addRolePage = new AddRolePage(page);
 
-  await addRolePage.goto();
-
   await test.step('Arrange: Navigate to Add Roles Page', async () => {
     await addRolePage.goto();
-    await expect(addRolePage.heading).toBeVisible();
   });
 
   await test.step('Assert: Confirm static UI elements on initial page load', async () => {
     // Expect all required form fields to be present
+    await expect(addRolePage.heading).toBeVisible();
     await expect(addRolePage.companyNameField).toBeVisible();
     await expect(addRolePage.jobTitleField).toBeVisible();
     await expect(addRolePage.postingUrlField).toBeVisible();
@@ -52,6 +51,7 @@ test('Basic Roles can successfully be created', async ({ page }) => {
     jd: 'A great job.',
   };
   const addRolePage = new AddRolePage(page);
+  const roleDetailPage = new RoleDetailPage(page);
 
   await test.step('Arrange: Navigate to Add Roles Page', async () => {
     await addRolePage.goto();
@@ -66,8 +66,23 @@ test('Basic Roles can successfully be created', async ({ page }) => {
     await addRolePage.addRoleButton.click();
   });
 
-  await test.step('Assert: Confirm entries added correctly', async () => {
-    // TODO: Cross over to Role Detail and Assert there
+  await test.step('Assert: Confirm user is navigated to Role Details page', async () => {
+    await expect(roleDetailPage.backNavigationLink).toBeVisible();
+
+    // Expect the company heading and title to be present
+    await expect(roleDetailPage.companyNameHeading).toBeVisible();
+    await expect(roleDetailPage.roleNameText).toBeVisible();
+
+    // Expect the status badge to be visible
+    await expect(roleDetailPage.roleStatusBadge).toBeVisible();
+  });
+
+  await test.step('Assert: Confirm Entered Details are correctly display on the page', async () => {
+    await expect(roleDetailPage.companyNameHeading).toHaveText(baseRole.company);
+    await expect(roleDetailPage.roleNameText).toHaveText(baseRole.title);
+    await expect(roleDetailPage.urlCard.getByText(baseRole.url)).toBeVisible();
+    await expect(roleDetailPage.roleStatusBadge.getByText(baseRole.role_status)).toBeVisible();
+    await expect(roleDetailPage.jobDescriptionSection.getByText(baseRole.jd)).toBeVisible();
   });
 });
 
