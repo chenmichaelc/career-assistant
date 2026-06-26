@@ -13,8 +13,17 @@ import {
   VALID_SKIP_REASONS,
   VALID_TERMINATION_REASONS,
 } from './types';
-import { UpdateArgs } from './args/update-args';
 import { db } from './db';
+
+// ─── UpdateRoleInput ──────────────────────────────────────────────────────────
+
+export interface UpdateRoleInput {
+  id: number;
+  status: string;
+  reasons: string[];
+  termination: string[];
+  note?: string;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,22 +37,22 @@ function requireRole(sqlite: Database.Database, id: number): RoleRow {
   return role;
 }
 
-// ─── Syntactic validation (shape of input) ────────────────────────────────────
+// ─── Validation ───────────────────────────────────────────────────────────────
 
-export function validateUpdateFlags(flags: UpdateArgs): void {
+export function validateUpdateInput(input: UpdateRoleInput): void {
   const errors: string[] = [];
 
-  if (!flags.id || flags.id.trim() === '') {
-    errors.push('--id is required.');
+  if (!Number.isFinite(input.id) || input.id <= 0) {
+    errors.push('id must be a positive integer.');
   }
 
-  if (!flags.status || flags.status.trim() === '') {
-    errors.push('--status is required.');
-  } else if (!VALID_STATUSES.includes(flags.status.trim() as RoleStatus)) {
-    errors.push(`Invalid status: "${flags.status}". Valid values: ${VALID_STATUSES.join(', ')}.`);
+  if (!input.status || input.status.trim() === '') {
+    errors.push('status is required.');
+  } else if (!VALID_STATUSES.includes(input.status.trim() as RoleStatus)) {
+    errors.push(`Invalid status: "${input.status}". Valid values: ${VALID_STATUSES.join(', ')}.`);
   }
 
-  for (const reason of flags.reasons) {
+  for (const reason of input.reasons) {
     if (!VALID_SKIP_REASONS.includes(reason.trim() as SkipReasonType)) {
       errors.push(
         `Invalid skip reason: "${reason}". Valid values: ${VALID_SKIP_REASONS.join(', ')}.`
@@ -51,7 +60,7 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
     }
   }
 
-  for (const reason of flags.termination) {
+  for (const reason of input.termination) {
     if (!VALID_TERMINATION_REASONS.includes(reason.trim() as TerminationReasonType)) {
       errors.push(
         `Invalid termination reason: "${reason}". Valid values: ${VALID_TERMINATION_REASONS.join(', ')}.`
@@ -59,12 +68,12 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
     }
   }
 
-  if (flags.status?.trim() === 'Skipped' && flags.reasons.length === 0) {
-    errors.push('--reasons is required when status is Skipped.');
+  if (input.status?.trim() === 'Skipped' && input.reasons.length === 0) {
+    errors.push('reasons is required when status is Skipped.');
   }
 
-  if (flags.status?.trim() === 'Closed' && flags.termination.length === 0) {
-    errors.push('--termination is required when status is Closed.');
+  if (input.status?.trim() === 'Closed' && input.termination.length === 0) {
+    errors.push('termination is required when status is Closed.');
   }
 
   if (errors.length > 0) {
@@ -75,24 +84,22 @@ export function validateUpdateFlags(flags: UpdateArgs): void {
 
 // ─── updateRole ───────────────────────────────────────────────────────────────
 
-export function updateRole(sqlite: Database.Database, flags: UpdateArgs): RoleRow {
-  validateUpdateFlags(flags);
-
-  const roleId = Number(flags.id);
-  requireRole(sqlite, roleId);
+export function updateRole(sqlite: Database.Database, input: UpdateRoleInput): RoleRow {
+  validateUpdateInput(input);
+  requireRole(sqlite, input.id);
 
   const run = sqlite.transaction(() => {
-    db.roles.updateStatus(sqlite, roleId, flags.status!.trim());
+    db.roles.updateStatus(sqlite, input.id, input.status.trim());
 
-    for (const reason of flags.reasons) {
-      db.skipReasons.insert(sqlite, roleId, reason.trim(), flags.note ?? null);
+    for (const reason of input.reasons) {
+      db.skipReasons.insert(sqlite, input.id, reason.trim(), input.note ?? null);
     }
 
-    for (const reason of flags.termination) {
-      db.terminationReasons.insert(sqlite, roleId, reason.trim(), flags.note ?? null);
+    for (const reason of input.termination) {
+      db.terminationReasons.insert(sqlite, input.id, reason.trim(), input.note ?? null);
     }
   });
 
   run();
-  return db.roles.getById(sqlite, roleId)!;
+  return db.roles.getById(sqlite, input.id)!;
 }
