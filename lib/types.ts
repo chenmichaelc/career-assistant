@@ -138,3 +138,5 @@ export interface RoleRow {
   created_at: string;
   updated_at: string;
 }
+
+export type { RoleSortKey } from './db/roles.db';

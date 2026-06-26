@@ -20,7 +20,7 @@ import {
   VALID_TERMINATION_REASONS,
 } from '../../lib/types';
 import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
-import { RoleSortKey } from '../../lib/db/roles.db';
+import { RoleSortKey } from '../../lib/types';
 
 interface PluginOptions extends FastifyPluginOptions {
   db: Database.Database;
