@@ -2,7 +2,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../helpers/db';
-import { validateUpdateFlags, updateRole, UpdateRoleInput } from '../../lib/updates';
+import { validateUpdateInput, updateRole, UpdateRoleInput } from '../../lib/updates';
 import { addRole } from '../../lib/roles';
 import { RoleInput } from '../../lib/types';
 
@@ -27,19 +27,34 @@ afterEach(() => {
   db.close();
 });
 
-// ─── validateUpdateFlags ──────────────────────────────────────────────────────
+// ─── validateUpdateInput ──────────────────────────────────────────────────────
 
-describe('validateUpdateFlags — required fields', () => {
+describe('validateUpdateInput — required fields', () => {
+  test('throws when id is NaN', () => {
+    const input: UpdateRoleInput = { id: NaN, status: 'Applied', reasons: [], termination: [] };
+    expect(() => validateUpdateInput(input)).toThrow('id must be a positive integer');
+  });
+
+  test('throws when id is zero', () => {
+    const input: UpdateRoleInput = { id: 0, status: 'Applied', reasons: [], termination: [] };
+    expect(() => validateUpdateInput(input)).toThrow('id must be a positive integer');
+  });
+
+  test('throws when id is negative', () => {
+    const input: UpdateRoleInput = { id: -1, status: 'Applied', reasons: [], termination: [] };
+    expect(() => validateUpdateInput(input)).toThrow('id must be a positive integer');
+  });
+
   test('throws when status is empty string', () => {
     const input: UpdateRoleInput = { id: 1, status: '', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(input)).toThrow('status is required');
+    expect(() => validateUpdateInput(input)).toThrow('status is required');
   });
 });
 
-describe('validateUpdateFlags — vocabulary validation', () => {
+describe('validateUpdateInput — vocabulary validation', () => {
   test('throws on invalid status', () => {
     const input: UpdateRoleInput = { id: 1, status: 'InvalidStatus', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(input)).toThrow('Invalid status: "InvalidStatus"');
+    expect(() => validateUpdateInput(input)).toThrow('Invalid status: "InvalidStatus"');
   });
 
   test('throws on invalid skip reason', () => {
@@ -49,7 +64,7 @@ describe('validateUpdateFlags — vocabulary validation', () => {
       reasons: ['InvalidReason'],
       termination: [],
     };
-    expect(() => validateUpdateFlags(input)).toThrow('Invalid skip reason: "InvalidReason"');
+    expect(() => validateUpdateInput(input)).toThrow('Invalid skip reason: "InvalidReason"');
   });
 
   test('throws on invalid termination reason', () => {
@@ -59,7 +74,7 @@ describe('validateUpdateFlags — vocabulary validation', () => {
       reasons: [],
       termination: ['InvalidReason'],
     };
-    expect(() => validateUpdateFlags(input)).toThrow('Invalid termination reason: "InvalidReason"');
+    expect(() => validateUpdateInput(input)).toThrow('Invalid termination reason: "InvalidReason"');
   });
 
   test('accepts all valid statuses', () => {
@@ -77,20 +92,20 @@ describe('validateUpdateFlags — vocabulary validation', () => {
 
     for (const status of validStatuses) {
       const input: UpdateRoleInput = { id: 1, status, reasons: [], termination: [] };
-      expect(() => validateUpdateFlags(input)).not.toThrow();
+      expect(() => validateUpdateInput(input)).not.toThrow();
     }
   });
 });
 
-describe('validateUpdateFlags — contextual rules', () => {
+describe('validateUpdateInput — contextual rules', () => {
   test('throws when status is Skipped and reasons is empty', () => {
     const input: UpdateRoleInput = { id: 1, status: 'Skipped', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(input)).toThrow('reasons is required when status is Skipped');
+    expect(() => validateUpdateInput(input)).toThrow('reasons is required when status is Skipped');
   });
 
   test('throws when status is Closed and termination is empty', () => {
     const input: UpdateRoleInput = { id: 1, status: 'Closed', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(input)).toThrow(
+    expect(() => validateUpdateInput(input)).toThrow(
       'termination is required when status is Closed'
     );
   });
@@ -102,7 +117,7 @@ describe('validateUpdateFlags — contextual rules', () => {
       reasons: ['Location'],
       termination: [],
     };
-    expect(() => validateUpdateFlags(input)).not.toThrow();
+    expect(() => validateUpdateInput(input)).not.toThrow();
   });
 
   test('passes when status is Closed and termination is provided', () => {
@@ -112,7 +127,7 @@ describe('validateUpdateFlags — contextual rules', () => {
       reasons: [],
       termination: ['Screened Out'],
     };
-    expect(() => validateUpdateFlags(input)).not.toThrow();
+    expect(() => validateUpdateInput(input)).not.toThrow();
   });
 });
 

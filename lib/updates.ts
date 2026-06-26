@@ -39,8 +39,12 @@ function requireRole(sqlite: Database.Database, id: number): RoleRow {
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-export function validateUpdateFlags(input: UpdateRoleInput): void {
+export function validateUpdateInput(input: UpdateRoleInput): void {
   const errors: string[] = [];
+
+  if (!Number.isFinite(input.id) || input.id <= 0) {
+    errors.push('id must be a positive integer.');
+  }
 
   if (!input.status || input.status.trim() === '') {
     errors.push('status is required.');
@@ -81,7 +85,7 @@ export function validateUpdateFlags(input: UpdateRoleInput): void {
 // ─── updateRole ───────────────────────────────────────────────────────────────
 
 export function updateRole(sqlite: Database.Database, input: UpdateRoleInput): RoleRow {
-  validateUpdateFlags(input);
+  validateUpdateInput(input);
   requireRole(sqlite, input.id);
 
   const run = sqlite.transaction(() => {
