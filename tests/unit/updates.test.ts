@@ -2,8 +2,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../helpers/db';
-import { validateUpdateFlags, updateRole } from '../../lib/updates';
-import { UpdateArgs } from '../../lib/args/update-args';
+import { validateUpdateFlags, updateRole, UpdateRoleInput } from '../../lib/updates';
 import { addRole } from '../../lib/roles';
 import { RoleInput } from '../../lib/types';
 
@@ -31,51 +30,36 @@ afterEach(() => {
 // ─── validateUpdateFlags ──────────────────────────────────────────────────────
 
 describe('validateUpdateFlags — required fields', () => {
-  test('throws when id is missing', () => {
-    const flags: UpdateArgs = { reasons: [], termination: [], status: 'Applied' };
-    expect(() => validateUpdateFlags(flags)).toThrow('--id is required');
-  });
-
-  test('throws when id is empty string', () => {
-    const flags: UpdateArgs = { id: '', reasons: [], termination: [], status: 'Applied' };
-    expect(() => validateUpdateFlags(flags)).toThrow('--id is required');
-  });
-
-  test('throws when status is missing', () => {
-    const flags: UpdateArgs = { id: '1', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(flags)).toThrow('--status is required');
-  });
-
   test('throws when status is empty string', () => {
-    const flags: UpdateArgs = { id: '1', status: '', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(flags)).toThrow('--status is required');
+    const input: UpdateRoleInput = { id: 1, status: '', reasons: [], termination: [] };
+    expect(() => validateUpdateFlags(input)).toThrow('status is required');
   });
 });
 
 describe('validateUpdateFlags — vocabulary validation', () => {
   test('throws on invalid status', () => {
-    const flags: UpdateArgs = { id: '1', status: 'InvalidStatus', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(flags)).toThrow('Invalid status: "InvalidStatus"');
+    const input: UpdateRoleInput = { id: 1, status: 'InvalidStatus', reasons: [], termination: [] };
+    expect(() => validateUpdateFlags(input)).toThrow('Invalid status: "InvalidStatus"');
   });
 
   test('throws on invalid skip reason', () => {
-    const flags: UpdateArgs = {
-      id: '1',
+    const input: UpdateRoleInput = {
+      id: 1,
       status: 'Skipped',
       reasons: ['InvalidReason'],
       termination: [],
     };
-    expect(() => validateUpdateFlags(flags)).toThrow('Invalid skip reason: "InvalidReason"');
+    expect(() => validateUpdateFlags(input)).toThrow('Invalid skip reason: "InvalidReason"');
   });
 
   test('throws on invalid termination reason', () => {
-    const flags: UpdateArgs = {
-      id: '1',
+    const input: UpdateRoleInput = {
+      id: 1,
       status: 'Closed',
       reasons: [],
       termination: ['InvalidReason'],
     };
-    expect(() => validateUpdateFlags(flags)).toThrow('Invalid termination reason: "InvalidReason"');
+    expect(() => validateUpdateFlags(input)).toThrow('Invalid termination reason: "InvalidReason"');
   });
 
   test('accepts all valid statuses', () => {
@@ -92,45 +76,43 @@ describe('validateUpdateFlags — vocabulary validation', () => {
     ];
 
     for (const status of validStatuses) {
-      const flags: UpdateArgs = { id: '1', status, reasons: [], termination: [] };
-      expect(() => validateUpdateFlags(flags)).not.toThrow();
+      const input: UpdateRoleInput = { id: 1, status, reasons: [], termination: [] };
+      expect(() => validateUpdateFlags(input)).not.toThrow();
     }
   });
 });
 
 describe('validateUpdateFlags — contextual rules', () => {
   test('throws when status is Skipped and reasons is empty', () => {
-    const flags: UpdateArgs = { id: '1', status: 'Skipped', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(flags)).toThrow(
-      '--reasons is required when status is Skipped'
-    );
+    const input: UpdateRoleInput = { id: 1, status: 'Skipped', reasons: [], termination: [] };
+    expect(() => validateUpdateFlags(input)).toThrow('reasons is required when status is Skipped');
   });
 
   test('throws when status is Closed and termination is empty', () => {
-    const flags: UpdateArgs = { id: '1', status: 'Closed', reasons: [], termination: [] };
-    expect(() => validateUpdateFlags(flags)).toThrow(
-      '--termination is required when status is Closed'
+    const input: UpdateRoleInput = { id: 1, status: 'Closed', reasons: [], termination: [] };
+    expect(() => validateUpdateFlags(input)).toThrow(
+      'termination is required when status is Closed'
     );
   });
 
   test('passes when status is Skipped and reasons is provided', () => {
-    const flags: UpdateArgs = {
-      id: '1',
+    const input: UpdateRoleInput = {
+      id: 1,
       status: 'Skipped',
       reasons: ['Location'],
       termination: [],
     };
-    expect(() => validateUpdateFlags(flags)).not.toThrow();
+    expect(() => validateUpdateFlags(input)).not.toThrow();
   });
 
   test('passes when status is Closed and termination is provided', () => {
-    const flags: UpdateArgs = {
-      id: '1',
+    const input: UpdateRoleInput = {
+      id: 1,
       status: 'Closed',
       reasons: [],
       termination: ['Screened Out'],
     };
-    expect(() => validateUpdateFlags(flags)).not.toThrow();
+    expect(() => validateUpdateFlags(input)).not.toThrow();
   });
 });
 
@@ -139,16 +121,16 @@ describe('validateUpdateFlags — contextual rules', () => {
 describe('updateRole', () => {
   test('updates role_status correctly', () => {
     const id = addRole(db, baseRole);
-    const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
-    const role = updateRole(db, flags);
+    const input: UpdateRoleInput = { id, status: 'Applied', reasons: [], termination: [] };
+    const role = updateRole(db, input);
     expect(role.role_status).toBe('Applied');
   });
 
   test('sets applied_date when transitioning to Applied and no date exists', () => {
     const id = addRole(db, baseRole);
-    const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
+    const input: UpdateRoleInput = { id, status: 'Applied', reasons: [], termination: [] };
 
-    updateRole(db, flags);
+    updateRole(db, input);
 
     const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
       string,
@@ -160,9 +142,9 @@ describe('updateRole', () => {
   test('preserves existing applied_date when transitioning to Applied', () => {
     const roleWithDate: RoleInput = { ...baseRole, applied_date: '2024-01-15' };
     const id = addRole(db, roleWithDate);
-    const flags: UpdateArgs = { id: String(id), status: 'Applied', reasons: [], termination: [] };
+    const input: UpdateRoleInput = { id, status: 'Applied', reasons: [], termination: [] };
 
-    updateRole(db, flags);
+    updateRole(db, input);
 
     const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
       string,
@@ -173,9 +155,9 @@ describe('updateRole', () => {
 
   test('does not set applied_date when transitioning to a non-Applied status', () => {
     const id = addRole(db, baseRole);
-    const flags: UpdateArgs = { id: String(id), status: 'On Hold', reasons: [], termination: [] };
+    const input: UpdateRoleInput = { id, status: 'On Hold', reasons: [], termination: [] };
 
-    updateRole(db, flags);
+    updateRole(db, input);
 
     const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
       string,
@@ -186,15 +168,15 @@ describe('updateRole', () => {
 
   test('inserts skip reasons correctly', () => {
     const id = addRole(db, baseRole);
-    const flags: UpdateArgs = {
-      id: String(id),
+    const input: UpdateRoleInput = {
+      id,
       status: 'Skipped',
       reasons: ['Location', 'Compensation'],
       termination: [],
       note: 'Austin in-office; below floor',
     };
 
-    updateRole(db, flags);
+    updateRole(db, input);
 
     const reasons = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').all(id) as Record<
       string,
@@ -208,14 +190,14 @@ describe('updateRole', () => {
 
   test('inserts termination reasons correctly', () => {
     const id = addRole(db, baseRole);
-    const flags: UpdateArgs = {
-      id: String(id),
+    const input: UpdateRoleInput = {
+      id,
       status: 'Closed',
       reasons: [],
       termination: ['Screened Out'],
     };
 
-    updateRole(db, flags);
+    updateRole(db, input);
 
     const reasons = db
       .prepare('SELECT * FROM termination_reasons WHERE role_id = ?')
@@ -226,14 +208,14 @@ describe('updateRole', () => {
 
   test('throws on invalid flags without touching DB', () => {
     const id = addRole(db, baseRole);
-    const flags: UpdateArgs = {
-      id: String(id),
+    const input: UpdateRoleInput = {
+      id,
       status: 'InvalidStatus',
       reasons: [],
       termination: [],
     };
 
-    expect(() => updateRole(db, flags)).toThrow();
+    expect(() => updateRole(db, input)).toThrow();
 
     const role = db.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<
       string,
