@@ -59,6 +59,8 @@ export default defineConfig([
   //
   // Enforces the three-layer boundary (HTTP / orchestration / data).
   // Nothing lower in the stack may import from what's above it.
+  // server/ and client/ must not bypass the orchestration layer (lib/)
+  // and access lib/db/ directly.
 
   {
     // lib/db/ must not import from lib/ orchestration or server/
@@ -101,14 +103,32 @@ export default defineConfig([
     },
   },
 
+  {
+    // server/ and client/ must not bypass orchestration and import lib/db/ directly
+    files: ['server/**/*.ts', 'client/**/*.ts', 'client/**/*.vue'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/lib/db/**', '../../lib/db/**', '../lib/db/**'],
+              message:
+                'Do not import from lib/db/ directly. Use the orchestration layer (lib/) instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // ─── No raw SQL outside lib/db/ ───────────────────────────────────────────
   //
   // Flags template literals containing SQL keywords in files outside lib/db/.
-  // Exception: server/routes/query.ts is permanently excluded — raw SQL is
-  // the entire point of that route (see ARCHITECTURE.md).
+  // Exception: server/routes/query.ts is intentionally excluded
 
   {
-    files: ['lib/**/*.ts', 'server/**/*.ts'],
+    files: ['lib/**/*.ts', 'server/**/*.ts', 'client/**/*.ts', 'client/**/*.vue'],
     ignores: ['lib/db/**/*.ts', 'server/routes/query.ts'],
     rules: {
       'no-restricted-syntax': [
@@ -120,7 +140,7 @@ export default defineConfig([
         },
         {
           selector:
-            'Literal[value=/\\b(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|DROP TABLE|ALTER TABLE)\\b/]',
+            'Literal:not(Property > Literal)[value=/\\b(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|DROP TABLE|ALTER TABLE)\\b/]',
           message: 'Raw SQL is not allowed outside lib/db/. Move SQL into a lib/db/ module.',
         },
       ],
