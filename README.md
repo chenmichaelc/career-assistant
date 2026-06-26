@@ -58,15 +58,14 @@ The feature set is intentionally modest relative to the engineering investment. 
 
 **[CAR-5] Data layer refactor — orchestration layer cleanup**
 
-CAR-21 (refactor `lib/` to orchestrate from `lib/db/`) is complete. The remaining CAR-5 work cleans up scar tissue left by the CLI-to-HTTP migration and fills test coverage gaps.
+CAR-21 and CAR-173 are complete. The remaining CAR-5 work moves vocabulary validation into the orchestration layer and fills test coverage gaps.
 
 **Open tickets:**
 
-- CAR-173 — Decouple `lib/updates.ts` from `lib/args/` — define a caller-agnostic `UpdateRoleInput` type, remove the CLI-shaped `UpdateArgs` interface from the orchestration layer, delete `lib/args/` once empty. Prerequisite for CAR-50 and CAR-178.
 - CAR-178 — Move skip/termination reason vocabulary validation from `server/routes/roles.ts` into the orchestration layer, consistent with how status validation is handled.
 - CAR-172 — Resolve `url` field nullability mismatch between `RoleInsertData` (typed `string`) and the schema (`TEXT`, nullable).
 - CAR-22 — Fill test coverage gaps for one-to-many relationships (subtasks CAR-174 through CAR-177).
-- CAR-50 — Extend status transition to support multiple reasons with per-reason notes. Blocked on CAR-173 and CAR-178.
+- CAR-50 — Extend status transition to support multiple reasons with per-reason notes. Blocked on CAR-178.
 
 ---
 
@@ -153,6 +152,8 @@ Formatting and a full non-interactive test run are also enforced automatically o
 | Prettier formatting + automatic pre-commit enforcement (CAR-52)        | Done        |
 | CI/CD quality gates — lint as a merge gate (CAR-145)                   | Done        |
 | Data layer refactor — lib/ orchestrates from lib/db/ (CAR-21)          | Done        |
+| CAR-173 — Removal of legacy CLI data access layer                      | Done        |
+| ESLint layer boundary and test quality rules (CAR-193)                 | Done        |
 | Playwright E2E — POM foundation + initial behavioral coverage (CAR-63) | In Progress |
 
 ---
@@ -165,7 +166,7 @@ Items in rough priority order. Backlog items are lower priority.
 Test database isolation via DB_PATH environment variable (CAR-16) to enable clean CI runs against an in-memory database. Splitting `test` into separate unit and integration scripts was considered during CAR-52's pre-commit setup, in anticipation of a future database migration (CAR-5) and a possible supplemental NoSQL store for job profile analysis (CAR-32) — deferred for now, since the current combined suite runs in seconds and the split would add maintenance surface without present benefit. Revisit when either migration becomes concrete.
 
 **Data layer refactor (CAR-5)** _(In Progress)_
-Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21 — done), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167, CAR-168). Remaining work: decouple `lib/updates.ts` from the CLI-shaped `UpdateArgs` interface (CAR-173), move vocabulary validation into the orchestration layer (CAR-178), resolve `url` nullability mismatch (CAR-172), and fill one-to-many test coverage gaps (CAR-22 subtasks).
+Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21 — done), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167, CAR-168). CAR-173 is complete — `UpdateArgs` is gone, `lib/args/` is deleted, and `lib/updates.ts` now accepts the caller-agnostic `UpdateRoleInput`. Remaining work: move vocabulary validation into the orchestration layer (CAR-178), resolve `url` nullability mismatch (CAR-172), and fill one-to-many test coverage gaps (CAR-22 subtasks).
 
 **Observability — error logging and persistence (CAR-139)**
 Audit existing error handling across the codebase first (CAR-141), then implement consistent logging on the client (CAR-140) and server (CAR-72). Persist server logs to disk via Pino file transport (CAR-142). A full-stack persistent error store, spanning both client and server, is deferred until cloud migration planning begins (CAR-143).

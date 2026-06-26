@@ -42,6 +42,7 @@ career-assistant/
 │   ├── roles.ts                    # Role insertion with validation
 │   ├── updates.ts                  # Status update validation + orchestration
 │   ├── deletes.ts                  # Delete operations with FK awareness
+│   ├── admin.ts                    # Admin/test-support orchestration (cleanup)
 │   ├── parse-records.ts            # Plain-text import format parser
 │   ├── db/                         # Single-table CRUD modules
 │   │   ├── index.ts                # db namespace — aggregates all modules for callers
@@ -49,12 +50,10 @@ career-assistant/
 │   │   ├── skip-reasons.db.ts
 │   │   ├── termination-reasons.db.ts
 │   │   └── job-descriptions.db.ts
-│   ├── exporters/
-│   │   ├── index.ts                # Export entry point + format type
-│   │   ├── simple.ts               # company + title + JD format
-│   │   └── rich.ts                 # Importer-compatible format
-│   └── args/
-│       └── update-args.ts          # CLI argument parser — pending removal (CAR-173)
+│   └── exporters/
+│       ├── index.ts                # Export entry point + format type
+│       ├── simple.ts               # company + title + JD format
+│       └── rich.ts                 # Importer-compatible format
 ├── scripts/
 │   └── init-db.ts                  # One-time DB initialization — calls applySchema() only
 ├── server/
@@ -63,7 +62,8 @@ career-assistant/
 │   └── routes/
 │       ├── roles.ts                # Role CRUD, status updates, reason management
 │       ├── query.ts                # Raw SQL query endpoint
-│       └── backup.ts               # DB backup endpoint
+│       ├── backup.ts               # DB backup endpoint
+│       └── admin.ts                # Admin endpoints (cleanup)
 ├── client/
 │   ├── tsconfig.json               # Thin reference file — points to app and node configs
 │   ├── tsconfig.app.json           # Browser-targeted TypeScript config for src/
@@ -71,10 +71,13 @@ career-assistant/
 │   ├── vite.config.ts              # Vite config with Vue plugin + API proxy
 │   └── src/
 │       ├── main.ts                 # Vue app entry point
-│       ├── App.vue                 # Root component — nav bar + router view
+│       ├── App.vue                 # Root component — nav bar, admin dropdown, router view
 │       ├── constants.ts            # Frontend vocabulary constants
+│       ├── components/
+│       │   └── ConfirmModal.vue    # Reusable confirm modal
 │       ├── composables/
-│       │   └── useApi.ts           # Typed fetch wrapper with error handling
+│       │   ├── useApi.ts           # Typed fetch wrapper with error handling
+│       │   └── useConfirmModal.ts  # Promise-based modal state composable
 │       └── views/
 │           ├── RoleList.vue        # Role list with multi-select filter + column sort
 │           ├── RoleDetail.vue      # Role detail, status updates, reason management
@@ -84,6 +87,8 @@ career-assistant/
 │   ├── package.json                # E2E-scoped dependencies
 │   ├── playwright.config.ts        # Playwright config — webServer, baseURL, reporters
 │   ├── tsconfig.json               # ESNext TypeScript config for Playwright
+│   ├── fixtures/
+│   │   └── roles.ts                # Role fixtures + TEST_COMPANIES list
 │   ├── pages/
 │   │   ├── topMenuBarComponent.ts  # Shared nav bar — data-testid scoped, getByRole within
 │   │   ├── rolesPage.ts            # Roles list page object
@@ -133,11 +138,11 @@ HTTP routes (server/routes/)     Tests (tests/)
 
 **Boundary rules**
 
-- The HTTP layer may call the orchestration layer and the data layer directly. It never contains business logic.
+- The HTTP layer may call the orchestration layer. It must not import from `lib/db/` directly — all data access goes through `lib/`.
 - The orchestration layer may call the data layer. It never knows about HTTP.
 - The data layer is table-scoped and stateless. It never calls up to the orchestration layer.
 
-All business logic lives in `lib/` with no I/O dependencies. Scripts, server routes, and tests are all callers of the same `lib/` functions.
+These boundaries are enforced by ESLint rules in `eslint.config.mts`
 
 ---
 
@@ -496,10 +501,9 @@ Single-table CRUD operations have been extracted into dedicated modules under `l
 - CLI scripts layer retired (CAR-165, CAR-166)
 - Fastify `inject()` integration tests complete (CAR-167). The backup test is intentionally limited to HTTP contract verification pending CAR-104 and CAR-179.
 - SQL audit passed cleanly (CAR-168) — no raw SQL outside `lib/db/`
+- `UpdateArgs` decoupled, `lib/args/` deleted (CAR-173, **complete**)
 
-Remaining cleanup under CAR-5: decoupling `lib/updates.ts` from `lib/args/` (CAR-173), moving vocabulary validation to the orchestration layer (CAR-178), resolving the `url` nullability mismatch between `RoleInsertData` and the schema (CAR-172), and filling one-to-many test coverage gaps (CAR-22 subtasks).
-
-Note: `lib/args/update-args.ts` still exists and is still imported by `lib/updates.ts` and `server/routes/roles.ts`. It is a CLI artifact with no CLI consumers. Do not remove it until CAR-173 is implemented.
+Remaining cleanup under CAR-5: moving vocabulary validation into the orchestration layer (CAR-178), resolving the `url` nullability mismatch between `RoleInsertData` and the schema (CAR-172), and filling one-to-many test coverage gaps (CAR-22 subtasks).
 
 ### CAR-183 — Decompose RoleDetail.vue
 
