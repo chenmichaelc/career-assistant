@@ -4,12 +4,11 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
 import { deleteRole } from '../../lib/deletes';
+import { TEST_COMPANIES } from '../../e2e/fixtures/roles';
 
 interface PluginOptions extends FastifyPluginOptions {
   db: Database.Database;
 }
-
-const TEST_COMPANIES = ['Acme', 'Acme Corp', 'Beta Corp'];
 
 export async function adminRouter(fastify: FastifyInstance, options: PluginOptions) {
   const sqlite = options.db;
