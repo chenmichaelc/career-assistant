@@ -41,6 +41,6 @@ test('Static smoke test of Role Detail page', async ({ page }) => {
     await expect(roleDetailPage.topMenuBar.rolesLink).toBeVisible();
     await expect(roleDetailPage.topMenuBar.addLink).toBeVisible();
     await expect(roleDetailPage.topMenuBar.queryLink).toBeVisible();
-    await expect(roleDetailPage.topMenuBar.backupButton).toBeVisible();
+    await expect(roleDetailPage.topMenuBar.adminMenuButton).toBeVisible();
   });
 });

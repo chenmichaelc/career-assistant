@@ -1,3 +1,4 @@
+<!-- client/src/App.vue -->
 <template>
   <div class="min-h-screen bg-surface">
     <nav
@@ -48,7 +49,7 @@
             </button>
             <button
               @click="
-                cleanup();
+                requestCleanup();
                 showAdmin = false;
               "
               class="block w-full text-left px-4 py-2 font-mono text-sm text-dim hover:text-danger hover:bg-surface transition-colors"
@@ -63,19 +64,32 @@
       <router-view />
     </main>
     <div
-      v-if="backupMsg"
+      v-if="statusMsg"
       class="fixed bottom-4 right-4 bg-panel border border-success text-success font-mono text-sm px-4 py-2 rounded"
     >
-      {{ backupMsg }}
+      {{ statusMsg }}
     </div>
+
+    <ConfirmModal
+      :isOpen="confirmModal.isOpen.value"
+      :title="confirmModal.title.value"
+      :message="confirmModal.message.value"
+      confirmLabel="delete"
+      @confirm="confirmModal.confirm"
+      @cancel="confirmModal.cancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import ConfirmModal from './components/ConfirmModal.vue';
+import { useConfirmModal } from './composables/useConfirmModal';
+import { TEST_COMPANIES } from '../../e2e/fixtures/roles';
 
-const backupMsg = ref('');
+const statusMsg = ref('');
 const showAdmin = ref(false);
+const confirmModal = useConfirmModal();
 
 function handleClickOutside(e: MouseEvent) {
   const menu = document.querySelector('[data-testid="admin-menu"]');
@@ -87,35 +101,37 @@ function handleClickOutside(e: MouseEvent) {
 onMounted(() => document.addEventListener('click', handleClickOutside));
 onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 
+function toast(msg: string) {
+  statusMsg.value = msg;
+  setTimeout(() => (statusMsg.value = ''), 4000);
+}
+
 async function backup() {
   try {
     const res = await fetch('/api/backup', { method: 'POST' });
     const data = await res.json();
-    backupMsg.value = `Backup saved: ${data.timestamp}`;
-    setTimeout(() => (backupMsg.value = ''), 4000);
+    toast(`Backup saved: ${data.timestamp}`);
   } catch (err) {
     console.error('[backup] failed:', err);
-    backupMsg.value = 'Backup failed.';
-    setTimeout(() => (backupMsg.value = ''), 4000);
+    toast('Backup failed.');
   }
 }
 
-async function cleanup() {
-  if (
-    !confirm(
-      'This will permanently delete all roles with company names used for test data (Acme, Acme Corp, Beta Corp) and their dependents. Continue?'
-    )
-  )
-    return;
+async function requestCleanup() {
+  const confirmed = await confirmModal.prompt(
+    'cleanup test data',
+    `This will permanently delete all roles with company names used for test data (${TEST_COMPANIES.join(', ')}) and their dependents. This cannot be undone.`
+  );
+
+  if (!confirmed) return;
+
   try {
     const res = await fetch('/api/admin/cleanup', { method: 'POST' });
     const data = await res.json();
-    backupMsg.value = `Cleanup complete: ${data.count} role(s) deleted.`;
-    setTimeout(() => (backupMsg.value = ''), 4000);
+    toast(`Cleanup complete: ${data.count} role(s) deleted.`);
   } catch (err) {
     console.error('[cleanup] failed:', err);
-    backupMsg.value = 'Cleanup failed.';
-    setTimeout(() => (backupMsg.value = ''), 4000);
+    toast('Cleanup failed.');
   }
 }
 </script>
