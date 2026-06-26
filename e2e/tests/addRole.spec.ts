@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test';
 import { AddRolePage } from '../pages/addRolePage';
 import { TopMenuBarComponent } from '../pages/topMenuBarComponent';
 import { RoleDetailPage } from '../pages/roleDetailPage';
+import { baseRole } from '../fixtures/roles';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -38,18 +39,11 @@ test('Static smoke test of Add Role page', async ({ page }) => {
     await expect(addRolePage.topMenuBar.rolesLink).toBeVisible();
     await expect(addRolePage.topMenuBar.addLink).toBeVisible();
     await expect(addRolePage.topMenuBar.queryLink).toBeVisible();
-    await expect(addRolePage.topMenuBar.backupButton).toBeVisible();
+    await expect(addRolePage.topMenuBar.adminMenuButton).toBeVisible();
   });
 });
 
 test('Basic Roles can successfully be created', async ({ page }) => {
-  const baseRole = {
-    company: 'Acme Corp',
-    title: 'Software Engineer',
-    url: 'https://example.com/job/1',
-    role_status: 'Pending Triage',
-    jd: 'A great job.',
-  };
   const addRolePage = new AddRolePage(page);
   const roleDetailPage = new RoleDetailPage(page);
 
@@ -68,16 +62,12 @@ test('Basic Roles can successfully be created', async ({ page }) => {
 
   await test.step('Assert: Confirm user is navigated to Role Details page', async () => {
     await expect(roleDetailPage.backNavigationLink).toBeVisible();
-
-    // Expect the company heading and title to be present
     await expect(roleDetailPage.companyNameHeading).toBeVisible();
     await expect(roleDetailPage.roleNameText).toBeVisible();
-
-    // Expect the status badge to be visible
     await expect(roleDetailPage.roleStatusBadge).toBeVisible();
   });
 
-  await test.step('Assert: Confirm Entered Details are correctly display on the page', async () => {
+  await test.step('Assert: Confirm Entered Details are correctly displayed on the page', async () => {
     await expect(roleDetailPage.companyNameHeading).toHaveText(baseRole.company);
     await expect(roleDetailPage.roleNameText).toHaveText(baseRole.title);
     await expect(roleDetailPage.urlCard.getByText(baseRole.url)).toBeVisible();
