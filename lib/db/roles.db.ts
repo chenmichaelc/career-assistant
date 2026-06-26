@@ -23,9 +23,9 @@ export function insertRole(sqlite: Database.Database, data: RoleInsertData): num
   const result = sqlite
     .prepare(
       `
-            INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
-            VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
-          `
+                INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
+                VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
+            `
     )
     .run({
       company: data.company,
@@ -50,11 +50,11 @@ export function getAll(
   sortOrder: 'ASC' | 'DESC' = 'DESC'
 ): RoleRow[] {
   let query = `
-    SELECT id, company, title, url, role_status, candidacy,
-           applied_date, salary_min, salary_max, notes, created_at, updated_at
-    FROM roles
-    WHERE 1=1
-  `;
+        SELECT id, company, title, url, role_status, candidacy,
+               applied_date, salary_min, salary_max, notes, created_at, updated_at
+        FROM roles
+        WHERE 1=1
+    `;
   const params: (string | number)[] = [];
 
   if (statuses.length > 0) {
@@ -77,11 +77,11 @@ export function getById(sqlite: Database.Database, id: number): RoleRow | undefi
   return sqlite
     .prepare(
       `
-            SELECT id, company, title, url, role_status, candidacy, applied_date,
-                   salary_min, salary_max, notes, created_at, updated_at
-            FROM roles
-            WHERE id = ?
-          `
+                SELECT id, company, title, url, role_status, candidacy, applied_date,
+                       salary_min, salary_max, notes, created_at, updated_at
+                FROM roles
+                WHERE id = ?
+            `
     )
     .get(id) as RoleRow | undefined;
 }
@@ -94,20 +94,36 @@ export function updateStatus(
   return sqlite
     .prepare(
       `
-        UPDATE roles
-        SET role_status  = @role_status,
-            applied_date = CASE
-              WHEN @role_status = 'Applied' AND applied_date IS NULL
-              THEN date('now')
-              ELSE applied_date
-            END,
-            updated_at   = datetime('now')
-        WHERE id = @id
-      `
+                UPDATE roles
+                SET role_status  = @role_status,
+                    applied_date = CASE
+                                       WHEN @role_status = 'Applied' AND applied_date IS NULL
+                                           THEN date('now')
+                                       ELSE applied_date
+                        END,
+                    updated_at   = datetime('now')
+                WHERE id = @id
+            `
     )
     .run({ role_status: status, id });
 }
 
 export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {
   return sqlite.prepare(`DELETE FROM roles WHERE id = ?`).run(id);
+}
+
+export function getIdsByCompanies(
+  sqlite: Database.Database,
+  companies: string[]
+): { id: number }[] {
+  if (companies.length === 0) return [];
+  return sqlite
+    .prepare(
+      `
+                SELECT id
+                FROM roles
+                WHERE company IN (SELECT value FROM json_each(?))
+            `
+    )
+    .all(JSON.stringify(companies)) as { id: number }[];
 }
