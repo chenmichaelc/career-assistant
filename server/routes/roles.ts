@@ -4,7 +4,7 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
 import { addRole } from '../../lib/roles';
-import { updateRole } from '../../lib/updates';
+import { updateRole, UpdateRoleInput } from '../../lib/updates';
 import {
   deleteRole,
   deleteSkipReason,
@@ -21,7 +21,6 @@ import {
 } from '../../lib/types';
 import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
 import { RoleSortKey } from '../../lib/db/roles.db';
-import { UpdateArgs } from '../../lib/args/update-args';
 
 interface PluginOptions extends FastifyPluginOptions {
   db: Database.Database;
@@ -134,17 +133,17 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
 
   fastify.patch('/:id/status', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as Partial<UpdateArgs>;
-    const flags: UpdateArgs = {
-      id,
-      status: body.status,
+    const body = request.body as Partial<UpdateRoleInput>;
+    const input: UpdateRoleInput = {
+      id: Number(id),
+      status: body.status ?? '',
       reasons: body.reasons ?? [],
       termination: body.termination ?? [],
       note: body.note,
     };
 
     try {
-      const role = updateRole(sqlite, flags);
+      const role = updateRole(sqlite, input);
       return { role };
     } catch (err) {
       return reply.status(400).send({ error: (err as Error).message });
