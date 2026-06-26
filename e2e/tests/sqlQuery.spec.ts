@@ -35,7 +35,7 @@ test('Static smoke test of SQL Query page', async ({ page }) => {
     await expect(sqlQueryPage.topMenuBar.rolesLink).toBeVisible();
     await expect(sqlQueryPage.topMenuBar.addLink).toBeVisible();
     await expect(sqlQueryPage.topMenuBar.queryLink).toBeVisible();
-    await expect(sqlQueryPage.topMenuBar.backupButton).toBeVisible();
+    await expect(sqlQueryPage.topMenuBar.adminMenuButton).toBeVisible();
   });
 });
 

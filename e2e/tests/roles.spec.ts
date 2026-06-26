@@ -21,7 +21,7 @@ test('Static smoke test of Default Page on Index', async ({ page }) => {
   await expect(rolesPage.topMenuBar.rolesLink).toBeVisible();
   await expect(rolesPage.topMenuBar.addLink).toBeVisible();
   await expect(rolesPage.topMenuBar.queryLink).toBeVisible();
-  await expect(rolesPage.topMenuBar.backupButton).toBeVisible();
+  await expect(rolesPage.topMenuBar.adminMenuButton).toBeVisible();
 
   // Expect key elements of Roles table header to appear on the index page
   await expect(rolesPage.heading).toBeVisible();
