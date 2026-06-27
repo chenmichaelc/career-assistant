@@ -80,7 +80,7 @@ export class AddRolePage {
     company: string;
     title: string;
     url: string;
-    status?: string;
+    role_status?: string;
     salaryMin?: string;
     salaryMax?: string;
     notes?: string;
@@ -89,8 +89,8 @@ export class AddRolePage {
     await this.companyNameField.fill(fields.company);
     await this.jobTitleField.fill(fields.title);
     await this.postingUrlField.fill(fields.url);
-    if (fields.status) {
-      await this.roleStatusSelect.selectOption(fields.status);
+    if (fields.role_status) {
+      await this.roleStatusSelect.selectOption(fields.role_status);
     }
     if (fields.salaryMin) {
       await this.salaryMinimumField.fill(fields.salaryMin);
