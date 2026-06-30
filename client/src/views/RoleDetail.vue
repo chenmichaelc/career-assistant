@@ -133,6 +133,7 @@
     <div
       v-if="role.role_status === 'Skipped'"
       class="bg-panel border border-border rounded p-4 mb-6"
+      data-testid="add-skip-reason-section"
     >
       <div class="font-mono text-xs text-dim mb-3">add skip reason</div>
       <div class="flex gap-3 flex-wrap">
@@ -141,7 +142,9 @@
           class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent"
         >
           <option value="">select reason...</option>
-          <option v-for="r in VALID_SKIP_REASONS" :key="r" :value="r">{{ r }}</option>
+          <option v-for="skipReason in VALID_SKIP_REASONS" :key="skipReason" :value="skipReason">
+            {{ skipReason }}
+          </option>
         </select>
         <input
           v-model="addSkipReasonNote"
@@ -190,6 +193,7 @@
     <div
       v-if="role.role_status === 'Closed'"
       class="bg-panel border border-border rounded p-4 mb-6"
+      data-testid="add-termination-reason-section"
     >
       <div class="font-mono text-xs text-dim mb-3">add termination reason</div>
       <div class="flex gap-3 flex-wrap">
@@ -198,7 +202,13 @@
           class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent"
         >
           <option value="">select reason...</option>
-          <option v-for="r in VALID_TERMINATION_REASONS" :key="r" :value="r">{{ r }}</option>
+          <option
+            v-for="terminationReason in VALID_TERMINATION_REASONS"
+            :key="terminationReason"
+            :value="terminationReason"
+          >
+            {{ terminationReason }}
+          </option>
         </select>
         <input
           v-model="addTerminationReasonNote"

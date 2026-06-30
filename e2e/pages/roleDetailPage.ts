@@ -46,6 +46,13 @@ export class RoleDetailPage {
   readonly addSkipReasonButton: Locator;
   readonly addSkipReasonError: Locator;
 
+  // ─── Add Skip reasons ─────────────────────────────────────────────────────────
+
+  readonly addSkipReasonSection: Locator;
+  readonly addSkipReasonSectionSelect: Locator;
+  readonly addSkipReasonSectionNoteInput: Locator;
+  readonly addSkipReasonSectionAddButton: Locator;
+
   // ─── Termination reasons ──────────────────────────────────────────────────
 
   readonly terminationReasonsSection: Locator;
@@ -53,6 +60,13 @@ export class RoleDetailPage {
   readonly addTerminationReasonNoteInput: Locator;
   readonly addTerminationReasonButton: Locator;
   readonly addTerminationReasonError: Locator;
+
+  // ─── Add Termination reasons ──────────────────────────────────────────────────
+
+  readonly addTerminationReasonSection: Locator;
+  readonly addTerminationReasonSectionSelect: Locator;
+  readonly addTerminationReasonSectionNoteInput: Locator;
+  readonly addTerminationReasonSectionAddButton: Locator;
 
   // ─── Job Description ──────────────────────────────────────────────────────
 
@@ -115,6 +129,12 @@ export class RoleDetailPage {
     this.addSkipReasonButton = this.skipReasonsSection.getByRole('button', { name: 'add' });
     this.addSkipReasonError = this.skipReasonsSection.locator('.text-danger');
 
+    // Add skip reasons
+    this.addSkipReasonSection = page.getByTestId('add-skip-reason-section');
+    this.addSkipReasonSectionSelect = this.addSkipReasonSection.locator('select');
+    this.addSkipReasonSectionNoteInput = this.addSkipReasonSection.locator('input');
+    this.addSkipReasonSectionAddButton = page.getByRole('button', { name: 'add' });
+
     // Termination reasons
     this.terminationReasonsSection = page.getByTestId('termination-reasons-section');
     this.addTerminationReasonSelect = this.terminationReasonsSection.locator('select');
@@ -125,6 +145,12 @@ export class RoleDetailPage {
       name: 'add',
     });
     this.addTerminationReasonError = this.terminationReasonsSection.locator('.text-danger');
+
+    // Add Termination reasons
+    this.addTerminationReasonSection = page.getByTestId('add-termination-reason-section');
+    this.addTerminationReasonSectionSelect = this.addSkipReasonSection.locator('select');
+    this.addTerminationReasonSectionNoteInput = this.addSkipReasonSection.locator('input');
+    this.addTerminationReasonSectionAddButton = page.getByRole('button', { name: 'add' });
 
     // Job Description
     this.jobDescriptionSection = page.getByTestId('job-description-section');
