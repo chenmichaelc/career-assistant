@@ -55,6 +55,16 @@ export default defineConfig([
     },
   },
 
+  // ─── No console in codebase outside of Vue/ ───────────────────────────────
+  // Prevent accidental
+
+  {
+    files: ['lib/**/*.ts', 'server/**/*.ts', 'db/**/*.ts', 'tests/**/*.ts', 'e2e/**/*.ts'],
+    rules: {
+      'no-console': 'warn',
+    },
+  },
+
   // ─── Layer boundary rules ─────────────────────────────────────────────────
   //
   // Enforces the three-layer boundary (HTTP / orchestration / data).
@@ -160,6 +170,25 @@ export default defineConfig([
     },
   },
 
+  // ─── Ban window.confirm in client ─────────────────────────────────────────
+  //
+  // useConfirmModal is the established pattern for confirmation dialogs.
+  // window.confirm bypasses it and is not testable with Playwright.
+
+  {
+    files: ['client/src/**/*.{ts,vue}'],
+    rules: {
+      'vue/no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CallExpression[callee.object.name="window"][callee.property.name="confirm"]',
+          message:
+            'Use useConfirmModal instead of window.confirm. window.confirm is not testable with Playwright.',
+        },
+      ],
+    },
+  },
+
   // ─── Vitest unit + integration tests ─────────────────────────────────────
 
   {
@@ -192,12 +221,42 @@ export default defineConfig([
     },
   },
 
+  // ─── Playwright fixtures — [E2E] prefix enforcement ───────────────────────
+  //
+  // All company name strings in E2E fixtures must start with [E2E] so that
+  // test-generated roles are visually identifiable in the live database and
+  // are picked up by the admin cleanup endpoint.
+
+  {
+    files: ['e2e/fixtures/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Property[key.name="company"] > Literal:not([value=/^\\[E2E\\]/])',
+          message:
+            'E2E fixture company names must start with "[E2E]" to identify test data in the live database.',
+        },
+      ],
+    },
+  },
+
   // ─── Playwright page objects — locator quality ────────────────────────────
 
   {
     files: ['e2e/pages/**/*.ts'],
     rules: {
       'playwright/no-nth-methods': 'error',
+
+      // Class properties in page objects must be declared readonly.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ClassBody > PropertyDefinition:not([readonly=true]):not([static=true])',
+          message:
+            'Page object class properties must be declared readonly. Use "readonly" on all property declarations.',
+        },
+      ],
     },
   },
   // ─── Prettier — disables ESLint formatting rules that would conflict ──────
