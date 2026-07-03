@@ -6,12 +6,12 @@
 import Database from 'better-sqlite3';
 import {
   RoleRow,
-  RoleStatus,
-  SkipReasonType,
-  TerminationReasonType,
   VALID_STATUSES,
   VALID_SKIP_REASONS,
   VALID_TERMINATION_REASONS,
+  isRoleStatus,
+  isSkipReasonType,
+  isTerminationReasonType,
 } from './types';
 import { db } from './db';
 
@@ -48,12 +48,12 @@ export function validateUpdateInput(input: UpdateRoleInput): void {
 
   if (!input.status || input.status.trim() === '') {
     errors.push('status is required.');
-  } else if (!VALID_STATUSES.includes(input.status.trim() as RoleStatus)) {
+  } else if (!isRoleStatus(input.status.trim())) {
     errors.push(`Invalid status: "${input.status}". Valid values: ${VALID_STATUSES.join(', ')}.`);
   }
 
   for (const reason of input.reasons) {
-    if (!VALID_SKIP_REASONS.includes(reason.trim() as SkipReasonType)) {
+    if (!isSkipReasonType(reason.trim())) {
       errors.push(
         `Invalid skip reason: "${reason}". Valid values: ${VALID_SKIP_REASONS.join(', ')}.`
       );
@@ -61,7 +61,7 @@ export function validateUpdateInput(input: UpdateRoleInput): void {
   }
 
   for (const reason of input.termination) {
-    if (!VALID_TERMINATION_REASONS.includes(reason.trim() as TerminationReasonType)) {
+    if (!isTerminationReasonType(reason.trim())) {
       errors.push(
         `Invalid termination reason: "${reason}". Valid values: ${VALID_TERMINATION_REASONS.join(', ')}.`
       );

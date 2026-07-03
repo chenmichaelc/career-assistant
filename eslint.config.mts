@@ -157,6 +157,54 @@ export default defineConfig([
     },
   },
 
+  // ─── DISABLED: no cast immediately adjacent to .includes() ────────────────
+  //
+  // Intended to ban `X.includes(value as T)` — see semantic-testing-rules.md,
+  // "Cast-based type narrowing is a defect". Written but not verified to
+  // actually fire: a manual test (a file containing both a `.includes(x as
+  // string)` cast and a raw SQL template literal, placed under lib/) reported
+  // zero errors for either rule instead of the expected two, suggesting
+  // something in the rule/file-matching is wrong — root cause not yet found.
+  // Disabled here rather than shipped unverified. Tracked in CAR-207.
+  //
+  // Also note: if this is ever enabled by combining it with the "No raw SQL"
+  // block above (same or overlapping `files`), be aware ESLint flat config
+  // overrides a rule name per matching file rather than merging arrays across
+  // separate config objects that both match the same file — a naive second
+  // block reusing this block's `files` array would silently replace the SQL
+  // rule's entries instead of adding to them. Keep the two rules' effective
+  // file sets disjoint (matching `ignores`), or combine into one array in one
+  // block, not two blocks with colliding `files`.
+  //
+  // {
+  //   files: ['lib/**/*.ts', 'server/**/*.ts', 'client/**/*.ts', 'client/**/*.vue'],
+  //   ignores: ['lib/db/**/*.ts', 'server/routes/query.ts'],
+  //   rules: {
+  //     'no-restricted-syntax': [
+  //       'error',
+  //       {
+  //         selector: 'CallExpression[callee.property.name="includes"] > TSAsExpression',
+  //         message:
+  //           'Do not cast a value being checked with .includes() against a literal-typed array. Use a Set<string> + a named type guard function instead.',
+  //       },
+  //     ],
+  //   },
+  // },
+  //
+  // {
+  //   files: ['lib/db/**/*.ts', 'server/routes/query.ts'],
+  //   rules: {
+  //     'no-restricted-syntax': [
+  //       'error',
+  //       {
+  //         selector: 'CallExpression[callee.property.name="includes"] > TSAsExpression',
+  //         message:
+  //           'Do not cast a value being checked with .includes() against a literal-typed array. Use a Set<string> + a named type guard function instead.',
+  //       },
+  //     ],
+  //   },
+  // },
+
   // ─── Vue client ───────────────────────────────────────────────────────────
 
   ...pluginVue.configs['flat/essential'],
