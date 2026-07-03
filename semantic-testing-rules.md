@@ -134,7 +134,66 @@ Pure functions → unit tests. HTTP contract and status codes → integration te
 
 ---
 
-## Scope and modularization
+## Cast-based type narrowing is a defect, not a style choice
+
+`X.includes(value as T)` looks like a type-check but isn't one — the cast forces the compiler to accept an unverified value, so the "check" that follows is checking nothing.
+
+```typescript
+// Bad — the cast silences the compiler, not the bug
+if (!VALID_STATUSES.includes(input.status.trim() as RoleStatus)) { ... }
+
+// Good — Set + named type guard, no cast
+const VALID_STATUS_SET = new Set<string>(VALID_STATUSES);
+export function isRoleStatus(value: string): value is RoleStatus {
+    return VALID_STATUS_SET.has(value);
+}
+```
+
+The guard's parameter type should match the value's real type at the call site — usually `string`, not `string | undefined`. Handle optionality at the call site (`format != null && isExportFormat(format)`), not by widening the guard; a guard checking two different things (is it present, is it valid) is doing two jobs.
+
+**Fixed on this branch as part of the same work that added this rule** (CAR-208): `lib/updates.ts` (three instances — `input.status`, skip reasons, termination reasons) and `server/routes/roles.ts` (four instances — sort key, skip reasons, termination reasons, export format). ESLint can catch the mechanical shape of this (see CAR-207 for a drafted-but-unverified rule), but can't judge whether a given cast is actually safe — that's why this is documented here too, independent of whether the lint rule ships.
+
+---
+
+## Not all `as` casts are the same risk
+
+A cast asserting the shape of trusted, self-authored data (`sqlite.prepare(...).all() as RoleRow[]` in `lib/db/*.ts`) is a different category from a cast bypassing a validation check against untrusted external input (the pattern above). Both are casts; only one is a defect.
+
+Don't flatten every `as` in an audit into one bucket — check what's on the other side of the cast. Self-authored query results with no external data flowing through are a known, accepted, low-priority risk; a cast validating a URL query param or request body is not.
+
+---
+
+## Semantic naming applies everywhere — variables, parameters, functions, everything
+
+A name should say what the thing is or does, not what shape it has (`raw`, `valid`, `list`) or how briefly it can be typed (`s`, `fmt`, `jd`, `run`). This applies uniformly — top-level declarations, function parameters, callback and loop parameters, short-lived locals, class properties. There's no tier of the codebase where an unclear name becomes acceptable because the scope is small or the lifetime is short; a name that takes a moment to decode costs that moment every time it's read, regardless of where it lives.
+
+```typescript
+// Bad — callback parameter
+VALID_STATUSES.filter((s) => !INACTIVE_STATUSES.includes(s));
+
+// Good
+VALID_STATUSES.filter((status) => !INACTIVE_STATUSES.includes(status));
+```
+
+```typescript
+// Bad — function name and parameter both describe shape, not purpose
+function run(db: Database.Database, id: number) { ... }
+
+// Good
+function updateRoleStatus(db: Database.Database, roleId: number) { ... }
+```
+
+```typescript
+// Bad — local variable named for its type, not its role
+const raw = response.json();
+const valid = raw.filter((r) => r.status === 'active');
+
+// Good
+const parsedRoles = response.json();
+const activeRoles = parsedRoles.filter((role) => role.status === 'active');
+```
+
+---
 
 At current scale (~6,000 lines, one cohesive module), a single document is right. As the project splits into genuine subsystems, subsystem-specific conventions should move to docs co-located with them — the same way ESLint rules are already scoped by glob. The right unit of modularization is the subsystem boundary, not line count.
 

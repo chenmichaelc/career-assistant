@@ -32,6 +32,12 @@ export const VALID_STATUSES: RoleStatus[] = [
   'Pending Triage',
 ];
 
+const VALID_STATUS_SET = new Set<string>(VALID_STATUSES);
+
+export function isRoleStatus(value: string): value is RoleStatus {
+  return VALID_STATUS_SET.has(value);
+}
+
 export type Candidacy = 'Slam Dunk' | 'Competitive' | 'Reach' | 'Skip';
 
 export const VALID_CANDIDACIES: Candidacy[] = ['Slam Dunk', 'Competitive', 'Reach', 'Skip'];
@@ -63,6 +69,13 @@ export const VALID_SKIP_REASONS: SkipReasonType[] = [
   'Unknown',
 ];
 
+// See isRoleStatus above for why this Set exists alongside the typed array.
+const VALID_SKIP_REASON_SET = new Set<string>(VALID_SKIP_REASONS);
+
+export function isSkipReasonType(value: string): value is SkipReasonType {
+  return VALID_SKIP_REASON_SET.has(value);
+}
+
 export type TerminationReasonType =
   | 'Screened Out'
   | 'Filled'
@@ -93,6 +106,13 @@ export const VALID_TERMINATION_REASONS: TerminationReasonType[] = [
   'Withdrew - Location',
   'Withdrew - Other',
 ];
+
+// See isRoleStatus above for why this Set exists alongside the typed array.
+const VALID_TERMINATION_REASON_SET = new Set<string>(VALID_TERMINATION_REASONS);
+
+export function isTerminationReasonType(value: string): value is TerminationReasonType {
+  return VALID_TERMINATION_REASON_SET.has(value);
+}
 
 // ─── Shared domain types ──────────────────────────────────────────────────────
 
