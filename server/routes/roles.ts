@@ -14,10 +14,10 @@ import {
 import { exportRole, ExportFormat } from '../../lib/exporters';
 import {
   RoleRow,
-  SkipReasonType,
-  TerminationReasonType,
   VALID_SKIP_REASONS,
   VALID_TERMINATION_REASONS,
+  isSkipReasonType,
+  isTerminationReasonType,
 } from '../../lib/types';
 import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
 import { RoleSortKey } from '../../lib/types';
@@ -42,6 +42,12 @@ const VALID_SORT_KEYS: RoleSortKey[] = [
   'applied_date',
 ];
 
+const VALID_SORT_KEY_SET = new Set<string>(VALID_SORT_KEYS);
+
+function isRoleSortKey(value: string): value is RoleSortKey {
+  return VALID_SORT_KEY_SET.has(value);
+}
+
 function parseRoleListFilters(query: Record<string, string | string[]>): RoleListFilters {
   const rawStatuses = query['status[]'];
   const statuses: string[] = rawStatuses
@@ -53,8 +59,7 @@ function parseRoleListFilters(query: Record<string, string | string[]>): RoleLis
   const sort = typeof query['sort'] === 'string' ? query['sort'] : undefined;
   const order = typeof query['order'] === 'string' ? query['order'] : undefined;
 
-  const sortColumn: RoleSortKey =
-    sort && (VALID_SORT_KEYS as string[]).includes(sort) ? (sort as RoleSortKey) : 'id';
+  const sortColumn: RoleSortKey = sort && isRoleSortKey(sort) ? sort : 'id';
   const sortOrder: 'ASC' | 'DESC' = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
   const company = typeof query['company'] === 'string' ? query['company'] : undefined;
 
@@ -160,7 +165,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(400).send({ error: 'reason is required.' });
     }
 
-    if (!VALID_SKIP_REASONS.includes(reason.trim() as SkipReasonType)) {
+    if (!isSkipReasonType(reason.trim())) {
       return reply.status(400).send({
         error: `Invalid skip reason: "${reason}". Valid values: ${VALID_SKIP_REASONS.join(', ')}.`,
       });
@@ -184,7 +189,7 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(400).send({ error: 'reason is required.' });
     }
 
-    if (!VALID_TERMINATION_REASONS.includes(reason.trim() as TerminationReasonType)) {
+    if (!isTerminationReasonType(reason.trim())) {
       return reply.status(400).send({
         error: `Invalid termination reason: "${reason}". Valid values: ${VALID_TERMINATION_REASONS.join(', ')}.`,
       });
@@ -245,9 +250,12 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
     const roleWithJd: RoleRow = { ...role, jd: jd?.content ?? '' };
 
     const validFormats: ExportFormat[] = ['simple', 'rich'];
-    const fmt = (validFormats.includes(format as ExportFormat) ? format : 'simple') as ExportFormat;
+    const validFormatSet = new Set<string>(validFormats);
+    const isExportFormat = (value: string): value is ExportFormat => validFormatSet.has(value);
+    const resolvedFormat: ExportFormat =
+      format != null && isExportFormat(format) ? format : 'simple';
 
-    return { content: exportRole(roleWithJd, fmt), format: fmt };
+    return { content: exportRole(roleWithJd, resolvedFormat), format: resolvedFormat };
   });
 
   // ─── DELETE /api/skip-reasons/:id ────────────────────────────────────────────
