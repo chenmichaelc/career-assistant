@@ -8,7 +8,7 @@ This document goes deeper than the README on the design decisions behind career-
 2. [Layer architecture](#layer-architecture)
 3. [Data layer](#data-layer)
 4. [Validation architecture](#validation-architecture)
-5. [Test philosophy](#test-philosophy)
+5. [Test architecture](#test-architecture)
 6. [Server and client](#server-and-client)
 7. [Code quality and formatting](#code-quality-and-formatting)
 8. [CI/CD](#cicd)
@@ -269,7 +269,47 @@ Each layer catches different failure modes. Layer 1 catches malformed requests. 
 
 ---
 
-## Test philosophy
+## Test architecture
+
+This project follows a modified test pyramid. The standard pyramid — unit, integration, E2E, increasing in scope and decreasing in speed as you go up — is extended below with static analysis and semantic testing, both intended to catch errors before a test needs to run at all.
+
+### Static analysis
+
+TypeScript's compiler (`strict: true` across all four tsconfigs) and ESLint (`eslint.config.mts`) run before any test executes — in the pre-commit hook, in CI as the first pipeline step, and continuously in most editors. This is the cheapest layer: a type error or a banned pattern is caught without running any code.
+
+**Banned patterns** — some rules go beyond type-checking to forbid specific code shapes outright, via ESLint's `no-restricted-syntax`:
+
+```typescript
+// eslint.config.mts — flags any raw SQL keyword in a template literal
+// outside lib/db/, so a query can't be quietly written in a route handler
+// instead of the data layer it belongs in.
+{
+  files: ['lib/**/*.ts', 'server/**/*.ts', 'client/**/*.ts', 'client/**/*.vue'],
+  ignores: ['lib/db/**/*.ts', 'server/routes/query.ts'],
+  rules: {
+    'no-restricted-syntax': ['error', {
+      selector: 'TemplateLiteral:has(TemplateElement[value.raw=/\\b(SELECT|INSERT|...)\\b/])',
+      message: 'Raw SQL is not allowed outside lib/db/. Move SQL into a lib/db/ module.',
+    }],
+  },
+},
+```
+
+See [TypeScript conventions](#typescript-conventions) and [Code quality and formatting](#code-quality-and-formatting) for what else is enforced here.
+
+### Semantic testing
+
+Conventions that require reading the code to apply, not just matching an AST shape against it — documented in `semantic-testing-rules.md`, with the rationale for why each one isn't (or isn't yet) expressible as an ESLint rule, and — where one exists — a pointer to the mechanical rule that partially covers it.
+
+```typescript
+Set up test state via direct API calls (`roleHelper.createRole()`), not by driving the UI. Exception: when the UI flow _is_ what's being tested (e.g. `addRole.spec.ts`). Teardown always uses the API, no exception.
+
+UI-based setup couples unrelated tests to the setup page's correctness — a broken add form shouldn't fail every `RoleDetail` test. `addRole.spec.ts` already covers the add flow; repeating it as incidental setup adds time, not signal.
+```
+
+This is a architectural decision that requires persisted enforcement, but yet is not sustainably enforceable through a simple, high-confident linting rule.
+
+This layer is audited manually rather than enforced automatically: at the start of a session involving significant new code, before closing a major epic, and whenever a new convention is established and needs to be back-applied to existing code. See `semantic-testing-rules.md`'s own "Audit cadence" section.
 
 ### Unit tests (`tests/unit/`)
 
@@ -332,9 +372,16 @@ This avoids CSS class selectors and structural position selectors, which break o
 
 **Current coverage** — smoke tests on all four pages (RoleList, RoleDetail, AddRole, SqlQuery); role creation end-to-end with field verification on the detail page; write mode UI behavior on the SQL Query page; top menu bar navigation across all pages. Test data isolation (CAR-16) is not yet in place — tests that create roles write to the live database and do not clean up.
 
-### The XP safety net
+### Goals
 
-The test suite was designed to enable Extreme Programming practices. With thorough coverage of all pure functions and data layer operations, changes can be made — alone or with an LLM assistant — with high confidence that regressions are caught immediately. The test pyramid (unit → integration → E2E) was deliberately chosen to maximise coverage while keeping each layer independently testable and fast.
+This test architecture is aimed at two parallel but complementary goals: creating a test structure that allows a human to continue building out the product in a classic Extreme Programming paradigm without LLM assistance, as well as having a test architecture that allows for the constraining and validation of LLM-generated code at scale. Importantly, the LLM is not expected to follow test-first XP conventions; however, having a high test-to-application code ratio akin to an Extreme Programming project helps provide the project with active, in-context documentation grounded in concrete use-cases and historic product decisions.
+
+Two things follow from that:
+
+- **The suite functions as continuous documentation, not just continuous testing.** A thorough test at the right layer states, unambiguously, what a piece of behavior is supposed to do — which matters more here than in a typical human-authored codebase, because an LLM picking up work in a fresh session has to reconstruct intent primarily from what's written down (this file, `semantic-testing-rules.md`, the tests themselves), not from accumulated tacit knowledge the way a long-tenured human contributor would.
+- **The suite is expected to keep growing in volume and specificity, not converge to a stable baseline.** As the codebase and the rate of LLM-generated change both grow, the tests need to grow with them to keep providing real constraint — a thin test suite provides thin guardrails regardless of how good the model generating the code is. This is a deliberate, ongoing investment, not overhead to be minimized once "enough" coverage exists.
+
+The result is a suite that resembles what XP produces — dense, fast, layered, high-confidence — for both human and LLM consumers.
 
 ---
 
