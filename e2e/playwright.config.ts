@@ -34,7 +34,7 @@ export default defineConfig({
     },
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { ...devices['Pixel 6'] },
     },
     {
       name: 'Mobile Safari',

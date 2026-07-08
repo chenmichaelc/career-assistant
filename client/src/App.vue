@@ -58,6 +58,33 @@
             </button>
           </div>
         </div>
+        <div class="relative" data-testid="utilities-menu">
+          <button
+            @click="showUtilities = !showUtilities"
+            class="text-dim hover:text-text transition-colors"
+          >
+            utilities ▾
+          </button>
+          <div
+            v-if="showUtilities"
+            class="absolute right-0 mt-2 bg-panel border border-border rounded shadow-lg z-50 min-w-40"
+          >
+            <router-link
+              to="/utilities/diff"
+              @click="showUtilities = false"
+              class="block w-full text-left px-4 py-2 font-mono text-sm text-dim hover:text-text hover:bg-surface transition-colors"
+            >
+              diff
+            </router-link>
+            <router-link
+              to="/utilities/resume-converter"
+              @click="showUtilities = false"
+              class="block w-full text-left px-4 py-2 font-mono text-sm text-dim hover:text-text hover:bg-surface transition-colors"
+            >
+              resume → docx
+            </router-link>
+          </div>
+        </div>
       </div>
     </nav>
     <main class="px-6 py-8 max-w-7xl mx-auto">
@@ -89,12 +116,17 @@ import { TEST_COMPANIES } from '../../e2e/fixtures/roles';
 
 const statusMsg = ref('');
 const showAdmin = ref(false);
+const showUtilities = ref(false);
 const confirmModal = useConfirmModal();
 
-function handleClickOutside(e: MouseEvent) {
-  const menu = document.querySelector('[data-testid="admin-menu"]');
-  if (menu && !menu.contains(e.target as Node)) {
+function handleClickOutside(event: MouseEvent) {
+  const adminMenu = document.querySelector('[data-testid="admin-menu"]');
+  if (adminMenu && !adminMenu.contains(event.target as Node)) {
     showAdmin.value = false;
+  }
+  const utilitiesMenu = document.querySelector('[data-testid="utilities-menu"]');
+  if (utilitiesMenu && !utilitiesMenu.contains(event.target as Node)) {
+    showUtilities.value = false;
   }
 }
 
