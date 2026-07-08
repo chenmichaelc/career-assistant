@@ -77,12 +77,15 @@ career-assistant/
 │       │   └── ConfirmModal.vue    # Reusable confirm modal
 │       ├── composables/
 │       │   ├── useApi.ts           # Typed fetch wrapper with error handling
-│       │   └── useConfirmModal.ts  # Promise-based modal state composable
+│       │   ├── useConfirmModal.ts  # Promise-based modal state composable
+│       │   └── useDiff.ts          # Reactive line-level diff via jsdiff
 │       └── views/
 │           ├── RoleList.vue        # Role list with multi-select filter + column sort
 │           ├── RoleDetail.vue      # Role detail, status updates, reason management
 │           ├── AddRole.vue         # Role creation form
-│           └── SqlQuery.vue        # Raw SQL interface with CSV export
+│           ├── SqlQuery.vue        # Raw SQL interface with CSV export
+│           ├── DiffVisualizer.vue  # Utilities — text diff visualizer (CAR-210, stub pending CAR-213)
+│           └── ResumeConverter.vue # Utilities — resume-to-docx converter (CAR-214, stub pending CAR-217)
 ├── e2e/
 │   ├── package.json                # E2E-scoped dependencies
 │   ├── playwright.config.ts        # Playwright config — webServer, baseURL, reporters
