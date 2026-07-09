@@ -22,7 +22,7 @@ test('Only one side filled in still shows the placeholder', async ({ page }) => 
   const diffVisualizerPage = new DiffVisualizerPage(page);
 
   await test.step('Act: fill only the "original" field', async () => {
-    await diffVisualizerPage.oldTextArea.fill('line one\nline two');
+    await diffVisualizerPage.originalTextArea.fill('line one\nline two');
   });
 
   await test.step('Assert: placeholder is still shown', async () => {
@@ -42,8 +42,6 @@ test('Identical inputs render as all-context, no additions or removals', async (
 
   await test.step('Assert: all three lines render as context, no additions or removals', async () => {
     const contextLines = diffVisualizerPage.diffRender.getByTestId('diff-line-context');
-    // jsdiff returns the three matching lines as a single chunk; the component
-    // flattens that chunk into one rendered row per line, so three rows, not one.
     await expect(contextLines).toHaveCount(3);
     await expect(contextLines.nth(0)).toHaveText('  line one');
     await expect(contextLines.nth(1)).toHaveText('  line two');

@@ -17,10 +17,6 @@ describe('useDiff — line-level diff computation', () => {
 
   test('pure addition — a trailing line is appended', () => {
     const { oldText, newText, diffParts } = useDiff();
-    // Trailing newlines kept aligned on the unchanged lines so the only
-    // change is the new final line — jsdiff treats a line's newline as part
-    // of its token, so a changed trailing newline on an otherwise-unchanged
-    // line shows up as remove+add rather than pure addition.
     oldText.value = 'line one\nline two\n';
     newText.value = 'line one\nline two\nline three\n';
 
