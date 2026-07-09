@@ -77,12 +77,15 @@ career-assistant/
 │       │   └── ConfirmModal.vue    # Reusable confirm modal
 │       ├── composables/
 │       │   ├── useApi.ts           # Typed fetch wrapper with error handling
-│       │   └── useConfirmModal.ts  # Promise-based modal state composable
+│       │   ├── useConfirmModal.ts  # Promise-based modal state composable
+│       │   └── useDiff.ts          # Reactive line-level diff via jsdiff
 │       └── views/
 │           ├── RoleList.vue        # Role list with multi-select filter + column sort
 │           ├── RoleDetail.vue      # Role detail, status updates, reason management
 │           ├── AddRole.vue         # Role creation form
-│           └── SqlQuery.vue        # Raw SQL interface with CSV export
+│           ├── SqlQuery.vue        # Raw SQL interface with CSV export
+│           ├── DiffVisualizer.vue  # Utilities — text diff visualizer
+│           └── ResumeConverter.vue # Utilities — resume-to-docx converter (CAR-214, stub pending CAR-217)
 ├── e2e/
 │   ├── package.json                # E2E-scoped dependencies
 │   ├── playwright.config.ts        # Playwright config — webServer, baseURL, reporters
@@ -94,12 +97,15 @@ career-assistant/
 │   │   ├── rolesPage.ts            # Roles list page object
 │   │   ├── roleDetailPage.ts       # Role detail page object — zones + modals
 │   │   ├── addRolePage.ts          # Add role form page object
-│   │   └── sqlQueryPage.ts         # SQL query page object — toggle, textarea, results
+│   │   ├── sqlQueryPage.ts         # SQL query page object — toggle, textarea, results
+│   │   └── diffVisualizerPage.ts   # Diff visualizer page object — dual textareas, diff render zone
 │   └── tests/
 │       ├── roles.spec.ts           # Roles list — smoke test, nav
 │       ├── roleDetail.spec.ts      # Role detail — smoke test
 │       ├── addRole.spec.ts         # Add role — smoke test, role creation E2E
-│       └── sqlQuery.spec.ts        # SQL query — smoke test, write mode behavior
+│       ├── sqlQuery.spec.ts        # SQL query — smoke test, write mode behavior
+│       ├── utilities.spec.ts       # Utilities nav dropdown — smoke test, routing
+│       └── diffVisualizer.spec.ts  # Diff visualizer — placeholder state, added/removed rendering
 └── tests/
     ├── helpers/
     │   └── db.ts                   # createTestDb() — in-memory SQLite with schema
