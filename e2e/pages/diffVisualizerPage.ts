@@ -11,15 +11,23 @@ export class DiffVisualizerPage {
   readonly originalTextArea: Locator;
   readonly newTextArea: Locator;
   readonly diffRender: Locator;
+  readonly trailingWhitespaceMarkers: Locator;
 
   constructor(page: Page) {
     this.page = page;
     this.topMenuBar = new TopMenuBarComponent(page);
 
     this.heading = page.getByRole('heading', { name: 'Diff Visualizer' });
-    this.originalTextArea = page.locator('#diff-original-input-region').getByRole('textbox');
-    this.newTextArea = page.locator('#diff-new-input-region').getByRole('textbox');
+    this.originalTextArea = page
+      .locator('#diff-original-input-region')
+      .filter({ hasText: 'original' })
+      .getByRole('textbox');
+    this.newTextArea = page
+      .locator('#diff-new-input-region')
+      .filter({ hasText: 'new' })
+      .getByRole('textbox');
     this.diffRender = page.getByTestId('diff-render');
+    this.trailingWhitespaceMarkers = this.diffRender.getByTestId('diff-trailing-whitespace');
   }
 
   async goto() {

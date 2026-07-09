@@ -82,3 +82,23 @@ test('Differing inputs render a git-diff-style added/removed breakdown', async (
     await expect(contextLines.nth(0)).toHaveText('  line one');
   });
 });
+
+test('Trailing whitespace is visualized instead of causing a silent phantom diff', async ({
+  page,
+}) => {
+  const diffVisualizerPage = new DiffVisualizerPage(page);
+
+  await test.step('Act: paste two versions differing only by a trailing space', async () => {
+    await diffVisualizerPage.setInputs('line one\nline two', 'line one\nline two ');
+  });
+
+  await test.step('Assert: the line still renders as one removed + one added, since a trailing-space-only change is a real (if minor) diff', async () => {
+    await expect(diffVisualizerPage.diffRender.getByTestId('diff-line-removed')).toHaveCount(1);
+    await expect(diffVisualizerPage.diffRender.getByTestId('diff-line-added')).toHaveCount(1);
+  });
+
+  await test.step('Assert: exactly one trailing-whitespace marker is shown, on the added line only', async () => {
+    await expect(diffVisualizerPage.trailingWhitespaceMarkers).toHaveCount(1);
+    await expect(diffVisualizerPage.trailingWhitespaceMarkers.first()).toHaveText('·');
+  });
+});
