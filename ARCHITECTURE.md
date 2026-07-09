@@ -78,13 +78,13 @@ career-assistant/
 │       ├── composables/
 │       │   ├── useApi.ts           # Typed fetch wrapper with error handling
 │       │   ├── useConfirmModal.ts  # Promise-based modal state composable
-│       │   └── useDiff.ts          # Reactive line-level diff via jsdiff (CAR-212)
+│       │   └── useDiff.ts          # Reactive line-level diff via jsdiff
 │       └── views/
 │           ├── RoleList.vue        # Role list with multi-select filter + column sort
 │           ├── RoleDetail.vue      # Role detail, status updates, reason management
 │           ├── AddRole.vue         # Role creation form
 │           ├── SqlQuery.vue        # Raw SQL interface with CSV export
-│           ├── DiffVisualizer.vue  # Utilities — text diff visualizer (CAR-210/212/213)
+│           ├── DiffVisualizer.vue  # Utilities — text diff visualizer
 │           └── ResumeConverter.vue # Utilities — resume-to-docx converter (CAR-214, stub pending CAR-217)
 ├── e2e/
 │   ├── package.json                # E2E-scoped dependencies
@@ -104,8 +104,8 @@ career-assistant/
 │       ├── roleDetail.spec.ts      # Role detail — smoke test
 │       ├── addRole.spec.ts         # Add role — smoke test, role creation E2E
 │       ├── sqlQuery.spec.ts        # SQL query — smoke test, write mode behavior
-│       ├── utilities.spec.ts       # Utilities nav dropdown — smoke test, routing (CAR-211)
-│       └── diffVisualizer.spec.ts  # Diff visualizer — placeholder state, added/removed rendering (CAR-213)
+│       ├── utilities.spec.ts       # Utilities nav dropdown — smoke test, routing
+│       └── diffVisualizer.spec.ts  # Diff visualizer — placeholder state, added/removed rendering
 └── tests/
     ├── helpers/
     │   └── db.ts                   # createTestDb() — in-memory SQLite with schema

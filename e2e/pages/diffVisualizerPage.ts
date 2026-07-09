@@ -8,7 +8,7 @@ export class DiffVisualizerPage {
   readonly topMenuBar: TopMenuBarComponent;
 
   readonly heading: Locator;
-  readonly oldTextArea: Locator;
+  readonly originalTextArea: Locator;
   readonly newTextArea: Locator;
   readonly diffRender: Locator;
 
@@ -17,14 +17,8 @@ export class DiffVisualizerPage {
     this.topMenuBar = new TopMenuBarComponent(page);
 
     this.heading = page.getByRole('heading', { name: 'Diff Visualizer' });
-    this.oldTextArea = page
-      .locator('#diff-old-input-region')
-      .filter({ hasText: 'original' })
-      .getByRole('textbox');
-    this.newTextArea = page
-      .locator('#diff-new-input-region')
-      .filter({ hasText: 'new' })
-      .getByRole('textbox');
+    this.originalTextArea = page.locator('#diff-original-input-region').getByRole('textbox');
+    this.newTextArea = page.locator('#diff-new-input-region').getByRole('textbox');
     this.diffRender = page.getByTestId('diff-render');
   }
 
@@ -33,7 +27,7 @@ export class DiffVisualizerPage {
   }
 
   async setInputs(oldText: string, newText: string) {
-    await this.oldTextArea.fill(oldText);
+    await this.originalTextArea.fill(oldText);
     await this.newTextArea.fill(newText);
   }
 }

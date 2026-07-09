@@ -1,11 +1,10 @@
 <!-- client/src/views/DiffVisualizer.vue -->
-<!-- CAR-213 — dual text inputs + git-diff-style render, backed by CAR-212's useDiff composable. -->
 <template>
   <div class="max-w-4xl" data-testid="diff-visualizer-view">
     <h1 class="font-mono text-2xl font-semibold text-text mb-6">Diff Visualizer</h1>
 
     <div class="grid grid-cols-2 gap-4 mb-6">
-      <div id="diff-old-input-region">
+      <div id="diff-original-input-region">
         <label class="font-mono text-xs text-dim block mb-1">original</label>
         <textarea
           v-model="oldText"
@@ -55,9 +54,6 @@ import { useDiff } from '@/composables/useDiff';
 
 const { oldText, newText, diffParts } = useDiff();
 
-// Per CAR-213: an empty input renders a neutral placeholder rather than a
-// diff against blank text (which would otherwise show every non-blank line
-// on one side as a wall of additions or removals).
 const hasBothInputs = computed(() => oldText.value.trim() !== '' && newText.value.trim() !== '');
 
 type LineType = 'added' | 'removed' | 'context';
@@ -67,9 +63,6 @@ interface RenderedLine {
   type: LineType;
 }
 
-// jsdiff's diffLines groups consecutive same-type lines into one chunk whose
-// `value` contains embedded newlines. Flatten each chunk back into individual
-// lines so each renders on its own row with its own +/-/context prefix.
 const renderedLines = computed<RenderedLine[]>(() => {
   const lines: RenderedLine[] = [];
   for (const part of diffParts.value) {
