@@ -77,6 +77,12 @@ Behavioral coverage includes role creation with full field verification, write m
 
 ---
 
+**[CAR-210] Utilities section — Text Diff Visualizer**
+
+A new "utilities ▾" nav section, client-side only and deliberately stateless (no persistence — see the epic for the explicit scope cut). Nav scaffold and routing (CAR-211) and jsdiff integration (CAR-212) are done. CAR-213 (dual-textarea UI + git-diff-style render) is in progress: the component and its Playwright E2E coverage are in place, but the ticket's own acceptance criteria call for a Vitest component test, gated on `@vue/test-utils`/DOM environment infra that doesn't exist yet (CAR-206, still To Do). Open question, not yet decided: land CAR-206 first, or accept E2E-only coverage for this story and backfill once CAR-206 ships.
+
+---
+
 ## Setup
 
 ### Prerequisites
@@ -176,6 +182,9 @@ Decompose the overloaded `role_status` field into separate triage status, applic
 
 **Playwright full workflow coverage (CAR-63)** _(In Progress)_
 Page objects and smoke tests cover all four pages. Role creation is tested end-to-end with field verification. Write mode UI behavior is covered on the SQL Query page. Remaining: role detail behavioral flows (status update, export, delete modals), SQL query execution, and test data isolation (CAR-16). A new epic (CAR-183) tracks decomposition of `RoleDetail.vue` into composables, which will improve the testability of the detail page flows before those E2E tests are written.
+
+**Utilities section — Text Diff Visualizer (CAR-210)** _(In Progress)_
+Client-side, stateless text diff tool for comparing resume versions — nav scaffold (CAR-211) and jsdiff integration (CAR-212) done; UI + render (CAR-213) in progress, E2E-covered, Vitest component coverage blocked on CAR-206 standing up `@vue/test-utils`. A second utility, resume-to-DOCX conversion (CAR-214), is scoped in the backlog under the same nav section.
 
 **Playwright test data management (CAR-91)**
 Fixture-based role creation and cleanup via semantic company name identification.

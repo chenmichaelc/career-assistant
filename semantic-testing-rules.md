@@ -59,6 +59,16 @@ Deep chains off naked selectors break on any unrelated DOM change. ESLint catche
 
 ---
 
+## Repeated `data-testid` on non-interactive rows is a different case
+
+The rule above is about controls — buttons, inputs, links — which almost always have an available accessible name, so "never" is the right bar there. It doesn't cover non-interactive, repeated content rows with no control semantics and nothing to hang a name on: `DiffVisualizer.vue`'s rendered diff lines (`data-testid="diff-line-added"` etc.) are plain `<div>`s classifying rendered content, not controls a user acts on.
+
+For that case, the same testid repeated across every matching row, queried with `getByTestId(...).nth()` or `.toHaveText([...])` for the array, is the accepted pattern — there's no accessible-name fix available because there's no control to name.
+
+Don't read this as license to reach for a testid whenever naming a button feels inconvenient — that's still the violation the rule above exists to prevent. The distinction is control vs. non-interactive content row, not "couldn't think of a better way."
+
+---
+
 ## Page Object definition block mirrors constructor block
 
 Class property declarations must match the order and grouping of their constructor initializations, with matching section comments.
