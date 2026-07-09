@@ -1,4 +1,5 @@
 <!-- client/src/views/DiffVisualizer.vue -->
+<!-- CAR-213 — dual text inputs + git-diff-style render, backed by CAR-212's useDiff composable. -->
 <template>
   <div class="max-w-4xl" data-testid="diff-visualizer-view">
     <h1 class="font-mono text-2xl font-semibold text-text mb-6">Diff Visualizer</h1>
@@ -30,18 +31,21 @@
         Paste text into both fields above to see a diff.
       </div>
 
-      <div
-        v-else
-        class="font-mono text-sm bg-panel border border-border rounded py-2 overflow-x-auto"
-      >
+      <div v-else class="font-mono text-sm bg-panel border border-border rounded py-2">
         <div
           v-for="(line, index) in renderedLines"
           :key="index"
           :class="lineClass(line.type)"
           :data-testid="`diff-line-${line.type}`"
-          class="px-4 whitespace-pre"
+          class="px-4 whitespace-pre-wrap wrap-break-word"
         >
-          {{ linePrefix(line.type) }}{{ line.text }}
+          <span>{{ linePrefix(line.type) }}{{ line.text }}</span
+          ><span
+            v-if="line.trailingWhitespace"
+            class="text-warning bg-warning/10"
+            data-testid="diff-trailing-whitespace"
+            >{{ visualizeWhitespace(line.trailingWhitespace) }}</span
+          >
         </div>
       </div>
     </div>
@@ -60,7 +64,17 @@ type LineType = 'added' | 'removed' | 'context';
 
 interface RenderedLine {
   text: string;
+  trailingWhitespace: string;
   type: LineType;
+}
+
+function splitTrailingWhitespace(text: string): { main: string; trailing: string } {
+  const match = text.match(/^(.*?)(\s*)$/);
+  return match ? { main: match[1], trailing: match[2] } : { main: text, trailing: '' };
+}
+
+function visualizeWhitespace(whitespace: string): string {
+  return whitespace.replace(/ /g, '·').replace(/\t/g, '→');
 }
 
 const renderedLines = computed<RenderedLine[]>(() => {
@@ -71,8 +85,9 @@ const renderedLines = computed<RenderedLine[]>(() => {
     // split() on a value ending in '\n' produces a trailing '' entry that
     // isn't a real line — drop it.
     if (partLines[partLines.length - 1] === '') partLines.pop();
-    for (const text of partLines) {
-      lines.push({ text, type });
+    for (const rawLine of partLines) {
+      const { main, trailing } = splitTrailingWhitespace(rawLine);
+      lines.push({ text: main, trailingWhitespace: trailing, type });
     }
   }
   return lines;
