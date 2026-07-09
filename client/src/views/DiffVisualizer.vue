@@ -69,12 +69,19 @@ interface RenderedLine {
 }
 
 function splitTrailingWhitespace(text: string): { main: string; trailing: string } {
-  const match = text.match(/^(.*?)(\s*)$/);
-  return match ? { main: match[1], trailing: match[2] } : { main: text, trailing: '' };
+  const main = text.trimEnd();
+  return { main, trailing: text.slice(main.length) };
 }
 
 function visualizeWhitespace(whitespace: string): string {
-  return whitespace.replace(/ /g, '·').replace(/\t/g, '→');
+  return [...whitespace]
+    .map((char) => {
+      if (char === ' ') return '·';
+      if (char === '\t') return '→';
+
+      return '□';
+    })
+    .join('');
 }
 
 const renderedLines = computed<RenderedLine[]>(() => {
