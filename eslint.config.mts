@@ -210,7 +210,7 @@ export default defineConfig([
   ...pluginVue.configs['flat/essential'],
 
   {
-    files: ['client/src/**/*.{ts,vue}'],
+    files: ['client/src/**/*.{ts,vue}', 'client/tests/**/*.ts'],
     languageOptions: {
       globals: globals.browser,
       sourceType: 'module',
@@ -240,7 +240,7 @@ export default defineConfig([
   // ─── Vitest unit + integration tests ─────────────────────────────────────
 
   {
-    files: ['tests/**/*.test.ts'],
+    files: ['tests/**/*.test.ts', 'client/tests/**/*.test.ts'],
     plugins: { vitest },
     rules: vitest.configs.recommended.rules,
   },

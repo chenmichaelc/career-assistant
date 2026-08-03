@@ -37,6 +37,12 @@ Working agreement for how Claude should operate in this project, based on patter
 
 - **Don't assume Claude is the only, or even the primary, consumer of project documentation.** `ARCHITECTURE.md`, `semantic-testing-rules.md`, and similar files serve human contributors, future Claude sessions, and possibly other tools — not one exclusively. When rewriting a section to account for LLM-assisted workflows, don't silently drop the case where a human works on the codebase without an LLM in the loop.
 - When editing documentation, ask: would this paragraph make sense to a human contributor who never uses Claude on this project? If the answer is no, that's a signal the framing has drifted toward serving Claude specifically rather than documenting the project.
+- **Don't cite ticket numbers in `ARCHITECTURE.md` (or similar reference docs) for finished work.** A parenthetical `(CAR-219)` next to a settled design decision goes stale the moment anyone forgets or can't look it up — the doc should describe the system as it is, not how it got there. Exception: work still in progress, where the ticket is the live source of truth and the doc should say so explicitly (e.g. "pending CAR-104").
+
+## Code comments
+
+- Comments point at what isn't obvious from the code itself — a non-obvious constraint, a workaround, a subtle invariant. They are not a place to restate what the code does or narrate the ticket/investigation that produced it.
+- Keep them short. A multi-line block explaining full context (spec references, verification history, rationale) belongs in the PR description or the ticket, not the file — it goes stale in the file and nobody maintains it there.
 
 ## General
 
