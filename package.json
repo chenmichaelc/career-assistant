@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "client": "cd client && npm run dev",
+    "client:host": "cd client && npm run dev -- --host",
     "format": "prettier --write .",
     "init": "ts-node scripts/init-db.ts",
     "lint": "eslint .",
