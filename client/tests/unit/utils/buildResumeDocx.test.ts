@@ -143,8 +143,7 @@ describe('buildResumeDocx — experience entries', () => {
     expect(bulletParagraph).not.toContain('•');
     expect(bulletParagraph).toContain('w:after="20"');
 
-    expect(numberingXml).toContain('w:lvlText w:val="\uF0B7"');
-    expect(numberingXml).toContain('w:rFonts w:ascii="Symbol"');
+    expect(numberingXml).toContain('w:lvlText w:val="•"');
     expect(numberingXml).toContain('w:ind w:left="360" w:hanging="180"');
   });
 });
