@@ -39,6 +39,13 @@ Working agreement for how Claude should operate in this project, based on patter
 - When editing documentation, ask: would this paragraph make sense to a human contributor who never uses Claude on this project? If the answer is no, that's a signal the framing has drifted toward serving Claude specifically rather than documenting the project.
 - **Don't cite ticket numbers in `ARCHITECTURE.md` (or similar reference docs) for finished work.** A parenthetical `(CAR-219)` next to a settled design decision goes stale the moment anyone forgets or can't look it up — the doc should describe the system as it is, not how it got there. Exception: work still in progress, where the ticket is the live source of truth and the doc should say so explicitly (e.g. "pending CAR-104").
 
+## Test fixtures & synthetic data
+
+- **Personal data duplicates itself.** Once a real name, email, or work history has been pasted into one fixture for a demo, it tends to get hand-copied (with small drift) into whatever other test file needs similar-shaped data. When scrubbing PII, grep the whole repo for the specific strings involved — don't assume the problem is contained to the one file that was flagged.
+- **Use ranges reserved for exactly this purpose**, not an invented-sounding value that might collide with something real: the `.example` TLD (IANA-reserved, guaranteed non-resolving) for email addresses, Ofcom's `020 7946` range for UK fictional phone numbers, NANPA's `555-01XX` range for US ones.
+- **A fixture "marker" string searched against serialized output (XML, HTML, JSON) may not appear verbatim there.** `parseResumeText.test.ts` asserts against a parsed JS string, where `&` is just a character — but `buildResumeDocx.test.ts` asserts against real generated OOXML, where the serializer escapes `&` to `&amp;`. The same literal that's safe as test data in one file can silently fail as a search marker in the other. Check which kind of assertion you're writing before reusing a value across both.
+- **Prefer one canonical fixture over hand-duplicated copies of the same synthetic dataset** across multiple test files, so the next edit — or the next PII scrub — touches one place instead of drifting across several independently.
+
 ## Code comments
 
 - Comments point at what isn't obvious from the code itself — a non-obvious constraint, a workaround, a subtle invariant. They are not a place to restate what the code does or narrate the ticket/investigation that produced it.

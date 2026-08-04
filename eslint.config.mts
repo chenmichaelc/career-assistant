@@ -132,10 +132,7 @@ export default defineConfig([
     },
   },
 
-  // ─── No raw SQL outside lib/db/ ───────────────────────────────────────────
-  //
-  // Flags template literals containing SQL keywords in files outside lib/db/.
-  // Exception: server/routes/query.ts is intentionally excluded
+  // ─── No raw SQL outside lib/db/, no real personal email domains ──────────
 
   {
     files: ['lib/**/*.ts', 'server/**/*.ts', 'client/**/*.ts', 'client/**/*.vue'],
@@ -152,6 +149,11 @@ export default defineConfig([
           selector:
             'Literal:not(Property > Literal)[value=/\\b(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|DROP TABLE|ALTER TABLE)\\b/]',
           message: 'Raw SQL is not allowed outside lib/db/. Move SQL into a lib/db/ module.',
+        },
+        {
+          selector: 'Literal[value=/@(gmail|yahoo|hotmail|outlook|icloud|protonmail|aol)\\.com/i]',
+          message:
+            'Do not use a real personal email domain. Use a .example domain for invented addresses instead.',
         },
       ],
     },
@@ -265,6 +267,11 @@ export default defineConfig([
             'CallExpression[callee.property.name="step"] > Literal:first-child:not([value=/^(Arrange|Act|Assert):/])',
           message: 'test.step() descriptions must start with "Arrange:", "Act:", or "Assert:".',
         },
+        {
+          selector: 'Literal[value=/@(gmail|yahoo|hotmail|outlook|icloud|protonmail|aol)\\.com/i]',
+          message:
+            'Do not use a real personal email domain. Use a .example domain for invented addresses instead.',
+        },
       ],
     },
   },
@@ -285,6 +292,11 @@ export default defineConfig([
           message:
             'E2E fixture company names must start with "[E2E]" to identify test data in the live database.',
         },
+        {
+          selector: 'Literal[value=/@(gmail|yahoo|hotmail|outlook|icloud|protonmail|aol)\\.com/i]',
+          message:
+            'Do not use a real personal email domain. Use a .example domain for invented addresses instead.',
+        },
       ],
     },
   },
@@ -304,9 +316,34 @@ export default defineConfig([
           message:
             'Page object class properties must be declared readonly. Use "readonly" on all property declarations.',
         },
+        {
+          selector: 'Literal[value=/@(gmail|yahoo|hotmail|outlook|icloud|protonmail|aol)\\.com/i]',
+          message:
+            'Do not use a real personal email domain. Use a .example domain for invented addresses instead.',
+        },
       ],
     },
   },
+
+  // ─── No real personal email domains — root tests/ ─────────────────────────
+  //
+  // Not covered by the lib/server/client block above (different files glob).
+  // See CLAUDE.md, "Test fixtures & synthetic data".
+
+  {
+    files: ['tests/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/@(gmail|yahoo|hotmail|outlook|icloud|protonmail|aol)\\.com/i]',
+          message:
+            'Do not use a real personal email domain. Use a .example domain for invented addresses instead.',
+        },
+      ],
+    },
+  },
+
   // ─── Prettier — disables ESLint formatting rules that would conflict ──────
 
   prettierConfig,

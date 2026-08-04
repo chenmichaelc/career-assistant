@@ -350,6 +350,12 @@ afterEach(() => {
 
 Root and `client/` are two separate npm packages, each with its own `node_modules`. Client is pending conversion to an npm workspace in CAR-4. Client-side unit tests live under `client/tests/unit/` rather than mirrored into the root `tests/` tree so they resolve npm dependencies (`diff`, `docx`, `jszip`) against `client/node_modules`, which is the only place those packages are actually installed. `vitest.config.ts` at the root wires both packages together as Vitest **projects**, so a single `npm test` / `npm run test:run` still runs the whole suite in one pass.
 
+### Fixture data — no real personal information
+
+Fixtures use fictional data, never real personal information. The resume-conversion fixtures (`client/tests/unit/utils/fixtures/sampleResume.ts` and the smaller literals in `buildResumeDocx.test.ts` and `e2e/tests/resumeConverter.spec.ts`) use a persona based on John H. Watson (Arthur Conan Doyle, public domain) rather than an invented-from-scratch identity — this sidesteps both privacy leakage and any ambiguity about whether sample data floating around the repo is real. Invented contact details use ranges reserved for exactly this purpose: the `.example` email TLD (IANA-reserved, guaranteed non-resolving) and Ofcom's `020 7946` phone prefix (reserved for UK film/TV/fiction use).
+
+An ESLint rule (`eslint.config.mts`) flags literal string values containing common real personal email domains (`gmail.com`, `yahoo.com`, etc.) across test files and fixtures, as a mechanical backstop against the same kind of data reappearing by accident.
+
 ### Integration tests (`tests/integration/`)
 
 HTTP route tests using Fastify's built-in `inject()` method. Each test registers a fresh Fastify instance and a fresh in-memory SQLite database, keeping tests completely isolated:
