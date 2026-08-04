@@ -33,7 +33,7 @@ career-assistant/
 │       ├── push.yml                # CI — runs on every push, includes lint gate
 │       └── pull-request.yml        # CI — runs on every pull request, includes lint gate
 ├── eslint.config.mts               # ESLint flat config — root-level, governs all layers
-├── vitest.config.ts                # Vitest config — excludes Playwright specs from unit/integration runs
+├── vitest.config.ts                # Vitest config — defines the `server` and `client` projects
 ├── db/
 │   ├── schema.ts                   # Single source of truth for SQLite schema (definitions only)
 │   └── setup.ts                    # Exports applySchema() for server and test use
@@ -69,6 +69,14 @@ career-assistant/
 │   ├── tsconfig.app.json           # Browser-targeted TypeScript config for src/
 │   ├── tsconfig.node.json          # Node-targeted TypeScript config for vite.config.ts
 │   ├── vite.config.ts              # Vite config with Vue plugin + API proxy
+│   ├── vitest.config.ts            # Client Vitest project — resolves against client/node_modules
+│   ├── tests/
+│   │   └── unit/
+│   │       ├── composables/
+│   │       │   └── useDiff.test.ts          # Reactive line-level diff tests
+│   │       └── utils/
+│   │           ├── parseResumeText.test.ts
+│   │           └── buildResumeDocx.test.ts
 │   └── src/
 │       ├── main.ts                 # Vue app entry point
 │       ├── App.vue                 # Root component — nav bar, admin dropdown, router view
@@ -79,13 +87,16 @@ career-assistant/
 │       │   ├── useApi.ts           # Typed fetch wrapper with error handling
 │       │   ├── useConfirmModal.ts  # Promise-based modal state composable
 │       │   └── useDiff.ts          # Reactive line-level diff via jsdiff
+│       ├── utils/
+│       │   ├── parseResumeText.ts  # Plain-text resume → structured intermediate rep
+│       │   └── buildResumeDocx.ts  # Structured resume → docx.Document matching reference template
 │       └── views/
 │           ├── RoleList.vue        # Role list with multi-select filter + column sort
 │           ├── RoleDetail.vue      # Role detail, status updates, reason management
 │           ├── AddRole.vue         # Role creation form
 │           ├── SqlQuery.vue        # Raw SQL interface with CSV export
 │           ├── DiffVisualizer.vue  # Utilities — text diff visualizer
-│           └── ResumeConverter.vue # Utilities — resume-to-docx converter (CAR-214, stub pending CAR-217)
+│           └── ResumeConverter.vue # Utilities — resume-to-docx converter
 ├── e2e/
 │   ├── package.json                # E2E-scoped dependencies
 │   ├── playwright.config.ts        # Playwright config — webServer, baseURL, reporters
@@ -98,14 +109,16 @@ career-assistant/
 │   │   ├── roleDetailPage.ts       # Role detail page object — zones + modals
 │   │   ├── addRolePage.ts          # Add role form page object
 │   │   ├── sqlQueryPage.ts         # SQL query page object — toggle, textarea, results
-│   │   └── diffVisualizerPage.ts   # Diff visualizer page object — dual textareas, diff render zone
+│   │   ├── diffVisualizerPage.ts   # Diff visualizer page object — dual textareas, diff render zone
+│   │   └── resumeConverterPage.ts  # Resume converter page object — textarea, convert button, error zone
 │   └── tests/
 │       ├── roles.spec.ts           # Roles list — smoke test, nav
 │       ├── roleDetail.spec.ts      # Role detail — smoke test
 │       ├── addRole.spec.ts         # Add role — smoke test, role creation E2E
 │       ├── sqlQuery.spec.ts        # SQL query — smoke test, write mode behavior
 │       ├── utilities.spec.ts       # Utilities nav dropdown — smoke test, routing
-│       └── diffVisualizer.spec.ts  # Diff visualizer — placeholder state, added/removed rendering
+│       ├── diffVisualizer.spec.ts  # Diff visualizer — placeholder state, added/removed rendering
+│       └── resumeConverter.spec.ts # Resume converter — download on success, inline errors on bad input
 └── tests/
     ├── helpers/
     │   └── db.ts                   # createTestDb() — in-memory SQLite with schema
@@ -332,6 +345,16 @@ afterEach(() => {
 ```
 
 `createTestDb()` applies the real schema to a `:memory:` database. Tests execute real SQL against real constraints — there are no mocks of the data layer. This gives real constraint enforcement (FK violations, CHECK violations) in tests that are fast, isolated, and require no cleanup.
+
+### Client unit tests (`client/tests/unit/`)
+
+Root and `client/` are two separate npm packages, each with its own `node_modules`. Client is pending conversion to an npm workspace in CAR-4. Client-side unit tests live under `client/tests/unit/` rather than mirrored into the root `tests/` tree so they resolve npm dependencies (`diff`, `docx`, `jszip`) against `client/node_modules`, which is the only place those packages are actually installed. `vitest.config.ts` at the root wires both packages together as Vitest **projects**, so a single `npm test` / `npm run test:run` still runs the whole suite in one pass.
+
+### Fixture data — no real personal information
+
+Fixtures use fictional data, never real personal information. The resume-conversion fixtures (`client/tests/unit/utils/fixtures/sampleResume.ts` and the smaller literals in `buildResumeDocx.test.ts` and `e2e/tests/resumeConverter.spec.ts`) use a persona based on John H. Watson (Arthur Conan Doyle, public domain) rather than an invented-from-scratch identity — this sidesteps both privacy leakage and any ambiguity about whether sample data floating around the repo is real. Invented contact details use ranges reserved for exactly this purpose: the `.example` email TLD (IANA-reserved, guaranteed non-resolving) and Ofcom's `020 7946` phone prefix (reserved for UK film/TV/fiction use).
+
+An ESLint rule (`eslint.config.mts`) flags literal string values containing common real personal email domains (`gmail.com`, `yahoo.com`, etc.) across test files and fixtures, as a mechanical backstop against the same kind of data reappearing by accident.
 
 ### Integration tests (`tests/integration/`)
 
