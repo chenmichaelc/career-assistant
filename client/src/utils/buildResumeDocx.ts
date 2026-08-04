@@ -45,18 +45,9 @@ const numberingConfig = {
         {
           level: 0,
           format: LevelFormat.BULLET,
-          // U+F0B7 in the Symbol font is the standard Word bullet-list
-          // convention — not the visible Unicode "•" (U+2022). Confirmed
-          // from the reference template's actual numbering.xml. Using a
-          // plain "•" with no explicit run font left the glyph's font (and
-          // therefore its rendered size/weight) to whatever the document
-          // default happened to be, rather than the font Word itself uses
-          // for bullets — this was the actual cause of bullets consistently
-          // looking smaller than the reference across several rounds.
-          text: '\uF0B7',
+          text: '•',
           alignment: AlignmentType.LEFT,
           style: {
-            run: { font: 'Symbol' },
             paragraph: {
               indent: { left: 360, hanging: 180 },
             },
