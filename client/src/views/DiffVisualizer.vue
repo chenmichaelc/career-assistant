@@ -1,8 +1,25 @@
 <!-- client/src/views/DiffVisualizer.vue -->
-<!-- CAR-213 — dual text inputs + git-diff-style render, backed by CAR-212's useDiff composable. -->
 <template>
   <div class="max-w-4xl" data-testid="diff-visualizer-view">
-    <h1 class="font-mono text-2xl font-semibold text-text mb-6">Diff Visualizer</h1>
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="font-mono text-2xl font-semibold text-text">Diff Visualizer</h1>
+      <div class="flex items-center gap-3">
+        <span class="font-mono text-xs text-dim">line mode</span>
+        <button
+          type="button"
+          @click="wordMode = !wordMode"
+          :class="wordMode ? 'bg-accent border-accent' : 'bg-surface border-border'"
+          class="relative w-10 h-5 border rounded-full transition-colors overflow-hidden"
+          data-testid="diff-mode-toggle"
+        >
+          <span
+            :class="wordMode ? 'translate-x-5.5 bg-surface' : 'translate-x-0.5 bg-dim'"
+            class="absolute left-0 top-0.5 w-4 h-4 rounded-full transition-transform"
+          />
+        </button>
+        <span class="font-mono text-xs text-dim">word mode</span>
+      </div>
+    </div>
 
     <div class="grid grid-cols-2 gap-4 mb-6">
       <div id="diff-original-input-region">
@@ -31,7 +48,27 @@
         Paste text into both fields above to see a diff.
       </div>
 
-      <div v-else class="font-mono text-sm bg-panel border border-border rounded py-2">
+      <div
+        v-else-if="wordMode"
+        data-testid="diff-word-mode"
+        class="font-mono text-sm bg-panel border border-border rounded px-4 py-3 whitespace-pre-wrap wrap-break-word"
+      >
+        <span
+          v-for="(part, index) in wordDiffParts"
+          :key="index"
+          :class="wordPartClass(part)"
+          :data-testid="
+            part.added ? 'diff-word-added' : part.removed ? 'diff-word-removed' : undefined
+          "
+          >{{ part.value }}</span
+        >
+      </div>
+
+      <div
+        v-else
+        data-testid="diff-line-mode"
+        class="font-mono text-sm bg-panel border border-border rounded py-2"
+      >
         <div
           v-for="(line, index) in renderedLines"
           :key="index"
@@ -53,10 +90,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useDiff } from '@/composables/useDiff';
+import { ref, computed } from 'vue';
+import { useDiff, type DiffPart } from '@/composables/useDiff';
 
-const { oldText, newText, diffParts } = useDiff();
+const { oldText, newText, diffParts, wordDiffParts } = useDiff();
+
+const wordMode = ref(false);
 
 const hasBothInputs = computed(() => oldText.value.trim() !== '' && newText.value.trim() !== '');
 
@@ -89,8 +128,6 @@ const renderedLines = computed<RenderedLine[]>(() => {
   for (const part of diffParts.value) {
     const type: LineType = part.added ? 'added' : part.removed ? 'removed' : 'context';
     const partLines = part.value.split('\n');
-    // split() on a value ending in '\n' produces a trailing '' entry that
-    // isn't a real line — drop it.
     if (partLines[partLines.length - 1] === '') partLines.pop();
     for (const rawLine of partLines) {
       const { main, trailing } = splitTrailingWhitespace(rawLine);
@@ -110,5 +147,11 @@ function linePrefix(type: LineType): string {
   if (type === 'added') return '+ ';
   if (type === 'removed') return '- ';
   return '  ';
+}
+
+function wordPartClass(part: DiffPart): string {
+  if (part.added) return 'bg-success/20 text-success underline decoration-success';
+  if (part.removed) return 'bg-danger/20 text-danger line-through';
+  return 'text-text';
 }
 </script>
