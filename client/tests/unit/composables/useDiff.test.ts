@@ -103,3 +103,86 @@ describe('useDiff — line-level diff computation', () => {
     expect(diffParts.value.some((part) => part.added || part.removed)).toBe(true);
   });
 });
+
+describe('useDiff — word-level diff computation', () => {
+  test('identical inputs produce a single unchanged word-level part', () => {
+    const { oldText, newText, wordDiffParts } = useDiff();
+    oldText.value = 'the quick fox';
+    newText.value = 'the quick fox';
+
+    expect(wordDiffParts.value).toHaveLength(1);
+    expect(wordDiffParts.value[0]).toMatchObject({
+      added: false,
+      removed: false,
+      value: 'the quick fox',
+    });
+  });
+
+  test('wordDiffParts is independent of diffParts — a single-word change within one line is a full-line replace in line mode but an isolated word swap in word mode', () => {
+    const { oldText, newText, diffParts, wordDiffParts } = useDiff();
+    oldText.value = 'Owned the migration process';
+    newText.value = 'Owns the migration process';
+
+    // Line mode: no line break present, so the whole line is removed and re-added.
+    expect(diffParts.value).toHaveLength(2);
+    expect(diffParts.value[0]).toMatchObject({
+      added: false,
+      removed: true,
+      value: 'Owned the migration process',
+    });
+    expect(diffParts.value[1]).toMatchObject({
+      added: true,
+      removed: false,
+      value: 'Owns the migration process',
+    });
+
+    // Word mode: only the changed word is flagged; the rest is unchanged.
+    expect(wordDiffParts.value).toHaveLength(3);
+    expect(wordDiffParts.value[0]).toMatchObject({ added: false, removed: true, value: 'Owned' });
+    expect(wordDiffParts.value[1]).toMatchObject({ added: true, removed: false, value: 'Owns' });
+    expect(wordDiffParts.value[2]).toMatchObject({
+      added: false,
+      removed: false,
+      value: ' the migration process',
+    });
+  });
+
+  test('a case where line mode shows a full remove/add pair but word mode shows only an appended fragment with no removal at all', () => {
+    const { oldText, newText, diffParts, wordDiffParts } = useDiff();
+    oldText.value = 'the quick fox';
+    newText.value = 'the quick brown fox';
+
+    // Line mode: single line differs, so it registers as a full remove + full add.
+    expect(diffParts.value).toHaveLength(2);
+    expect(diffParts.value.some((part) => part.removed)).toBe(true);
+
+    // Word mode: purely an insertion — no removed part appears anywhere.
+    expect(wordDiffParts.value.some((part) => part.removed)).toBe(false);
+    expect(wordDiffParts.value).toHaveLength(3);
+    expect(wordDiffParts.value[0]).toMatchObject({
+      added: false,
+      removed: false,
+      value: 'the quick ',
+    });
+    expect(wordDiffParts.value[1]).toMatchObject({ added: true, removed: false, value: 'brown ' });
+    expect(wordDiffParts.value[2]).toMatchObject({ added: false, removed: false, value: 'fox' });
+  });
+
+  test('empty-string inputs produce no word-level diff parts', () => {
+    const { oldText, newText, wordDiffParts } = useDiff();
+    oldText.value = '';
+    newText.value = '';
+
+    expect(wordDiffParts.value).toHaveLength(0);
+  });
+
+  test('wordDiffParts is reactive to subsequent input changes', () => {
+    const { oldText, newText, wordDiffParts } = useDiff();
+    oldText.value = 'a';
+    newText.value = 'a';
+    expect(wordDiffParts.value.every((part) => !part.added && !part.removed)).toBe(true);
+
+    newText.value = 'b';
+    expect(wordDiffParts.value.some((part) => part.added || part.removed)).toBe(true);
+  });
+});
