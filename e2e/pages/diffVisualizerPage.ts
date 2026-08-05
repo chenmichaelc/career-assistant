@@ -12,6 +12,11 @@ export class DiffVisualizerPage {
   readonly newTextArea: Locator;
   readonly diffRender: Locator;
   readonly trailingWhitespaceMarkers: Locator;
+  readonly modeToggle: Locator;
+  readonly lineModeRender: Locator;
+  readonly wordModeRender: Locator;
+  readonly wordAddedSegments: Locator;
+  readonly wordRemovedSegments: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -28,6 +33,11 @@ export class DiffVisualizerPage {
       .getByRole('textbox');
     this.diffRender = page.getByTestId('diff-render');
     this.trailingWhitespaceMarkers = this.diffRender.getByTestId('diff-trailing-whitespace');
+    this.modeToggle = page.getByTestId('diff-mode-toggle');
+    this.lineModeRender = this.diffRender.getByTestId('diff-line-mode');
+    this.wordModeRender = this.diffRender.getByTestId('diff-word-mode');
+    this.wordAddedSegments = this.wordModeRender.getByTestId('diff-word-added');
+    this.wordRemovedSegments = this.wordModeRender.getByTestId('diff-word-removed');
   }
 
   async goto() {

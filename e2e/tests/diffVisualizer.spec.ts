@@ -102,3 +102,69 @@ test('Trailing whitespace is visualized instead of causing a silent phantom diff
     await expect(diffVisualizerPage.trailingWhitespaceMarkers.first()).toHaveText('·');
   });
 });
+
+test('Line mode is the default view; word mode is not rendered until toggled', async ({ page }) => {
+  const diffVisualizerPage = new DiffVisualizerPage(page);
+
+  await test.step('Act: paste differing text without touching the toggle', async () => {
+    await diffVisualizerPage.setInputs('line one\nline two', 'line one\nline two changed');
+  });
+
+  await test.step('Assert: line mode is visible, word mode is not', async () => {
+    await expect(diffVisualizerPage.lineModeRender).toBeVisible();
+    await expect(diffVisualizerPage.wordModeRender).toHaveCount(0);
+  });
+});
+
+test('Toggling to word mode replaces the line-by-line render with a continuous highlighted block', async ({
+  page,
+}) => {
+  const diffVisualizerPage = new DiffVisualizerPage(page);
+
+  await test.step('Act: paste a single-word change and switch to word mode', async () => {
+    await diffVisualizerPage.setInputs(
+      'Owned test strategy for six major releases.',
+      'Owns test strategy for six major releases.'
+    );
+    await diffVisualizerPage.modeToggle.click();
+  });
+
+  await test.step('Assert: word mode is now visible, line mode is not', async () => {
+    await expect(diffVisualizerPage.wordModeRender).toBeVisible();
+    await expect(diffVisualizerPage.lineModeRender).toHaveCount(0);
+  });
+
+  await test.step('Assert: only the changed word is flagged as removed/added, not the whole line', async () => {
+    await expect(diffVisualizerPage.wordRemovedSegments).toHaveCount(1);
+    await expect(diffVisualizerPage.wordRemovedSegments.first()).toHaveText('Owned');
+    await expect(diffVisualizerPage.wordAddedSegments).toHaveCount(1);
+    await expect(diffVisualizerPage.wordAddedSegments.first()).toHaveText('Owns');
+  });
+
+  await test.step('Assert: the unchanged remainder of the line is still present, just not highlighted', async () => {
+    await expect(diffVisualizerPage.wordModeRender).toContainText(
+      'test strategy for six major releases.'
+    );
+  });
+});
+
+test('Toggling back to line mode restores the git-diff-style rows', async ({ page }) => {
+  const diffVisualizerPage = new DiffVisualizerPage(page);
+
+  await test.step('Act: paste differing text, switch to word mode, then switch back', async () => {
+    await diffVisualizerPage.setInputs('line one\nline two', 'line one\nline two changed');
+    await diffVisualizerPage.modeToggle.click();
+    await diffVisualizerPage.modeToggle.click();
+  });
+
+  await test.step('Assert: line mode is visible again, with the same behavior as before this feature existed', async () => {
+    await expect(diffVisualizerPage.lineModeRender).toBeVisible();
+    await expect(diffVisualizerPage.wordModeRender).toHaveCount(0);
+    await expect(diffVisualizerPage.diffRender.getByTestId('diff-line-removed')).toHaveText(
+      '- line two'
+    );
+    await expect(diffVisualizerPage.diffRender.getByTestId('diff-line-added')).toHaveText(
+      '+ line two changed'
+    );
+  });
+});
