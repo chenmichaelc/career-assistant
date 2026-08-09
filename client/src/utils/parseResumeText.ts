@@ -45,9 +45,17 @@ function isSectionHeader(line: string): line is SectionHeader {
   return (SECTION_HEADERS as readonly string[]).includes(line.trim());
 }
 
-// Detects entries by shape (label + tab(s) + date range), not blank-line
-// separation, since real input has inconsistent blank-line spacing.
-const ENTRY_LINE = /^(.*?)\t+(.+–.+)$/;
+// Detects entries by shape (label + date range), not blank-line separation,
+// since real input has inconsistent blank-line spacing.
+//
+// Anchored on the date range's actual shape — (M)M/YYYY or YYYY, an en dash,
+// then another (M)M/YYYY or YYYY or "Present" — rather than on how much
+// whitespace precedes it.
+// Ex.
+// Remote  2020 – Present
+// Remote	09/2020 – Present
+// Remote 09/2020 – 08/2021
+const ENTRY_LINE = /^(.*\S)\s+((?:\d{1,2}\/)?\d{4}\s*–\s*(?:(?:\d{1,2}\/)?\d{4}|Present))$/;
 
 function isBulletLine(line: string): boolean {
   const trimmed = line.trim();
