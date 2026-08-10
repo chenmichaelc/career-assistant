@@ -172,4 +172,58 @@ Engineer
       skills: [],
     });
   });
+
+  test('an entry line separated by 2+ spaces instead of a tab is still recognized', () => {
+    const textWithSpaceDelimitedProject = `Jane Doe
+jane@example.com
+
+PROJECTS
+side-project (github.com/jane/side-project)  2023 – Present
+    • Built something.`;
+
+    const result = parseResumeText(textWithSpaceDelimitedProject);
+    expect(result.sections.projects).toHaveLength(1);
+    expect(result.sections.projects[0]).toMatchObject({
+      name: 'side-project',
+      link: 'github.com/jane/side-project',
+      dateRange: '2023 – Present',
+    });
+    expect(result.sections.projects[0].bullets).toEqual(['Built something.']);
+  });
+
+  test('a company/location line with an internal 2+ space gap is not mistaken for the date separator', () => {
+    const textWithEarlyDoubleSpace = `Jane Doe
+jane@example.com
+
+EXPERIENCE
+Acme  Remote  2020 – Present
+Engineer
+    • Did a thing.`;
+
+    const result = parseResumeText(textWithEarlyDoubleSpace);
+    expect(result.sections.experience).toHaveLength(1);
+    expect(result.sections.experience[0]).toMatchObject({
+      company: 'Acme',
+      location: 'Remote',
+      dateRange: '2020 – Present',
+    });
+  });
+
+  test('a bullet with a coincidental double-space and an en dash is not misread as a new entry', () => {
+    const textWithTrickyBullet = `Jane Doe
+jane@example.com
+
+EXPERIENCE
+Acme Corp  Remote\t2020 – Present
+Engineer
+    • Reduced spend  significantly – a major win.
+    • A second, ordinary bullet.`;
+
+    const result = parseResumeText(textWithTrickyBullet);
+    expect(result.sections.experience).toHaveLength(1);
+    expect(result.sections.experience[0].bullets).toEqual([
+      'Reduced spend  significantly – a major win.',
+      'A second, ordinary bullet.',
+    ]);
+  });
 });
