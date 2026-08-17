@@ -66,6 +66,13 @@ describe('parseResumeText — real sample resume', () => {
     expect(result.sections.projects[0].bullets).toHaveLength(5);
   });
 
+  test('parses a project summary spanning multiple source lines, joined with a space', () => {
+    const result = parseResumeText(SAMPLE_RESUME);
+    expect(result.sections.projects[0].summary).toBe(
+      'Personal side project chronicling investigations for serialized publication in The Strand Magazine.'
+    );
+  });
+
   test('parses both education entries, including the pair with no blank line between them', () => {
     const result = parseResumeText(SAMPLE_RESUME);
     expect(result.sections.education).toHaveLength(2);
@@ -225,5 +232,65 @@ Engineer
       'Reduced spend  significantly – a major win.',
       'A second, ordinary bullet.',
     ]);
+  });
+
+  test('a project with no summary line parses with summary: null', () => {
+    const textWithNoSummary = `Jane Doe
+jane@example.com
+
+PROJECTS
+side-project (github.com/jane/side-project)\t2023 – Present
+    • Built something.`;
+
+    const result = parseResumeText(textWithNoSummary);
+    expect(result.sections.projects[0].summary).toBeNull();
+    expect(result.sections.projects[0].bullets).toEqual(['Built something.']);
+  });
+
+  test('a project with a summary but no bullets still captures the summary', () => {
+    const textWithSummaryNoBullets = `Jane Doe
+jane@example.com
+
+PROJECTS
+side-project (github.com/jane/side-project)\t2023 – Present
+A small tool with no bullets yet.`;
+
+    const result = parseResumeText(textWithSummaryNoBullets);
+    expect(result.sections.projects[0].summary).toBe('A small tool with no bullets yet.');
+    expect(result.sections.projects[0].bullets).toEqual([]);
+  });
+
+  test('a summary line is only recognized before the first bullet — a stray non-bullet line after bullets have started is dropped, not appended to the summary', () => {
+    const textWithStrayLineAfterBullets = `Jane Doe
+jane@example.com
+
+PROJECTS
+side-project (github.com/jane/side-project)\t2023 – Present
+A real summary line.
+    • First bullet.
+this stray line is not a bullet and comes after bullets have started
+    • Second bullet.`;
+
+    const result = parseResumeText(textWithStrayLineAfterBullets);
+    expect(result.sections.projects[0].summary).toBe('A real summary line.');
+    expect(result.sections.projects[0].bullets).toEqual(['First bullet.', 'Second bullet.']);
+  });
+
+  test('two consecutive projects each get their own independent summary, not a merged one', () => {
+    const textWithTwoProjects = `Jane Doe
+jane@example.com
+
+PROJECTS
+proj-one (github.com/jane/proj-one)\t2023 – Present
+Summary for the first project.
+    • Bullet for proj one.
+proj-two (github.com/jane/proj-two)\t2022 – 2023
+Summary for the second project.
+    • Bullet for proj two.`;
+
+    const result = parseResumeText(textWithTwoProjects);
+    expect(result.sections.projects).toHaveLength(2);
+    expect(result.sections.projects[0].summary).toBe('Summary for the first project.');
+    expect(result.sections.projects[1].summary).toBe('Summary for the second project.');
   });
 });

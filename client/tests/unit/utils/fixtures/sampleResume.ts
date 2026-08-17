@@ -44,6 +44,8 @@ Assistant Surgeon
 
 PROJECTS
 the-strand-digital (github.com/jhwatson/the-strand-digital) \t2026 – Present
+Personal side project chronicling investigations for serialized
+publication in The Strand Magazine.
     • Architected a Gen-AI content pipeline converting digitized manuscript pages into formatted blog posts for public reading.
     • Built a templating system replicating the original Strand Magazine's typography and illustration layout for digital reproduction.
     • Implemented automated tagging and cross-referencing of characters, locations, and case details across published entries.

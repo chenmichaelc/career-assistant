@@ -32,6 +32,8 @@ const SAMPLE_RESUME: ParsedResume = {
         name: 'the-strand-digital',
         link: 'github.com/jhwatson/the-strand-digital',
         dateRange: '2026 – Present',
+        summary:
+          'Personal side project chronicling investigations for serialized publication in The Strand Magazine.',
         bullets: ['Built something.'],
       },
     ],
@@ -160,6 +162,26 @@ describe('buildResumeDocx — projects and education', () => {
     expect(projectParagraph).toContain('2026');
   });
 
+  test('project summary line is italic, 10pt (sz=20), not bold', () => {
+    const summaryParagraph = extractParagraph(
+      documentXml,
+      'Personal side project chronicling investigations for serialized publication in The Strand Magazine.'
+    );
+    expect(summaryParagraph).toContain('<w:i/>');
+    expect(summaryParagraph).toContain('w:sz w:val="20"');
+    expect(summaryParagraph).not.toContain('<w:b/>');
+  });
+
+  test('each project entry produces entry-line + summary-line + one paragraph per bullet, in that order', () => {
+    const entryLineIdx = documentXml.indexOf('>the-strand-digital<');
+    const summaryIdx = documentXml.indexOf(
+      'Personal side project chronicling investigations for serialized publication in The Strand Magazine.'
+    );
+    const bulletIdx = documentXml.indexOf('Built something.');
+    expect(entryLineIdx).toBeLessThan(summaryIdx);
+    expect(summaryIdx).toBeLessThan(bulletIdx);
+  });
+
   test('project bullets use tighter spacing (after=14) than job bullets (after=20)', () => {
     const projectBulletParagraph = extractParagraph(documentXml, 'Built something.');
     expect(projectBulletParagraph).toContain('w:pStyle w:val="ListParagraph"');
@@ -264,8 +286,8 @@ describe('buildResumeDocx — blank paragraph between individual entries within 
         summary: null,
         experience: [],
         projects: [
-          { name: 'Proj One', link: null, dateRange: '2023', bullets: ['Did X.'] },
-          { name: 'Proj Two', link: null, dateRange: '2022', bullets: ['Did Y.'] },
+          { name: 'Proj One', link: null, dateRange: '2023', summary: null, bullets: ['Did X.'] },
+          { name: 'Proj Two', link: null, dateRange: '2022', summary: null, bullets: ['Did Y.'] },
         ],
         education: [],
         skills: [],
@@ -302,7 +324,7 @@ describe('buildResumeDocx — blank paragraph between individual entries within 
             bullets: [],
           },
         ],
-        projects: [{ name: 'Proj One', link: null, dateRange: '2023', bullets: [] }],
+        projects: [{ name: 'Proj One', link: null, dateRange: '2023', summary: null, bullets: [] }],
         education: [],
         skills: [],
       },
