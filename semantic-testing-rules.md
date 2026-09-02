@@ -87,11 +87,11 @@ tell which one they're looking at without diffing every field by hand.
 This is a real bug, found in this codebase, not a hypothetical:
 
 ```typescript
-// realisticResume.ts — John H. Watson, Kensington, London, 1891–1894
+// parseResumeText.fixture.ts — John H. Watson, Kensington, London, 1891–1894
 'Private Medical Practice  Kensington, London\t1891 – 1894'
 // bullets: purchased and operated an independent practice, stable patient roster
 
-// renderOnlyResume.ts — also "John H. Watson," same role, same dates
+// buildResumeDocx.fixture.ts — also "John H. Watson," same role, same dates
 location: 'Kensington, London (Remote)',
 bullets: ['Maintained a patient roster.'],
 ```

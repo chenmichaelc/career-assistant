@@ -5,13 +5,13 @@ import { Packer } from 'docx';
 import JSZip from 'jszip';
 import { buildResumeDocx } from '../../../src/utils/buildResumeDocx';
 import type { ParsedResume } from '../../../src/utils/parseResumeText';
-import { RENDER_ONLY_RESUME } from '../../fixtures/renderOnlyResume';
+import { BUILD_RESUME_DOCX_FIXTURE } from '../../fixtures/buildResumeDocx.fixture';
 
 let documentXml: string;
 let numberingXml: string;
 
 beforeAll(async () => {
-  const doc = buildResumeDocx(RENDER_ONLY_RESUME);
+  const doc = buildResumeDocx(BUILD_RESUME_DOCX_FIXTURE);
   const buffer = await Packer.toBuffer(doc);
   const zip = await JSZip.loadAsync(buffer);
   documentXml = await zip.file('word/document.xml')!.async('string');

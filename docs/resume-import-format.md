@@ -15,13 +15,13 @@ There are three resume fixtures in `client/tests/fixtures/`, each testing a diff
 boundary. They intentionally overlap in content — that's not duplication, each one
 exists to isolate a different layer:
 
-| Fixture                   | Tests                          | Exercises                                                                      |
-| ------------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
-| `realisticResume.ts`      | `parseResumeText.test.ts`      | `parseResumeText()` only                                                       |
-| `renderOnlyResume.ts`     | `buildResumeDocx.test.ts`      | `buildResumeDocx()` only, on a hand-built object that never touched the parser |
-| `formatContractResume.ts` | `resumeFormatContract.test.ts` | Both, end to end — this doc's companion fixture                                |
+| Fixture                           | Tests                          | Exercises                                                                      |
+| --------------------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
+| `parseResumeText.fixture.ts`      | `parseResumeText.test.ts`      | `parseResumeText()` only                                                       |
+| `buildResumeDocx.fixture.ts`      | `buildResumeDocx.test.ts`      | `buildResumeDocx()` only, on a hand-built object that never touched the parser |
+| `resumeFormatContract.fixture.ts` | `resumeFormatContract.test.ts` | Both, end to end — this doc's companion fixture                                |
 
-`formatContractResume.ts` is the one that satisfies every rule in this document, and is
+`resumeFormatContract.fixture.ts` is the one that satisfies every rule in this document, and is
 checked against `parseResumeText()` + `buildResumeDocx()` together by
 `resumeFormatContract.test.ts`. If you change a rule here, update that fixture and its
 test in the same change — they are required to stay in sync with each other and with

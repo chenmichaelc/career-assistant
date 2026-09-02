@@ -5,9 +5,9 @@ import { Packer } from 'docx';
 import JSZip from 'jszip';
 import { parseResumeText } from '../../../src/utils/parseResumeText';
 import { buildResumeDocx } from '../../../src/utils/buildResumeDocx';
-import { FORMAT_CONTRACT_RESUME } from '../../fixtures/formatContractResume';
+import { RESUME_FORMAT_CONTRACT_FIXTURE } from '../../fixtures/resumeFormatContract.fixture';
 
-const parsed = parseResumeText(FORMAT_CONTRACT_RESUME);
+const parsed = parseResumeText(RESUME_FORMAT_CONTRACT_FIXTURE);
 
 let documentXml: string;
 

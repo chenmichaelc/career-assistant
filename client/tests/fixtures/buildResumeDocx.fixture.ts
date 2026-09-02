@@ -1,8 +1,8 @@
-// client/tests/fixtures/renderOnlyResume.ts
+// client/tests/fixtures/buildResumeDocx.fixture.ts
 
 import type { ParsedResume } from '../../src/utils/parseResumeText';
 
-export const RENDER_ONLY_RESUME: ParsedResume = {
+export const BUILD_RESUME_DOCX_FIXTURE: ParsedResume = {
   name: 'John H. Watson',
   contactLine: 'London, UK NW1 6XE  |  +44 20 7946 0958  |  j.watson@bakerstreet.example',
   sections: {

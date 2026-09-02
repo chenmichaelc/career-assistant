@@ -353,12 +353,12 @@ Root and `client/` are two separate npm packages, each with its own `node_module
 ### Fixture data — no real personal information
 
 Fixtures use fictional data, never real personal information. The resume-conversion
-fixtures in `client/tests/fixtures/` (`realisticResume.ts`, `renderOnlyResume.ts`,
-and `formatContractResume.ts`) and `e2e/tests/resumeConverter.spec.ts` use personas
+fixtures in `client/tests/fixtures/` (`parseResumeText.fixture.ts`, `buildResumeDocx.fixture.ts`,
+and `resumeFormatContract.fixture.ts`) and `e2e/tests/resumeConverter.spec.ts` use personas
 based on Arthur Conan Doyle characters (public domain) rather than
 invented-from-scratch identities — this sidesteps both privacy leakage and any
 ambiguity about whether sample data floating around the repo is real. Most of these
-fixtures share one persona (John H. Watson); `formatContractResume.ts` uses a second
+fixtures share one persona (John H. Watson); `resumeFormatContract.fixture.ts` uses a second
 (Mycroft Holmes) for a stated reason — see `semantic-testing-rules.md`. Invented
 contact details use ranges reserved for exactly this purpose: the `.example` email
 TLD (IANA-reserved, guaranteed non-resolving) and Ofcom's `020 7946` phone prefix

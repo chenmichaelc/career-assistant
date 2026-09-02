@@ -1,6 +1,6 @@
-// client/tests/fixtures/formatContractResume.ts
+// client/tests/fixtures/resumeFormatContract.fixture.ts
 
-export const FORMAT_CONTRACT_RESUME = `Mycroft Holmes
+export const RESUME_FORMAT_CONTRACT_FIXTURE = `Mycroft Holmes
 Pall Mall, London SW1Y  |  020 7946 0891  |  m.holmes@whitehall.example  |  linkedin.com/in/mycroftholmes
 
 SUMMARY

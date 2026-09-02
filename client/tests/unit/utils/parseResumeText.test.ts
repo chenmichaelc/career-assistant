@@ -2,11 +2,11 @@
 
 import { describe, test, expect } from 'vitest';
 import { parseResumeText } from '../../../src/utils/parseResumeText';
-import { REALISTIC_RESUME } from '../../fixtures/realisticResume';
+import { PARSE_RESUME_TEXT_FIXTURE } from '../../fixtures/parseResumeText.fixture';
 
 describe('parseResumeText — real sample resume', () => {
   test('parses name and contact line', () => {
-    const result = parseResumeText(REALISTIC_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.name).toBe('John H. Watson');
     expect(result.contactLine).toBe(
       'London, UK NW1 6XE  |  +44 20 7946 0958  |  j.watson@bakerstreet.example  |  linkedin.com/in/johnhwatson  |  github.com/jhwatson'
@@ -14,14 +14,14 @@ describe('parseResumeText — real sample resume', () => {
   });
 
   test('parses the summary as a single paragraph', () => {
-    const result = parseResumeText(REALISTIC_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.summary).not.toBeNull();
     expect(result.sections.summary).toContain('Physician and consulting investigator');
     expect(result.sections.summary).toContain('the casebook.');
   });
 
   test('parses all 5 experience entries, including the pair with no blank line between them', () => {
-    const result = parseResumeText(REALISTIC_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.experience).toHaveLength(5);
 
     const [currentPractice, laterConsulting, kensingtonPractice, earlyConsulting, army] =
@@ -56,7 +56,7 @@ describe('parseResumeText — real sample resume', () => {
   });
 
   test('parses the one project entry, splitting the parenthetical link from the name', () => {
-    const result = parseResumeText(REALISTIC_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.projects).toHaveLength(1);
     expect(result.sections.projects[0]).toMatchObject({
       name: 'the-strand-digital',
@@ -67,14 +67,14 @@ describe('parseResumeText — real sample resume', () => {
   });
 
   test('parses a project summary spanning multiple source lines, joined with a space', () => {
-    const result = parseResumeText(REALISTIC_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.projects[0].summary).toBe(
       'Personal side project chronicling investigations for serialized publication in The Strand Magazine.'
     );
   });
 
   test('parses both education entries, including the pair with no blank line between them', () => {
-    const result = parseResumeText(REALISTIC_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.education).toHaveLength(2);
     expect(result.sections.education[0]).toEqual({
       degree: 'Doctor of Medicine',
@@ -89,7 +89,7 @@ describe('parseResumeText — real sample resume', () => {
   });
 
   test('parses all 8 skill categories with comma-separated items', () => {
-    const result = parseResumeText(REALISTIC_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.skills).toHaveLength(8);
     expect(result.sections.skills[0]).toEqual({
       category: 'Clinical Medicine',
