@@ -5,54 +5,13 @@ import { Packer } from 'docx';
 import JSZip from 'jszip';
 import { buildResumeDocx } from '../../../src/utils/buildResumeDocx';
 import type { ParsedResume } from '../../../src/utils/parseResumeText';
-
-const SAMPLE_RESUME: ParsedResume = {
-  name: 'John H. Watson',
-  contactLine: 'London, UK NW1 6XE  |  +44 20 7946 0958  |  j.watson@bakerstreet.example',
-  sections: {
-    summary: 'Physician and consulting investigator with 20+ years of experience.',
-    experience: [
-      {
-        company: 'Holmes Consulting',
-        location: '221B Baker Street, London',
-        dateRange: '1881 – 1891',
-        title: 'Consulting Partner and Case Chronicler',
-        bullets: ['Assisted with a case.', 'Documented the investigation.'],
-      },
-      {
-        company: 'Private Medical Practice',
-        location: 'Kensington, London (Remote)',
-        dateRange: '1891 – 1894',
-        title: 'General Practitioner',
-        bullets: ['Maintained a patient roster.'],
-      },
-    ],
-    projects: [
-      {
-        name: 'the-strand-digital',
-        link: 'github.com/jhwatson/the-strand-digital',
-        dateRange: '2026 – Present',
-        summary:
-          'Personal side project chronicling investigations for serialized publication in The Strand Magazine.',
-        bullets: ['Built something.'],
-      },
-    ],
-    education: [
-      {
-        degree: 'Doctor of Medicine',
-        institution: 'University of London',
-        dateRange: '1877 – 1878',
-      },
-    ],
-    skills: [{ category: 'Clinical Medicine', items: ['Surgery', 'Diagnosis'] }],
-  },
-};
+import { BUILD_RESUME_DOCX_FIXTURE } from '../../fixtures/buildResumeDocx.fixture';
 
 let documentXml: string;
 let numberingXml: string;
 
 beforeAll(async () => {
-  const doc = buildResumeDocx(SAMPLE_RESUME);
+  const doc = buildResumeDocx(BUILD_RESUME_DOCX_FIXTURE);
   const buffer = await Packer.toBuffer(doc);
   const zip = await JSZip.loadAsync(buffer);
   documentXml = await zip.file('word/document.xml')!.async('string');
@@ -222,7 +181,7 @@ describe('buildResumeDocx — blank paragraph before every section header', () =
     return !hasVisibleText;
   }
 
-  test('SAMPLE_RESUME gets a spacer before all 5 headers, regardless of what precedes them', () => {
+  test('a spacer paragraph appears before all 5 headers, regardless of what precedes them', () => {
     for (const header of ['SUMMARY', 'EXPERIENCE', 'PROJECTS', 'EDUCATION', 'SKILLS']) {
       expect(hasEmptySpacerBefore(documentXml, header)).toBe(true);
     }
