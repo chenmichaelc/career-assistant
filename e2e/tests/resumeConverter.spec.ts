@@ -3,7 +3,7 @@
 import { test, expect } from '@playwright/test';
 import { ResumeConverterPage } from '../pages/resumeConverterPage';
 
-const SAMPLE_RESUME = `John H. Watson
+const MINIMAL_RESUME = `John H. Watson
 London, UK NW1 6XE  |  +44 20 7946 0958
 
 SUMMARY
@@ -23,7 +23,7 @@ test('Converting a well-formed resume triggers a .docx download', async ({ page 
   const resumeConverterPage = new ResumeConverterPage(page);
 
   await test.step('Act: paste a well-formed resume', async () => {
-    await resumeConverterPage.resumeTextArea.fill(SAMPLE_RESUME);
+    await resumeConverterPage.resumeTextArea.fill(MINIMAL_RESUME);
   });
 
   await test.step('Assert: clicking convert triggers a .docx download', async () => {

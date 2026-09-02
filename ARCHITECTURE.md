@@ -352,9 +352,33 @@ Root and `client/` are two separate npm packages, each with its own `node_module
 
 ### Fixture data — no real personal information
 
-Fixtures use fictional data, never real personal information. The resume-conversion fixtures (`client/tests/unit/utils/fixtures/sampleResume.ts` and the smaller literals in `buildResumeDocx.test.ts` and `e2e/tests/resumeConverter.spec.ts`) use a persona based on John H. Watson (Arthur Conan Doyle, public domain) rather than an invented-from-scratch identity — this sidesteps both privacy leakage and any ambiguity about whether sample data floating around the repo is real. Invented contact details use ranges reserved for exactly this purpose: the `.example` email TLD (IANA-reserved, guaranteed non-resolving) and Ofcom's `020 7946` phone prefix (reserved for UK film/TV/fiction use).
+Fixtures use fictional data, never real personal information. The resume-conversion
+fixtures in `client/tests/fixtures/` (`realisticResume.ts`, `renderOnlyResume.ts`,
+and `formatContractResume.ts`) and `e2e/tests/resumeConverter.spec.ts` use personas
+based on Arthur Conan Doyle characters (public domain) rather than
+invented-from-scratch identities — this sidesteps both privacy leakage and any
+ambiguity about whether sample data floating around the repo is real. Most of these
+fixtures share one persona (John H. Watson); `formatContractResume.ts` uses a second
+(Mycroft Holmes) for a stated reason — see `semantic-testing-rules.md`. Invented
+contact details use ranges reserved for exactly this purpose: the `.example` email
+TLD (IANA-reserved, guaranteed non-resolving) and Ofcom's `020 7946` phone prefix
+(reserved for UK film/TV/fiction use).
 
 An ESLint rule (`eslint.config.mts`) flags literal string values containing common real personal email domains (`gmail.com`, `yahoo.com`, etc.) across test files and fixtures, as a mechanical backstop against the same kind of data reappearing by accident.
+
+### Test dependency scope: structure vs. state
+
+A shared test dependency is either universal (page objects, pure helper functions,
+fixture factories) or scoped to a specific test or named set of tests (fixtures).
+Which one it should be follows from what it represents.
+
+Universal test dependencies should be stateless and be reusable by any test. Any
+dependency that's state-specific should be managed on the test level instead.
+
+Fixtures representing "the same" synthetic identity across files must match exactly
+or diverge for a stated reason — an unstated divergence reads as drift, not intent.
+See `semantic-testing-rules.md`'s "Test dependency scope: structure vs. state" for
+the full rationale and a real example of this going wrong undetected.
 
 ### Integration tests (`tests/integration/`)
 

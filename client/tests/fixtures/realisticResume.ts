@@ -1,6 +1,6 @@
-// client/tests/unit/utils/fixtures/sampleResume.ts
+// client/tests/fixtures/realisticResume.ts
 
-export const SAMPLE_RESUME = `John H. Watson
+export const REALISTIC_RESUME = `John H. Watson
 London, UK NW1 6XE  |  +44 20 7946 0958  |  j.watson@bakerstreet.example  |  linkedin.com/in/johnhwatson  |  github.com/jhwatson
 
 SUMMARY

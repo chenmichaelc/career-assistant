@@ -43,7 +43,92 @@ Prevents cross-zone false matches as the page grows, and prevents silent mismatc
 
 ---
 
-## Avoid long chains off raw element locators
+## Test dependency scope: structure vs. state
+
+A shared test dependency should be universal (usable by any test, no scope
+restriction) or scoped to a named test or set of tests — never in between, where its
+actual scope has to be reverse-engineered by reading every consumer.
+
+Which one it should be isn't a judgment call made fixture-by-fixture — it follows
+directly from what the dependency represents:
+
+- **Structure generalizes.** A page object encodes how to interact with a page —
+  locators, structural affordances — which is true regardless of which test is
+  running or what data happens to be loaded. A pure helper function (e.g.
+  `extractParagraph(xml, marker)` in `buildResumeDocx.test.ts`) is the same: it
+  operates on whatever it's handed and holds no scenario of its own. Both are
+  correctly universal, and should stay that way — never give a page object or a
+  helper function embedded data specific to one test's scenario.
+- **State doesn't generalize.** A fixture encodes a specific instantiated scenario —
+  this resume, with these dates, in this format. Two fixtures with different content
+  are, by definition, testing different things; there's no way to make one "more
+  universal" without diluting the specific state it exists to represent. A fixture's
+  correct scope is exactly the set of tests that need that particular state — nothing
+  broader.
+- **A fixture _factory_** (something parameterized that generates a fixture on
+  demand, e.g. `buildResume({ overrides })`) is structure, not state, and belongs in
+  the universal bucket even though it produces fixtures — the factory is a mechanism;
+  each thing it produces is still scoped state. Don't mistake "this generates state"
+  for "this is exempt from the rule below."
+
+This mirrors the same schema-vs-data split this codebase already applies elsewhere —
+see "Vocabulary types and runtime arrays" in `ARCHITECTURE.md`: the type is
+structural and universal, a given value assigned to it is an instance.
+
+### Fixture divergence must be traceable to a stated requirement
+
+Because fixtures are state, not structure, having several of them for the same
+general subject isn't automatically duplication — but when two fixtures represent
+"the same" synthetic entity — same name, same claimed identity — their data must
+either match exactly or diverge for a reason written down in the fixture itself. An
+unstated divergence is indistinguishable from an accident, and a reader has no way to
+tell which one they're looking at without diffing every field by hand.
+
+This is a real bug, found in this codebase, not a hypothetical:
+
+```typescript
+// realisticResume.ts — John H. Watson, Kensington, London, 1891–1894
+'Private Medical Practice  Kensington, London\t1891 – 1894'
+// bullets: purchased and operated an independent practice, stable patient roster
+
+// renderOnlyResume.ts — also "John H. Watson," same role, same dates
+location: 'Kensington, London (Remote)',
+bullets: ['Maintained a patient roster.'],
+```
+
+Same claimed person, same job, same dates — one fixture has him running an
+independent practice, the other has him working remotely, with entirely different
+bullet content. Neither test file's assertions depend on the specific divergent
+details (checked: no test targets `'(Remote)'` or `'patient roster'` as a marker) —
+which means this isn't an intentional edge case, it's unreviewed copy-drift that
+happened to survive because nothing made it visible. It was carried forward silently
+across at least one prior refactor before being noticed.
+
+**Before creating a fixture that reuses a name/identity from an existing one:**
+
+1. Default to reusing the existing dataset exactly, or a documented literal subset of
+   it — not a re-typed, "close enough" version.
+2. If the fixture's purpose genuinely requires different data (a shape the source
+   fixture doesn't have, an edge case it can't represent), state that requirement in
+   a comment at the point of divergence — not just in the file header, at the specific
+   field that diverges — so the next reader can tell "this is intentional, here's why"
+   from "this drifted."
+3. If no such requirement exists, the fixture should derive from the source rather
+   than duplicate it (e.g. a hand-built object fixture that must stay decoupled from a
+   live parser call can still be a frozen, verified-identical copy of what the parser
+   currently produces from the canonical text — decoupled at freeze-time, not diverged
+   at write-time).
+
+**Fixture representation format should match what the feature actually consumes, not
+just match sibling fixtures for uniformity.** A fixture whose job is verifying exact
+literal-character formatting (e.g. dash-character or whitespace bugs) is more
+trustworthy as a plain file you can diff or hexdump directly than as an in-language
+string literal, which adds an escaping/parsing layer between what's on disk and what
+the test receives — even if every other fixture nearby happens to use that language's
+native literal syntax. Don't let "the other two files do it this way" override "this
+fixture's own purpose calls for something else."
+
+---
 
 Don't chain more than two calls off a raw locator like `locator('div')`. Scope to `getByTestId()` or `getByRole()` first.
 
