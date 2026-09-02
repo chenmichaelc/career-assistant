@@ -181,7 +181,7 @@ describe('buildResumeDocx — blank paragraph before every section header', () =
     return !hasVisibleText;
   }
 
-  test('RENDER_ONLY_RESUME gets a spacer before all 5 headers, regardless of what precedes them', () => {
+  test('a spacer paragraph appears before all 5 headers, regardless of what precedes them', () => {
     for (const header of ['SUMMARY', 'EXPERIENCE', 'PROJECTS', 'EDUCATION', 'SKILLS']) {
       expect(hasEmptySpacerBefore(documentXml, header)).toBe(true);
     }
