@@ -5,7 +5,8 @@ import Fastify, { FastifyInstance } from 'fastify';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../../helpers/db';
 import { jobStubsRouter } from '../../../server/routes/job-stubs';
-import { rolesRouter } from '../../../server/routes/roles';
+import { addRole } from '../../../lib/roles';
+import { db } from '../../../lib/db';
 
 let app: FastifyInstance;
 let sqlite: Database.Database;
@@ -14,7 +15,6 @@ beforeEach(async () => {
   sqlite = createTestDb();
   app = Fastify();
   await app.register(jobStubsRouter, { prefix: '/api/job-stubs', db: sqlite });
-  await app.register(rolesRouter, { prefix: '/api/roles', db: sqlite });
   await app.ready();
 });
 
@@ -113,18 +113,14 @@ describe('POST /api/job-stubs', () => {
   });
 
   test('a url already promoted to a role returns 409', async () => {
-    const setupResponse = await app.inject({
-      method: 'POST',
-      url: '/api/roles',
-      payload: {
-        company: 'Acme',
-        title: 'Eng',
-        url: 'https://example.com/jobs/2',
-        role_status: 'Resume Needed',
-        jd: 'A job.',
-      },
+    addRole(sqlite, {
+      company: 'Acme',
+      title: 'Eng',
+      url: 'https://example.com/jobs/2',
+      role_status: 'Resume Needed',
+      jd: 'A job.',
     });
-    expect(setupResponse.statusCode).toBe(201); // confirm setup succeeded before testing the real behavior
+
     const response = await app.inject({
       method: 'POST',
       url: '/api/job-stubs',
@@ -209,9 +205,8 @@ describe('POST /api/job-stubs/:id/promote', () => {
     });
     const { roleId } = promoteResponse.json();
 
-    const fetchedRole = await app.inject({ method: 'GET', url: `/api/roles/${roleId}` });
-    expect(fetchedRole.statusCode).toBe(200);
-    expect(fetchedRole.json().company).toBe('Acme');
+    const role = db.roles.getById(sqlite, roleId);
+    expect(role?.company).toBe('Acme');
   });
 
   test('a nonexistent stub id returns 404', async () => {
@@ -256,7 +251,6 @@ describe('POST /api/job-stubs/:id/promote', () => {
       payload: { ...validRole, title: '' },
     });
 
-    const roleList = await app.inject({ method: 'GET', url: '/api/roles' });
-    expect(roleList.json()).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 });
