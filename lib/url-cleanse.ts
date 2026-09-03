@@ -34,6 +34,18 @@ export function cleanseUrl(rawUrl: string): string {
   try {
     parsed = new URL(trimmed);
   } catch {
+    if (!trimmed.includes('://')) {
+      try {
+        parsed = new URL(`https://${trimmed}`);
+      } catch {
+        throw new InvalidUrlError(rawUrl);
+      }
+    } else {
+      throw new InvalidUrlError(rawUrl);
+    }
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new InvalidUrlError(rawUrl);
   }
 

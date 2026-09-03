@@ -96,4 +96,49 @@ describe('cleanseUrl — invalid input', () => {
   test('throws InvalidUrlError for an empty string', () => {
     expect(() => cleanseUrl('')).toThrow(InvalidUrlError);
   });
+
+  test('throws InvalidUrlError for a whitespace-only string', () => {
+    expect(() => cleanseUrl('   ')).toThrow(InvalidUrlError);
+  });
+});
+
+describe('cleanseUrl — bare domain retry', () => {
+  test('a bare domain with no scheme is treated as https', () => {
+    expect(cleanseUrl('linkedin.com/jobs/123')).toBe('https://linkedin.com/jobs/123');
+  });
+
+  test('a bare domain with a port is rejected, not silently corrected', () => {
+    expect(() => cleanseUrl('example.com:8080/jobs/1')).toThrow(InvalidUrlError);
+  });
+
+  test('input that already looks like a failed scheme attempt is not silently reinterpreted', () => {
+    expect(() => cleanseUrl('ht!tp://example.com')).toThrow(InvalidUrlError);
+  });
+});
+
+describe('cleanseUrl — scheme restriction', () => {
+  test('rejects mailto: URLs', () => {
+    expect(() => cleanseUrl('mailto:someone@example.com')).toThrow(InvalidUrlError);
+  });
+
+  test('rejects javascript: URLs', () => {
+    expect(() => cleanseUrl('javascript:alert(1)')).toThrow(InvalidUrlError);
+  });
+
+  test('rejects data: URLs', () => {
+    expect(() => cleanseUrl('data:text/html,hello')).toThrow(InvalidUrlError);
+  });
+
+  test('rejects file: URLs', () => {
+    expect(() => cleanseUrl('file:///etc/passwd')).toThrow(InvalidUrlError);
+  });
+
+  test('rejects ftp: URLs', () => {
+    expect(() => cleanseUrl('ftp://example.com/jobs/1')).toThrow(InvalidUrlError);
+  });
+
+  test('still accepts http and https', () => {
+    expect(cleanseUrl('http://example.com/jobs/1')).toBe('https://example.com/jobs/1');
+    expect(cleanseUrl('https://example.com/jobs/1')).toBe('https://example.com/jobs/1');
+  });
 });
