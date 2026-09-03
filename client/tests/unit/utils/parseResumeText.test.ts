@@ -2,11 +2,11 @@
 
 import { describe, test, expect } from 'vitest';
 import { parseResumeText } from '../../../src/utils/parseResumeText';
-import { SAMPLE_RESUME } from './fixtures/sampleResume';
+import { PARSE_RESUME_TEXT_FIXTURE } from '../../fixtures/parseResumeText.fixture';
 
 describe('parseResumeText — real sample resume', () => {
   test('parses name and contact line', () => {
-    const result = parseResumeText(SAMPLE_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.name).toBe('John H. Watson');
     expect(result.contactLine).toBe(
       'London, UK NW1 6XE  |  +44 20 7946 0958  |  j.watson@bakerstreet.example  |  linkedin.com/in/johnhwatson  |  github.com/jhwatson'
@@ -14,14 +14,14 @@ describe('parseResumeText — real sample resume', () => {
   });
 
   test('parses the summary as a single paragraph', () => {
-    const result = parseResumeText(SAMPLE_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.summary).not.toBeNull();
     expect(result.sections.summary).toContain('Physician and consulting investigator');
     expect(result.sections.summary).toContain('the casebook.');
   });
 
   test('parses all 5 experience entries, including the pair with no blank line between them', () => {
-    const result = parseResumeText(SAMPLE_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.experience).toHaveLength(5);
 
     const [currentPractice, laterConsulting, kensingtonPractice, earlyConsulting, army] =
@@ -56,7 +56,7 @@ describe('parseResumeText — real sample resume', () => {
   });
 
   test('parses the one project entry, splitting the parenthetical link from the name', () => {
-    const result = parseResumeText(SAMPLE_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.projects).toHaveLength(1);
     expect(result.sections.projects[0]).toMatchObject({
       name: 'the-strand-digital',
@@ -66,8 +66,15 @@ describe('parseResumeText — real sample resume', () => {
     expect(result.sections.projects[0].bullets).toHaveLength(5);
   });
 
+  test('parses a project summary spanning multiple source lines, joined with a space', () => {
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
+    expect(result.sections.projects[0].summary).toBe(
+      'Personal side project chronicling investigations for serialized publication in The Strand Magazine.'
+    );
+  });
+
   test('parses both education entries, including the pair with no blank line between them', () => {
-    const result = parseResumeText(SAMPLE_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.education).toHaveLength(2);
     expect(result.sections.education[0]).toEqual({
       degree: 'Doctor of Medicine',
@@ -82,7 +89,7 @@ describe('parseResumeText — real sample resume', () => {
   });
 
   test('parses all 8 skill categories with comma-separated items', () => {
-    const result = parseResumeText(SAMPLE_RESUME);
+    const result = parseResumeText(PARSE_RESUME_TEXT_FIXTURE);
     expect(result.sections.skills).toHaveLength(8);
     expect(result.sections.skills[0]).toEqual({
       category: 'Clinical Medicine',
@@ -171,5 +178,119 @@ Engineer
       education: [],
       skills: [],
     });
+  });
+
+  test('an entry line separated by 2+ spaces instead of a tab is still recognized', () => {
+    const textWithSpaceDelimitedProject = `Jane Doe
+jane@example.com
+
+PROJECTS
+side-project (github.com/jane/side-project)  2023 – Present
+    • Built something.`;
+
+    const result = parseResumeText(textWithSpaceDelimitedProject);
+    expect(result.sections.projects).toHaveLength(1);
+    expect(result.sections.projects[0]).toMatchObject({
+      name: 'side-project',
+      link: 'github.com/jane/side-project',
+      dateRange: '2023 – Present',
+    });
+    expect(result.sections.projects[0].bullets).toEqual(['Built something.']);
+  });
+
+  test('a company/location line with an internal 2+ space gap is not mistaken for the date separator', () => {
+    const textWithEarlyDoubleSpace = `Jane Doe
+jane@example.com
+
+EXPERIENCE
+Acme  Remote  2020 – Present
+Engineer
+    • Did a thing.`;
+
+    const result = parseResumeText(textWithEarlyDoubleSpace);
+    expect(result.sections.experience).toHaveLength(1);
+    expect(result.sections.experience[0]).toMatchObject({
+      company: 'Acme',
+      location: 'Remote',
+      dateRange: '2020 – Present',
+    });
+  });
+
+  test('a bullet with a coincidental double-space and an en dash is not misread as a new entry', () => {
+    const textWithTrickyBullet = `Jane Doe
+jane@example.com
+
+EXPERIENCE
+Acme Corp  Remote\t2020 – Present
+Engineer
+    • Reduced spend  significantly – a major win.
+    • A second, ordinary bullet.`;
+
+    const result = parseResumeText(textWithTrickyBullet);
+    expect(result.sections.experience).toHaveLength(1);
+    expect(result.sections.experience[0].bullets).toEqual([
+      'Reduced spend  significantly – a major win.',
+      'A second, ordinary bullet.',
+    ]);
+  });
+
+  test('a project with no summary line parses with summary: null', () => {
+    const textWithNoSummary = `Jane Doe
+jane@example.com
+
+PROJECTS
+side-project (github.com/jane/side-project)\t2023 – Present
+    • Built something.`;
+
+    const result = parseResumeText(textWithNoSummary);
+    expect(result.sections.projects[0].summary).toBeNull();
+    expect(result.sections.projects[0].bullets).toEqual(['Built something.']);
+  });
+
+  test('a project with a summary but no bullets still captures the summary', () => {
+    const textWithSummaryNoBullets = `Jane Doe
+jane@example.com
+
+PROJECTS
+side-project (github.com/jane/side-project)\t2023 – Present
+A small tool with no bullets yet.`;
+
+    const result = parseResumeText(textWithSummaryNoBullets);
+    expect(result.sections.projects[0].summary).toBe('A small tool with no bullets yet.');
+    expect(result.sections.projects[0].bullets).toEqual([]);
+  });
+
+  test('a summary line is only recognized before the first bullet — a stray non-bullet line after bullets have started is dropped, not appended to the summary', () => {
+    const textWithStrayLineAfterBullets = `Jane Doe
+jane@example.com
+
+PROJECTS
+side-project (github.com/jane/side-project)\t2023 – Present
+A real summary line.
+    • First bullet.
+this stray line is not a bullet and comes after bullets have started
+    • Second bullet.`;
+
+    const result = parseResumeText(textWithStrayLineAfterBullets);
+    expect(result.sections.projects[0].summary).toBe('A real summary line.');
+    expect(result.sections.projects[0].bullets).toEqual(['First bullet.', 'Second bullet.']);
+  });
+
+  test('two consecutive projects each get their own independent summary, not a merged one', () => {
+    const textWithTwoProjects = `Jane Doe
+jane@example.com
+
+PROJECTS
+proj-one (github.com/jane/proj-one)\t2023 – Present
+Summary for the first project.
+    • Bullet for proj one.
+proj-two (github.com/jane/proj-two)\t2022 – 2023
+Summary for the second project.
+    • Bullet for proj two.`;
+
+    const result = parseResumeText(textWithTwoProjects);
+    expect(result.sections.projects).toHaveLength(2);
+    expect(result.sections.projects[0].summary).toBe('Summary for the first project.');
+    expect(result.sections.projects[1].summary).toBe('Summary for the second project.');
   });
 });

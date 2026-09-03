@@ -1,6 +1,6 @@
-// client/tests/unit/utils/fixtures/sampleResume.ts
+// client/tests/fixtures/parseResumeText.fixture.ts
 
-export const SAMPLE_RESUME = `John H. Watson
+export const PARSE_RESUME_TEXT_FIXTURE = `John H. Watson
 London, UK NW1 6XE  |  +44 20 7946 0958  |  j.watson@bakerstreet.example  |  linkedin.com/in/johnhwatson  |  github.com/jhwatson
 
 SUMMARY
@@ -44,6 +44,8 @@ Assistant Surgeon
 
 PROJECTS
 the-strand-digital (github.com/jhwatson/the-strand-digital) \t2026 – Present
+Personal side project chronicling investigations for serialized
+publication in The Strand Magazine.
     • Architected a Gen-AI content pipeline converting digitized manuscript pages into formatted blog posts for public reading.
     • Built a templating system replicating the original Strand Magazine's typography and illustration layout for digital reproduction.
     • Implemented automated tagging and cross-referencing of characters, locations, and case details across published entries.

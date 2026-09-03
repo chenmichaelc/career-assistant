@@ -58,10 +58,6 @@ const numberingConfig = {
   ],
 };
 
-// Right-flush date tabs use a declared tab stop at the reference's captured
-// position, clearing Word's default stop at 720 first — matching the
-// reference template exactly, rather than PositionalTab's `w:ptab`, which
-// is a less universally-supported OOXML feature for the same visual effect.
 const DATE_TAB_STOPS = [
   { type: TabStopType.CLEAR, position: 720 },
   { type: TabStopType.RIGHT, position: TabStopPosition.MAX },
@@ -71,16 +67,6 @@ function tabRun(): TextRun {
   return new TextRun({ children: [new Tab()] });
 }
 
-// The reference template has one of these immediately before every
-// section header, unconditionally — see buildResumeDocx's pushSectionHeader.
-//
-// Must include an actual (empty-text) run, not just spacing on an empty
-// paragraph. A paragraph with zero runs has no font/line-height basis, and
-// real Microsoft Word can collapse it to zero height regardless of the
-// declared `spacing.after` — confirmed as the actual cause of the spacer
-// silently not appearing, even though this verified correctly in LibreOffice
-// during initial testing. The reference template's own empty paragraph
-// likewise contains an empty run, not zero runs.
 function emptyParagraph(): Paragraph {
   return new Paragraph({
     spacing: { before: 0, after: 100, ...LINE_SPACING },
@@ -193,6 +179,13 @@ function jobTitleParagraph(title: string): Paragraph {
   });
 }
 
+function projectSummaryParagraph(summary: string): Paragraph {
+  return new Paragraph({
+    spacing: { before: 0, after: 100, ...LINE_SPACING },
+    children: [new TextRun({ text: summary, italics: true, font: FONT, size: SIZE_BODY })],
+  });
+}
+
 const BULLET_SPACING_AFTER_JOB = 20;
 const BULLET_SPACING_AFTER_PROJECT = 14;
 
@@ -247,6 +240,9 @@ function buildProjectsSection(projects: readonly ProjectEntry[]): Paragraph[] {
       paragraphs.push(emptyParagraph());
     }
     paragraphs.push(projectEntryLineParagraph(project.name, project.link, project.dateRange));
+    if (project.summary) {
+      paragraphs.push(projectSummaryParagraph(project.summary));
+    }
     for (const bullet of project.bullets) {
       paragraphs.push(bulletParagraph(bullet, BULLET_SPACING_AFTER_PROJECT));
     }
@@ -271,10 +267,7 @@ export function buildResumeDocx(resume: ParsedResume): Document {
 
   // The reference template has an empty paragraph immediately before every
   // section header, with no exceptions — confirmed by checking all 5
-  // section headers directly against the reference's raw XML. (An earlier
-  // version of this function conditioned this on whether the preceding
-  // entry had bullets, based on an incomplete first pass that only checked
-  // 2 of the 5 headers — that was wrong; this is unconditional.)
+  // section headers directly against the reference's raw XML.
   function pushSectionHeader(text: string): void {
     children.push(emptyParagraph());
     children.push(sectionHeaderParagraph(text));

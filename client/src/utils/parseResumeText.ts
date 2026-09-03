@@ -12,6 +12,7 @@ export interface ProjectEntry {
   name: string;
   link: string | null;
   dateRange: string;
+  summary: string | null;
   bullets: string[];
 }
 
@@ -45,9 +46,17 @@ function isSectionHeader(line: string): line is SectionHeader {
   return (SECTION_HEADERS as readonly string[]).includes(line.trim());
 }
 
-// Detects entries by shape (label + tab(s) + date range), not blank-line
-// separation, since real input has inconsistent blank-line spacing.
-const ENTRY_LINE = /^(.*?)\t+(.+–.+)$/;
+// Detects entries by shape (label + date range), not blank-line separation,
+// since real input has inconsistent blank-line spacing.
+//
+// Anchored on the date range's actual shape — (M)M/YYYY or YYYY, an en dash,
+// then another (M)M/YYYY or YYYY or "Present" — rather than on how much
+// whitespace precedes it.
+// Ex.
+//   Remote  2020 – Present
+//   Remote  09/2020 – Present
+//   Remote  09/2020 – 08/2021
+const ENTRY_LINE = /^(.*\S)\s+((?:\d{1,2}\/)?\d{4}\s*–\s*(?:(?:\d{1,2}\/)?\d{4}|Present))$/;
 
 function isBulletLine(line: string): boolean {
   const trimmed = line.trim();
@@ -77,14 +86,20 @@ export function parseResumeText(text: string): ParsedResume {
 
   let currentJob: JobEntry | null = null;
   let currentProject: ProjectEntry | null = null;
+  let projectSummaryLines: string[] = [];
 
   function flushJob(): void {
     if (currentJob !== null) sections.experience.push(currentJob);
     currentJob = null;
   }
   function flushProject(): void {
-    if (currentProject !== null) sections.projects.push(currentProject);
+    if (currentProject !== null) {
+      currentProject.summary =
+        projectSummaryLines.length > 0 ? projectSummaryLines.join(' ').trim() : null;
+      sections.projects.push(currentProject);
+    }
     currentProject = null;
+    projectSummaryLines = [];
   }
 
   for (let i = 2; i < lines.length; i++) {
@@ -134,11 +149,26 @@ export function parseResumeText(text: string): ParsedResume {
         const linkMatch = nameAndLink.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
         const projectName = linkMatch ? linkMatch[1].trim() : nameAndLink.trim();
         const link = linkMatch ? linkMatch[2].trim() : null;
-        currentProject = { name: projectName, link, dateRange: dateRange.trim(), bullets: [] };
+        currentProject = {
+          name: projectName,
+          link,
+          dateRange: dateRange.trim(),
+          summary: null,
+          bullets: [],
+        };
         continue;
       }
       if (currentProject !== null && isBulletLine(line)) {
         currentProject.bullets.push(stripBulletMarker(line));
+        continue;
+      }
+      // A non-bullet line before any bullets have started is a summary
+      // line, not a bullet — e.g. "Personal project serving as..." between
+      // the entry line and the first "•". Collected across multiple lines,
+      // same join-with-space convention as the top-level SUMMARY section,
+      // rather than assuming it's always exactly one line.
+      if (currentProject !== null && currentProject.bullets.length === 0) {
+        projectSummaryLines.push(trimmed);
       }
       continue;
     }
