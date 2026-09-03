@@ -83,4 +83,15 @@ export const schema: string = `
     role_id   INTEGER NOT NULL UNIQUE REFERENCES roles(id),
     content   TEXT NOT NULL DEFAULT ''
   );
+
+  CREATE TABLE IF NOT EXISTS job_stubs (
+    id            INTEGER PRIMARY KEY,
+    url           TEXT NOT NULL UNIQUE,
+    status        TEXT NOT NULL DEFAULT 'unscraped' CHECK(status IN (
+                    'unscraped',
+                    'content_added'
+                  )),
+    raw_content   TEXT,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `;

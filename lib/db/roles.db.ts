@@ -23,9 +23,9 @@ export function insertRole(sqlite: Database.Database, data: RoleInsertData): num
   const result = sqlite
     .prepare(
       `
-                INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
-                VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
-            `
+            INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
+            VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
+          `
     )
     .run({
       company: data.company,
@@ -50,11 +50,11 @@ export function getAll(
   sortOrder: 'ASC' | 'DESC' = 'DESC'
 ): RoleRow[] {
   let query = `
-        SELECT id, company, title, url, role_status, candidacy,
-               applied_date, salary_min, salary_max, notes, created_at, updated_at
-        FROM roles
-        WHERE 1=1
-    `;
+    SELECT id, company, title, url, role_status, candidacy,
+           applied_date, salary_min, salary_max, notes, created_at, updated_at
+    FROM roles
+    WHERE 1=1
+  `;
   const params: (string | number)[] = [];
 
   if (statuses.length > 0) {
@@ -77,13 +77,18 @@ export function getById(sqlite: Database.Database, id: number): RoleRow | undefi
   return sqlite
     .prepare(
       `
-                SELECT id, company, title, url, role_status, candidacy, applied_date,
-                       salary_min, salary_max, notes, created_at, updated_at
-                FROM roles
-                WHERE id = ?
-            `
+            SELECT id, company, title, url, role_status, candidacy, applied_date,
+                   salary_min, salary_max, notes, created_at, updated_at
+            FROM roles
+            WHERE id = ?
+          `
     )
     .get(id) as RoleRow | undefined;
+}
+
+export function existsByUrl(sqlite: Database.Database, url: string): boolean {
+  const row = sqlite.prepare(`SELECT 1 FROM roles WHERE url = ?`).get(url);
+  return row !== undefined;
 }
 
 export function updateStatus(
