@@ -25,9 +25,9 @@ afterEach(async () => {
 
 describe('GET /api/job-stubs', () => {
   test('returns an empty array when there are no stubs', async () => {
-    const response = await app.inject({ method: 'GET', url: '/api/job-stubs' });
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual([]);
+    const emptyListResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
+    expect(emptyListResponse.statusCode).toBe(200);
+    expect(emptyListResponse.json()).toEqual([]);
   });
 
   test('returns all stubs, most recently created first', async () => {
@@ -42,8 +42,8 @@ describe('GET /api/job-stubs', () => {
       payload: { url: 'https://example.com/jobs/2' },
     });
 
-    const response = await app.inject({ method: 'GET', url: '/api/job-stubs' });
-    const stubs = response.json();
+    const listResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
+    const stubs = listResponse.json();
     expect(stubs).toHaveLength(2);
     expect(stubs[0].url).toBe('https://example.com/jobs/2');
     expect(stubs[1].url).toBe('https://example.com/jobs/1');
@@ -52,13 +52,13 @@ describe('GET /api/job-stubs', () => {
 
 describe('POST /api/job-stubs', () => {
   test('creates a stub and returns 201 with an id', async () => {
-    const response = await app.inject({
+    const createResponse = await app.inject({
       method: 'POST',
       url: '/api/job-stubs',
       payload: { url: 'https://example.com/jobs/1?utm_source=linkedin' },
     });
-    expect(response.statusCode).toBe(201);
-    expect(typeof response.json().id).toBe('number');
+    expect(createResponse.statusCode).toBe(201);
+    expect(typeof createResponse.json().id).toBe('number');
   });
 
   test('stores the URL cleansed, not as submitted', async () => {
@@ -75,27 +75,31 @@ describe('POST /api/job-stubs', () => {
   });
 
   test('missing url returns 400', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/job-stubs', payload: {} });
-    expect(response.statusCode).toBe(400);
-    expect(response.json().error).toBeTruthy();
+    const missingUrlResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: {},
+    });
+    expect(missingUrlResponse.statusCode).toBe(400);
+    expect(missingUrlResponse.json().error).toBeTruthy();
   });
 
   test('empty string url returns 400', async () => {
-    const response = await app.inject({
+    const emptyUrlResponse = await app.inject({
       method: 'POST',
       url: '/api/job-stubs',
       payload: { url: '   ' },
     });
-    expect(response.statusCode).toBe(400);
+    expect(emptyUrlResponse.statusCode).toBe(400);
   });
 
   test('invalid (unparseable) url returns 400', async () => {
-    const response = await app.inject({
+    const invalidUrlResponse = await app.inject({
       method: 'POST',
       url: '/api/job-stubs',
       payload: { url: 'not a url' },
     });
-    expect(response.statusCode).toBe(400);
+    expect(invalidUrlResponse.statusCode).toBe(400);
   });
 
   test('duplicate url (even differently decorated) returns 409', async () => {
@@ -104,12 +108,12 @@ describe('POST /api/job-stubs', () => {
       url: '/api/job-stubs',
       payload: { url: 'https://example.com/jobs/1' },
     });
-    const response = await app.inject({
+    const duplicateUrlResponse = await app.inject({
       method: 'POST',
       url: '/api/job-stubs',
       payload: { url: 'http://EXAMPLE.com/jobs/1/?utm_source=x' },
     });
-    expect(response.statusCode).toBe(409);
+    expect(duplicateUrlResponse.statusCode).toBe(409);
   });
 
   test('a url already promoted to a role returns 409', async () => {
@@ -121,12 +125,12 @@ describe('POST /api/job-stubs', () => {
       jd: 'A job.',
     });
 
-    const response = await app.inject({
+    const alreadyPromotedResponse = await app.inject({
       method: 'POST',
       url: '/api/job-stubs',
       payload: { url: 'https://example.com/jobs/2' },
     });
-    expect(response.statusCode).toBe(409);
+    expect(alreadyPromotedResponse.statusCode).toBe(409);
   });
 });
 
@@ -147,8 +151,11 @@ describe('DELETE /api/job-stubs/:id', () => {
   });
 
   test('a nonexistent id returns 404', async () => {
-    const response = await app.inject({ method: 'DELETE', url: '/api/job-stubs/9999' });
-    expect(response.statusCode).toBe(404);
+    const nonexistentDeleteResponse = await app.inject({
+      method: 'DELETE',
+      url: '/api/job-stubs/9999',
+    });
+    expect(nonexistentDeleteResponse.statusCode).toBe(404);
   });
 });
 
@@ -210,12 +217,12 @@ describe('POST /api/job-stubs/:id/promote', () => {
   });
 
   test('a nonexistent stub id returns 404', async () => {
-    const response = await app.inject({
+    const nonexistentPromoteResponse = await app.inject({
       method: 'POST',
       url: '/api/job-stubs/9999/promote',
       payload: validRole,
     });
-    expect(response.statusCode).toBe(404);
+    expect(nonexistentPromoteResponse.statusCode).toBe(404);
   });
 
   test('a failed promotion leaves the stub intact (rollback, over HTTP)', async () => {

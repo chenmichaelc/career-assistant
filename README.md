@@ -63,7 +63,6 @@ CAR-21 and CAR-173 are complete. The remaining CAR-5 work moves vocabulary valid
 **Open tickets:**
 
 - CAR-178 — Move skip/termination reason vocabulary validation from `server/routes/roles.ts` into the orchestration layer, consistent with how status validation is handled.
-- CAR-172 — Resolve `url` field nullability mismatch between `RoleInsertData` (typed `string`) and the schema (`TEXT`, nullable).
 - CAR-22 — Fill test coverage gaps for one-to-many relationships (subtasks CAR-174 through CAR-177).
 - CAR-50 — Extend status transition to support multiple reasons with per-reason notes. Blocked on CAR-178.
 
@@ -79,7 +78,7 @@ Behavioral coverage includes role creation with full field verification, write m
 
 **[CAR-209] Add "Open in New Window" button on Roles pages**
 
-In progress.
+A prior implementation attempt did not work; nothing about that attempt is preserved, and none of it should be assumed when this is picked back up. Needs a full redesign from scratch, including what the button should actually do, before implementation resumes.
 
 ---
 
@@ -174,7 +173,7 @@ Items in rough priority order. Backlog items are lower priority.
 Test database isolation via DB_PATH environment variable (CAR-16) to enable clean CI runs against an in-memory database. Splitting `test` into separate unit and integration scripts was considered during CAR-52's pre-commit setup, in anticipation of a future database migration (CAR-5) and a possible supplemental NoSQL store for job profile analysis (CAR-32) — deferred for now, since the current combined suite runs in seconds and the split would add maintenance surface without present benefit. Revisit when either migration becomes concrete.
 
 **Data layer refactor (CAR-5)** _(In Progress)_
-Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21 — done), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167, CAR-168). CAR-173 is complete — `UpdateArgs` is gone, `lib/args/` is deleted, and `lib/updates.ts` now accepts the caller-agnostic `UpdateRoleInput`. Remaining work: move vocabulary validation into the orchestration layer (CAR-178), resolve `url` nullability mismatch (CAR-172), and fill one-to-many test coverage gaps (CAR-22 subtasks).
+Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21 — done), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167, CAR-168). CAR-173 is complete — `UpdateArgs` is gone, `lib/args/` is deleted, and `lib/updates.ts` now accepts the caller-agnostic `UpdateRoleInput`. Remaining work: move vocabulary validation into the orchestration layer (CAR-178), and fill one-to-many test coverage gaps (CAR-22 subtasks). CAR-172 (`url` nullability) closed as Won't Do — see CAR-230 for the actual, since-surfaced requirement it was superseded by.
 
 **Observability — error logging and persistence (CAR-139)**
 Audit existing error handling across the codebase first (CAR-141), then implement consistent logging on the client (CAR-140) and server (CAR-72). Persist server logs to disk via Pino file transport (CAR-142). A full-stack persistent error store, spanning both client and server, is deferred until cloud migration planning begins (CAR-143).

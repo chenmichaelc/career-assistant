@@ -93,7 +93,7 @@ This is a real bug, found in this codebase, not a hypothetical:
 
 // buildResumeDocx.fixture.ts — also "John H. Watson," same role, same dates
 location: 'Kensington, London (Remote)',
-bullets: ['Maintained a patient roster.'],
+    bullets: ['Maintained a patient roster.'],
 ```
 
 Same claimed person, same job, same dates — one fixture has him running an
@@ -193,6 +193,49 @@ Prefix enforcement is lint-enforced (CAR-200, `e2e/fixtures/**`). The sync check
 Set up test state via direct API calls (`roleHelper.createRole()`), not by driving the UI. Exception: when the UI flow _is_ what's being tested (e.g. `addRole.spec.ts`). Teardown always uses the API, no exception.
 
 UI-based setup couples unrelated tests to the setup page's correctness — a broken add form shouldn't fail every `RoleDetail` test. `addRole.spec.ts` already covers the add flow; repeating it as incidental setup adds time, not signal.
+
+---
+
+## Arrange via the domain's own functions, not another router's HTTP surface
+
+The integration-test-layer version of the rule above. When a test needs data belonging to a domain other than the one under test — `tests/integration/routes/job-stubs.test.ts` needing a pre-existing role to test dedup against — call that domain's own orchestration function directly (`addRole()`), not raw SQL, and not registering its whole router to hit it over `app.inject`.
+
+```typescript
+// Bad — pulls in rolesRouter's entire route/validation surface as an
+// incidental dependency of a job-stubs test
+await app.register(rolesRouter, { prefix: '/api/roles', db: sqlite });
+await app.inject({
+  method: 'POST',
+  url: '/api/roles',
+  payload: { ...role, role_status: 'Applied' },
+});
+
+// Good — same real validation, no second router
+addRole(sqlite, { ...role, role_status: 'Applied' });
+```
+
+Two separate reasons, not one:
+
+- **Raw SQL bypasses real validation and can mask a broken test.** This happened: a setup fixture used `role_status: 'Applied'` without `applied_date`, invisible while inserted via raw SQL, silently wrong for months. Switching to `addRole()` surfaced it immediately with a clear error, because it's the same validation the real feature runs.
+- **A second router is not "using real code," it's importing an unrelated subsystem's entire surface.** `roles.ts` can grow a new contextual validation rule next year for reasons that have nothing to do with job stubs, and this file breaks anyway — coupling that provides no signal about what it's actually supposed to protect. Full HTTP through multiple routers is for genuine cross-system journey tests, not incidental arrangement — `job-stubs.test.ts` isn't that.
+
+Before citing an existing integration test file as precedent for this kind of call, check whether its situation actually matches structurally — does it use HTTP for setup because the setup data _is_ what's under test (`query.test.ts` running `INSERT`/`SELECT` through the SQL Query tool — that's the feature), or is it just the most recent similar-looking file? `roles.test.ts` uses `app.inject` exclusively because it's testing roles against itself — that doesn't transfer to a different router needing roles data as a precondition.
+
+---
+
+## Name a test after what it protects, not the incidental mechanism that triggers it
+
+A test's name and framing should describe the property actually being verified, not whatever input happened to be convenient for forcing the failure path.
+
+```typescript
+// Bad — reads as if empty titles are the interesting case
+test('invalid role data returns 400, and the stub is NOT deleted (atomicity, over HTTP)', ...)
+
+// Good — names the actual guarantee; a comment states the trigger is incidental
+test('a failed promotion leaves the stub intact (rollback, over HTTP)', ...)
+```
+
+`promoteStub()`'s atomicity — a failed promotion must never leave the stub deleted with no role created, or the reverse — is what's being protected. An empty `title` is only the deterministic way to force `addRole()` to fail inside that transaction; any validation failure would exercise the same rollback path. Naming the test around "invalid role data" misleads a future reader into thinking title validation is the point, when the transaction boundary is.
 
 ---
 
