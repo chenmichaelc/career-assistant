@@ -4,16 +4,17 @@ import Database from 'better-sqlite3';
 import { createTestDb } from '../helpers/db';
 import { addRole } from '../../lib/roles';
 import { addStub } from '../../lib/job-stubs';
+import { db } from '../../lib/db';
 import { RoleInput } from '../../lib/types';
 
-let db: Database.Database;
+let sqlite: Database.Database;
 
 beforeEach(() => {
-  db = createTestDb();
+  sqlite = createTestDb();
 });
 
 afterEach(() => {
-  db.close();
+  sqlite.close();
 });
 
 // ─── Valid insertion ───────────────────────────────────────────────────────────
@@ -31,14 +32,14 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
   };
 
   test('returns a numeric ID on success', () => {
-    const id = addRole(db, baseRole);
+    const id = addRole(sqlite, baseRole);
     expect(typeof id).toBe('number');
     expect(id).toBeGreaterThan(0);
   });
 
   test('inserts required fields accurately into the roles table', () => {
-    const id = addRole(db, baseRole);
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    const id = addRole(sqlite, baseRole);
+    const role = db.roles.getById(sqlite, id)!;
 
     expect(role.company).toBe(baseRole.company);
     expect(role.title).toBe(baseRole.title);
@@ -47,19 +48,16 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
   });
 
   test('inserts required fields accurately into the job_descriptions table', () => {
-    const id = addRole(db, baseRole);
-    const jd = db.prepare('SELECT * FROM job_descriptions WHERE role_id = ?').get(id) as Record<
-      string,
-      unknown
-    >;
+    const id = addRole(sqlite, baseRole);
+    const jd = db.jobDescriptions.getByRoleId(sqlite, id)!;
 
     expect(jd).not.toBeUndefined();
     expect(jd.content).toBe(baseRole.jd);
   });
 
   test('optional fields default to null when not provided', () => {
-    const id = addRole(db, baseRole);
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    const id = addRole(sqlite, baseRole);
+    const role = db.roles.getById(sqlite, id)!;
 
     expect(role.candidacy).toBeNull();
     expect(role.applied_date).toBeNull();
@@ -78,9 +76,9 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
       notes: 'Strong match.',
     };
 
-    const id = addRole(db, roleExtendedWithOptionalFields);
+    const id = addRole(sqlite, roleExtendedWithOptionalFields);
 
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    const role = db.roles.getById(sqlite, id)!;
 
     expect(role.candidacy).toBe(roleExtendedWithOptionalFields.candidacy);
     expect(role.applied_date).toBe(roleExtendedWithOptionalFields.applied_date);
@@ -104,12 +102,9 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
       ],
     };
 
-    const id = addRole(db, roleExtendedWithFieldsForSkippedRoles);
+    const id = addRole(sqlite, roleExtendedWithFieldsForSkippedRoles);
 
-    const reasons = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').all(id) as Record<
-      string,
-      unknown
-    >[];
+    const reasons = db.skipReasons.getAllByRoleId(sqlite, id);
 
     expect(reasons).toHaveLength(2);
     expect(reasons[0].reason).toBe(skipReason1);
@@ -133,11 +128,9 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
       ],
     };
 
-    const id = addRole(db, roleExtendedWithFieldsForClosedRoles);
+    const id = addRole(sqlite, roleExtendedWithFieldsForClosedRoles);
 
-    const reasons = db
-      .prepare('SELECT * FROM termination_reasons WHERE role_id = ?')
-      .all(id) as Record<string, unknown>[];
+    const reasons = db.terminationReasons.getAllByRoleId(sqlite, id);
 
     expect(reasons).toHaveLength(2);
     expect(reasons[0].reason).toBe(terminationReason1);
@@ -149,13 +142,13 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
   test('inserts conditionally-required applied_date field for roles with Applied status', () => {
     const roleStatus = 'Applied';
     const appliedDate = '2026-04-27';
-    const id = addRole(db, {
+    const id = addRole(sqlite, {
       ...baseRole,
       role_status: roleStatus,
       applied_date: appliedDate,
     });
 
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    const role = db.roles.getById(sqlite, id)!;
     expect(role.role_status).toBe(roleStatus);
     expect(role.applied_date).toBe(appliedDate);
   });
@@ -173,51 +166,47 @@ describe('addRole — stub cleanup', () => {
   };
 
   test('deletes the job stub queued for the same (cleansed) URL', () => {
-    const stubId = addStub(db, 'https://example.com/job/1?utm_source=linkedin');
+    const stubId = addStub(sqlite, 'https://example.com/job/1?utm_source=linkedin');
 
-    addRole(db, baseRole);
+    addRole(sqlite, baseRole);
 
-    const stub = db.prepare('SELECT * FROM job_stubs WHERE id = ?').get(stubId);
-    expect(stub).toBeUndefined();
+    expect(db.jobStubs.getById(sqlite, stubId)).toBeUndefined();
   });
 
   test('matches the stub by cleansed URL even when the submitted URL is decorated differently', () => {
-    const stubId = addStub(db, 'https://example.com/job/1');
+    const stubId = addStub(sqlite, 'https://example.com/job/1');
 
-    addRole(db, { ...baseRole, url: 'HTTP://Example.com/job/1/?utm_source=linkedin' });
+    addRole(sqlite, { ...baseRole, url: 'HTTP://Example.com/job/1/?utm_source=linkedin' });
 
-    const stub = db.prepare('SELECT * FROM job_stubs WHERE id = ?').get(stubId);
-    expect(stub).toBeUndefined();
+    expect(db.jobStubs.getById(sqlite, stubId)).toBeUndefined();
   });
 
   test('leaves stubs for other URLs untouched', () => {
-    const unrelatedStubId = addStub(db, 'https://example.com/job/2');
+    const unrelatedStubId = addStub(sqlite, 'https://example.com/job/2');
 
-    addRole(db, baseRole);
+    addRole(sqlite, baseRole);
 
-    const stub = db.prepare('SELECT * FROM job_stubs WHERE id = ?').get(unrelatedStubId);
-    expect(stub).toBeDefined();
+    expect(db.jobStubs.getById(sqlite, unrelatedStubId)).toBeDefined();
   });
 
   test('succeeds normally when no stub matches the URL', () => {
-    const id = addRole(db, baseRole);
+    const id = addRole(sqlite, baseRole);
     expect(typeof id).toBe('number');
   });
 
   test('does not block role creation when the submitted URL is not a valid URL', () => {
-    const id = addRole(db, { ...baseRole, url: 'not a url' });
+    const id = addRole(sqlite, { ...baseRole, url: 'not a url' });
 
-    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    const role = db.roles.getById(sqlite, id)!;
     expect(role.url).toBe('not a url');
   });
 
   test('a failed role creation leaves a matching stub intact (rollback)', () => {
-    const stubId = addStub(db, 'https://example.com/job/1');
+    const stubId = addStub(sqlite, 'https://example.com/job/1');
 
-    expect(() => addRole(db, { ...baseRole, title: '' })).toThrow();
+    expect(() => addRole(sqlite, { ...baseRole, title: '' })).toThrow();
 
-    const stub = db.prepare('SELECT * FROM job_stubs WHERE id = ?').get(stubId);
-    expect(stub).toBeDefined();
+    expect(db.jobStubs.getById(sqlite, stubId)).toBeDefined();
   });
 });
 
@@ -234,68 +223,58 @@ describe('addRole — required field validation', () => {
 
   test('when required field company is missing, throw error and do not add role', () => {
     const role = { ...baseRole, company: null } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow('company is required');
+    expect(() => addRole(sqlite, role)).toThrow('company is required');
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when required field title is missing, throw error and do not add role', () => {
     const role = { ...baseRole, title: null } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow('title is required');
+    expect(() => addRole(sqlite, role)).toThrow('title is required');
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when required field url is missing, throw error and do not add role', () => {
     const role = { ...baseRole, url: null } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow('url is required');
+    expect(() => addRole(sqlite, role)).toThrow('url is required');
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when required field role_status is missing, throw error and do not add role', () => {
     const role = { ...baseRole, role_status: null } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow('role_status is required');
+    expect(() => addRole(sqlite, role)).toThrow('role_status is required');
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when required field jd is missing, throw error and do not add role or jd', () => {
     const role = { ...baseRole, jd: null } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow('jd is required');
+    expect(() => addRole(sqlite, role)).toThrow('jd is required');
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
-
-    const jds = db.prepare('SELECT * FROM job_descriptions').all();
-    expect(jds).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.jobDescriptions.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when required field company is an empty string, throw error and do not add role', () => {
     const role = { ...baseRole, company: '' } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow('company is required');
+    expect(() => addRole(sqlite, role)).toThrow('company is required');
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when required field title is whitespace field, throw error and do not add role', () => {
     const role = { ...baseRole, title: '   ' } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow('title is required');
+    expect(() => addRole(sqlite, role)).toThrow('title is required');
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when all fields are empty, throw error and do not add role', () => {
-    expect(() => addRole(db, {} as unknown as RoleInput)).toThrow('Validation failed');
+    expect(() => addRole(sqlite, {} as unknown as RoleInput)).toThrow('Validation failed');
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 });
 
@@ -312,58 +291,51 @@ describe('addRole — contextual validation', () => {
 
   test('when role_status is Applied and applied_date is missing, throw error and do not add role', () => {
     const role = { ...baseRole, role_status: 'Applied' } as RoleInput;
-    expect(() => addRole(db, role)).toThrow('applied_date is required when role_status is Applied');
+    expect(() => addRole(sqlite, role)).toThrow(
+      'applied_date is required when role_status is Applied'
+    );
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when role_status is Skipped and skip_reasons is null, throw error and do not add role or skip_reason', () => {
     const role = { ...baseRole, role_status: 'Skipped', skip_reasons: null } as RoleInput;
-    expect(() => addRole(db, role)).toThrow('skip_reasons is required when role_status is Skipped');
+    expect(() => addRole(sqlite, role)).toThrow(
+      'skip_reasons is required when role_status is Skipped'
+    );
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
-
-    const skipReasons = db.prepare('SELECT * FROM skip_reasons').all();
-    expect(skipReasons).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.skipReasons.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when role_status is Skipped and skip_reasons is empty array, throw error and do not add role or skip_reason', () => {
     const role = { ...baseRole, role_status: 'Skipped', skip_reasons: [] } as RoleInput;
-    expect(() => addRole(db, role)).toThrow('skip_reasons is required when role_status is Skipped');
+    expect(() => addRole(sqlite, role)).toThrow(
+      'skip_reasons is required when role_status is Skipped'
+    );
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
-
-    const skipReasons = db.prepare('SELECT * FROM skip_reasons').all();
-    expect(skipReasons).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.skipReasons.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when role_status is Closed and termination_reasons is null, throw error and do not add role or termination_reason', () => {
     const role = { ...baseRole, role_status: 'Closed', termination_reasons: null } as RoleInput;
-    expect(() => addRole(db, role)).toThrow(
+    expect(() => addRole(sqlite, role)).toThrow(
       'termination_reasons is required when role_status is Closed'
     );
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
-
-    const terminationReasons = db.prepare('SELECT * FROM termination_reasons').all();
-    expect(terminationReasons).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.terminationReasons.getAll(sqlite)).toHaveLength(0);
   });
 
   test('when role_status is Closed and termination_reasons is empty array, throw error and do not add role or termination_reason', () => {
     const role = { ...baseRole, role_status: 'Closed', termination_reasons: [] } as RoleInput;
-    expect(() => addRole(db, role)).toThrow(
+    expect(() => addRole(sqlite, role)).toThrow(
       'termination_reasons is required when role_status is Closed'
     );
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
-
-    const terminationReasons = db.prepare('SELECT * FROM termination_reasons').all();
-    expect(terminationReasons).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.terminationReasons.getAll(sqlite)).toHaveLength(0);
   });
 });
 
@@ -380,18 +352,16 @@ describe('addRole — SQLite constraint violations', () => {
 
   test('on invalid role_status value, throw error and do not add role', () => {
     const role = { ...baseRole, role_status: 'InvalidStatus' } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow();
+    expect(() => addRole(sqlite, role)).toThrow();
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('on invalid candidacy value, throw error and do not add role', () => {
     const role = { ...baseRole, candidacy: 'InvalidCandidacy' } as unknown as RoleInput;
-    expect(() => addRole(db, role)).toThrow();
+    expect(() => addRole(sqlite, role)).toThrow();
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 
   test('on invalid skip_reason value, throw error and do not add role or skip_reason', () => {
@@ -400,13 +370,10 @@ describe('addRole — SQLite constraint violations', () => {
       role_status: 'Skipped',
       skip_reasons: [{ reason: 'InvalidReason' as never, note: null }],
     };
-    expect(() => addRole(db, role)).toThrow();
+    expect(() => addRole(sqlite, role)).toThrow();
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
-
-    const skipReasons = db.prepare('SELECT * FROM skip_reasons').all();
-    expect(skipReasons).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.skipReasons.getAll(sqlite)).toHaveLength(0);
   });
 
   test('on invalid termination_reason value, throw error and do not add role or skip_reason', () => {
@@ -415,12 +382,9 @@ describe('addRole — SQLite constraint violations', () => {
       role_status: 'Closed',
       termination_reasons: [{ reason: 'InvalidReason' as never, note: null }],
     };
-    expect(() => addRole(db, role)).toThrow();
+    expect(() => addRole(sqlite, role)).toThrow();
 
-    const roles = db.prepare('SELECT * FROM roles').all();
-    expect(roles).toHaveLength(0);
-
-    const terminationReasons = db.prepare('SELECT * FROM termination_reasons').all();
-    expect(terminationReasons).toHaveLength(0);
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.terminationReasons.getAll(sqlite)).toHaveLength(0);
   });
 });
