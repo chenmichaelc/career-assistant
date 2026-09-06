@@ -1,3 +1,8 @@
+// client/tsconfig.app.json — production app code only (client/src/**), browser
+// environment. Used by `vite build`/`vite dev` and the IDE's default project
+// (referenced from client/tsconfig.json). Deliberately excludes `node` types
+// and client/tests/** — see tsconfig.test.json for the config that covers
+// both.
 {
   "compilerOptions": {
     "target": "ESNext",

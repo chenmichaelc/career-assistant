@@ -26,6 +26,30 @@ Note: `tests/integration/routes/roles.test.ts` drifts from this (`fetchedRole` a
 
 ---
 
+## Name a value once, reference it everywhere it's needed
+
+A literal used in more than one place within a test — as a function argument and again in an assertion, or in two separate setup calls — must be a single named variable, not retyped independently at each site. This includes values passed inline into a function call: build the input as a variable first, so later assertions can reference its fields instead of retyping literals.
+
+```typescript
+// Bad — 'Acme' would have to be retyped if it ever needs to appear in an assertion,
+// and nothing would catch the two copies drifting apart
+addRole(sqlite, { company: 'Acme', ... });
+// ...
+expect(preview.role.company).toBe('Acme');
+
+// Good — one value, referenced by both the setup call and the assertion
+const baseRole: RoleInput = { company: 'Acme', ... };
+addRole(sqlite, baseRole);
+// ...
+expect(preview.role.company).toBe(baseRole.company);
+```
+
+`deletes.test.ts`, `updates.test.ts`, and `roles.test.ts` already follow this — `baseRole`/`input` are named variables passed into the function under test, and assertions read `baseRole.company`, never a retyped `'Acme'`. It was violated in `admin.test.ts`'s `cleanupTestRoles` test (CAR-224): `company` was never set in the "matching" role's setup at all, and only passed because it happened to equal `makeRole()`'s unrelated default — caught in review with "none of the roles matching the pattern is created as part of this test." A companion bug in the same file passed a bare literal into `insertStub()` and retyped it in the assertion instead of naming it once.
+
+Not every literal needs this — a value used exactly once, with nothing else in the test depending on it, is fine written inline. The rule is about values whose reuse creates a relationship the test's correctness depends on.
+
+---
+
 ## Page object locator scoping
 
 Scope locators to a zone container before targeting elements within it. A bare `page.getByRole(...)` is only safe if the element is unique on the page.
@@ -93,7 +117,7 @@ This is a real bug, found in this codebase, not a hypothetical:
 
 // buildResumeDocx.fixture.ts — also "John H. Watson," same role, same dates
 location: 'Kensington, London (Remote)',
-bullets: ['Maintained a patient roster.'],
+    bullets: ['Maintained a patient roster.'],
 ```
 
 Same claimed person, same job, same dates — one fixture has him running an
@@ -196,6 +220,49 @@ UI-based setup couples unrelated tests to the setup page's correctness — a bro
 
 ---
 
+## Arrange via the domain's own functions, not another router's HTTP surface
+
+The integration-test-layer version of the rule above. When a test needs data belonging to a domain other than the one under test — `tests/integration/routes/job-stubs.test.ts` needing a pre-existing role to test dedup against — call that domain's own orchestration function directly (`addRole()`), not raw SQL, and not registering its whole router to hit it over `app.inject`.
+
+```typescript
+// Bad — pulls in rolesRouter's entire route/validation surface as an
+// incidental dependency of a job-stubs test
+await app.register(rolesRouter, { prefix: '/api/roles', db: sqlite });
+await app.inject({
+  method: 'POST',
+  url: '/api/roles',
+  payload: { ...role, role_status: 'Applied' },
+});
+
+// Good — same real validation, no second router
+addRole(sqlite, { ...role, role_status: 'Applied' });
+```
+
+Two separate reasons, not one:
+
+- **Raw SQL bypasses real validation and can mask a broken test.** This happened: a setup fixture used `role_status: 'Applied'` without `applied_date`, invisible while inserted via raw SQL, silently wrong for months. Switching to `addRole()` surfaced it immediately with a clear error, because it's the same validation the real feature runs.
+- **A second router is not "using real code," it's importing an unrelated subsystem's entire surface.** `roles.ts` can grow a new contextual validation rule next year for reasons that have nothing to do with job stubs, and this file breaks anyway — coupling that provides no signal about what it's actually supposed to protect. Full HTTP through multiple routers is for genuine cross-system journey tests, not incidental arrangement — `job-stubs.test.ts` isn't that.
+
+Before citing an existing integration test file as precedent for this kind of call, check whether its situation actually matches structurally — does it use HTTP for setup because the setup data _is_ what's under test (`query.test.ts` running `INSERT`/`SELECT` through the SQL Query tool — that's the feature), or is it just the most recent similar-looking file? `roles.test.ts` uses `app.inject` exclusively because it's testing roles against itself — that doesn't transfer to a different router needing roles data as a precondition.
+
+---
+
+## Name a test after what it protects, not the incidental mechanism that triggers it
+
+A test's name and framing should describe the property actually being verified, not whatever input happened to be convenient for forcing the failure path.
+
+```typescript
+// Bad — reads as if empty titles are the interesting case
+test('invalid role data does not insert a role, even with a matching stub queued', ...)
+
+// Good — names the actual guarantee; a comment states the trigger is incidental
+test('a failed role creation leaves a matching stub intact (rollback)', ...)
+```
+
+`addRole()`'s atomicity — a failed role creation must never leave a matching stub deleted with no role created — is what's being protected. An empty `title` is only the deterministic way to force validation to fail inside that transaction; any validation failure would exercise the same rollback path. Naming the test around "invalid role data" misleads a future reader into thinking title validation is the point, when the transaction boundary is.
+
+---
+
 ## Don't assert on implementation details
 
 Assert on what the user sees — badge text, visibility, URL, message content — not Vue reactive state, CSS classes, or form-reset behavior.
@@ -225,7 +292,7 @@ Live example: `server/routes/admin.ts` imports `TEST_COMPANIES` from `e2e/fixtur
 
 ## Test coverage layer assignment
 
-Pure functions → unit tests. HTTP contract and status codes → integration tests. User-visible workflows → E2E. Each layer tests what only it can test; don't duplicate coverage across layers — it adds maintenance cost without adding signal.
+Tests in the e2e, integration, unit, semantic, and static layers should follow the architectural boundaries laid down in `CLAUDE.md`.
 
 ---
 
@@ -291,6 +358,92 @@ const activeRoles = parsedRoles.filter((role) => role.status === 'active');
 ---
 
 At current scale (~6,000 lines, one cohesive module), a single document is right. As the project splits into genuine subsystems, subsystem-specific conventions should move to docs co-located with them — the same way ESLint rules are already scoped by glob. The right unit of modularization is the subsystem boundary, not line count.
+
+---
+
+## Scope a `try` block to only the statement that can throw the error you're catching
+
+```typescript
+// Bad — getByUrl/deleteById can't throw InvalidUrlError, but they're
+// wrapped as if the catch is meant to guard them too
+try {
+  const cleansed = cleanseUrl(role.url);
+  const stub = db.jobStubs.getByUrl(sqlite, cleansed);
+  if (stub != null) db.jobStubs.deleteById(sqlite, stub.id);
+} catch (err) {
+  if (!(err instanceof InvalidUrlError)) throw err;
+}
+
+// Good — the try covers exactly the call that can throw the error being handled
+let cleansed: string | null = null;
+try {
+  cleansed = cleanseUrl(role.url);
+} catch (err) {
+  if (!(err instanceof InvalidUrlError)) throw err;
+}
+if (cleansed != null) {
+  const stub = db.jobStubs.getByUrl(sqlite, cleansed);
+  if (stub != null) db.jobStubs.deleteById(sqlite, stub.id);
+}
+```
+
+A broad `try` doesn't behave differently today if the `catch` rethrows anything it doesn't recognize — but it reads as if the catch is guarding all of it, which misleads the next person who adds a line inside that block. Scoping the `try` to just the throwing call keeps the block's actual contract visible: this catches parsing failures, nothing else.
+
+---
+
+## Decompose an orchestration function into named, single-purpose steps
+
+A function that does several distinct things in sequence — insert a row, insert child rows, clean up a related record, and so on — should read as a short list of named calls, each naming the business step it performs, with the mechanics of each step in its own function underneath. Not one long block where every step's logic is inlined in place.
+
+```typescript
+// Bad — one long block; you have to read every line to know what addRole() does
+export function addRole(sqlite, role) {
+  const run = sqlite.transaction(() => {
+    roleId = db.roles.insertRole(sqlite, { company: role.company, title: role.title /* ... */ });
+    db.jobDescriptions.insert(sqlite, roleId, role.jd);
+    for (const sr of role.skip_reasons ?? [])
+      db.skipReasons.insert(sqlite, roleId, sr.reason, sr.note);
+    // ... url cleansing and stub lookup inlined here too
+  });
+  run();
+}
+
+// Good — the transaction body reads as the steps; each step's mechanics live in its own function
+export function addRole(sqlite, role) {
+  const run = sqlite.transaction(() => {
+    roleId = insertRoleRow(sqlite, role);
+    db.jobDescriptions.insert(sqlite, roleId, role.jd);
+    db.skipReasons.insertMany(sqlite, roleId, role.skip_reasons ?? []);
+    retireMatchingStub(sqlite, role.url);
+  });
+  run();
+}
+```
+
+`lib/roles.ts`'s `addRole()` (CAR-224) is the concrete example — `insertRoleRow()` and `retireMatchingStub()` are named for what they accomplish, not how; the transaction body is readable top to bottom as "what addRole does" without needing every implementation detail inline.
+
+---
+
+## Before extracting duplicated logic into a new shared module, check whether an existing one should absorb it instead
+
+Finding the same logic duplicated in two places is a real problem, but "create a new file both can import" isn't automatically the fix — it's one option, and often the wrong one if an existing, already-correctly-scoped module could take the logic instead.
+
+**Example**
+
+- `lib/roles.ts` and `lib/updates.ts` both looped over a list of reasons calling `db.skipReasons.insert()`/`db.terminationReasons.insert()` one at a time. First instinct: extract a new `lib/reasons.ts` spanning both tables. Wrong home — this codebase's data layer is one file per table (`lib/db/skip-reasons.db.ts`, `lib/db/termination-reasons.db.ts`, matching their existing `getAll`/`getAllByRoleId` pattern); the fix was adding `insertMany()` to each of those two files, not inventing a third, cross-table one.
+- `client/vite.config.ts` and `client/vitest.config.ts` both independently declared the same `resolve.alias`. First instinct (elsewhere in this same session, before catching the roles/updates case) was framed as "extract vs. duplicate." Neither — Vitest supports being configured _inside_ `vite.config.ts` itself (`defineConfig` from `vitest/config`), so the fix was deleting the second file entirely, not creating a third.
+
+The check, before reaching for a new file: does this codebase already have an established, narrower-scoped place this logic belongs (a per-table data-layer file, a tool's own native configuration surface), before creating something new that spans what previously-separate things had good reasons to keep separate.
+
+---
+
+## Shared logic between orchestration modules belongs to whichever module owns the resource it touches — never duplicated, never imported peer-to-peer in both directions
+
+If two orchestration modules need the same logic, the function goes in the module for the table/resource it actually operates on; the other module imports it from there.
+
+Concretely: if `updateRole()` (`lib/updates.ts`) ever needed the same stub-cleanup logic `addRole()` (`lib/roles.ts`) has, that function belongs in `lib/job-stubs.ts` — the module that owns `job_stubs` — imported one-directionally by both `roles.ts` and `updates.ts`. Not copy-pasted into `updates.ts` (recreates the two-copies-that-can-drift risk this codebase already hit once — the `Applied`-without-`applied_date` bug), and not imported by `updates.ts` directly from `roles.ts` (that's not where the logic belongs, it's just where it happened to be written first).
+
+---
 
 ## Audit cadence
 

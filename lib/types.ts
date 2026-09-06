@@ -160,3 +160,15 @@ export interface RoleRow {
 }
 
 export type { RoleSortKey } from './db/roles.db';
+
+// ─── Job stubs ──────────────────────────────────────────────────────────────
+
+export type JobStubStatus = 'unscraped' | 'content_added';
+
+export interface JobStubRow {
+  id: number;
+  url: string;
+  status: JobStubStatus;
+  raw_content: string | null;
+  created_at: string;
+}

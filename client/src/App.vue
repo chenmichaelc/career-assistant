@@ -22,6 +22,12 @@
           >add</router-link
         >
         <router-link
+          to="/triage"
+          class="text-dim hover:text-text transition-colors"
+          active-class="text-text"
+          >triage</router-link
+        >
+        <router-link
           to="/query"
           class="text-dim hover:text-text transition-colors"
           active-class="text-text"
@@ -152,7 +158,7 @@ async function backup() {
 async function requestCleanup() {
   const confirmed = await confirmModal.prompt(
     'cleanup test data',
-    `This will permanently delete all roles with company names used for test data (${TEST_COMPANIES.join(', ')}) and their dependents. This cannot be undone.`
+    `This will permanently delete all roles with company names used for test data (${TEST_COMPANIES.join(', ')}), and all job stubs used for test data, with their dependents. This cannot be undone.`
   );
 
   if (!confirmed) return;
@@ -160,7 +166,7 @@ async function requestCleanup() {
   try {
     const res = await fetch('/api/admin/cleanup', { method: 'POST' });
     const data = await res.json();
-    toast(`Cleanup complete: ${data.count} role(s) deleted.`);
+    toast(`Cleanup complete: ${data.roles.count} role(s), ${data.stubs.count} stub(s) deleted.`);
   } catch (err) {
     console.error('[cleanup] failed:', err);
     toast('Cleanup failed.');

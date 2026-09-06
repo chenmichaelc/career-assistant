@@ -1,3 +1,8 @@
+// client/tsconfig.node.json — covers only vite.config.ts, which runs under
+// Node (not the browser) as Vite's own build tool config. Used by the IDE
+// when editing that one file (referenced from client/tsconfig.json). Not
+// related to client/tests/ despite also using `node` types — see
+// ARCHITECTURE.md, "Client TypeScript configuration."
 {
   "compilerOptions": {
     "target": "ESNext",

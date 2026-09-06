@@ -4,6 +4,7 @@
 import Database from 'better-sqlite3';
 import { RoleInput } from './types';
 import { db } from './db';
+import { cleanseUrl, InvalidUrlError } from './url-cleanse';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -53,6 +54,37 @@ function validate(role: RoleInput): string[] {
   return errors;
 }
 
+// ─── addRole steps ──────────────────────────────────────────────────────────────
+
+function insertRoleRow(sqlite: Database.Database, role: RoleInput): number {
+  return db.roles.insertRole(sqlite, {
+    company: role.company,
+    title: role.title,
+    url: role.url,
+    role_status: role.role_status,
+    candidacy: role.candidacy ?? null,
+    applied_date: role.applied_date ?? null,
+    salary_min: role.salary_min ?? null,
+    salary_max: role.salary_max ?? null,
+    notes: role.notes ?? null,
+  });
+}
+
+function retireMatchingStub(sqlite: Database.Database, url: string): void {
+  let cleansed: string | null = null;
+  try {
+    cleansed = cleanseUrl(url);
+  } catch (err) {
+    if (!(err instanceof InvalidUrlError)) throw err;
+  }
+  if (cleansed == null) return;
+
+  const stub = db.jobStubs.getByUrl(sqlite, cleansed);
+  if (stub != null) {
+    db.jobStubs.deleteById(sqlite, stub.id);
+  }
+}
+
 // ─── addRole ──────────────────────────────────────────────────────────────────
 
 export function addRole(sqlite: Database.Database, role: RoleInput): number {
@@ -66,31 +98,19 @@ export function addRole(sqlite: Database.Database, role: RoleInput): number {
   let roleId: number;
 
   const run = sqlite.transaction(() => {
-    roleId = db.roles.insertRole(sqlite, {
-      company: role.company,
-      title: role.title,
-      url: role.url,
-      role_status: role.role_status,
-      candidacy: role.candidacy ?? null,
-      applied_date: role.applied_date ?? null,
-      salary_min: role.salary_min ?? null,
-      salary_max: role.salary_max ?? null,
-      notes: role.notes ?? null,
-    });
-
-    db.jobDescriptions.insert(sqlite, roleId!, role.jd);
-
-    if (role.skip_reasons != null) {
-      for (const sr of role.skip_reasons) {
-        db.skipReasons.insert(sqlite, roleId!, sr.reason, sr.note ?? null);
-      }
-    }
-
-    if (role.termination_reasons != null) {
-      for (const tr of role.termination_reasons) {
-        db.terminationReasons.insert(sqlite, roleId!, tr.reason, tr.note ?? null);
-      }
-    }
+    roleId = insertRoleRow(sqlite, role);
+    db.jobDescriptions.insert(sqlite, roleId, role.jd);
+    db.skipReasons.insertMany(
+      sqlite,
+      roleId,
+      (role.skip_reasons ?? []).map((sr) => ({ reason: sr.reason, note: sr.note ?? null }))
+    );
+    db.terminationReasons.insertMany(
+      sqlite,
+      roleId,
+      (role.termination_reasons ?? []).map((tr) => ({ reason: tr.reason, note: tr.note ?? null }))
+    );
+    retireMatchingStub(sqlite, role.url);
   });
 
   run();

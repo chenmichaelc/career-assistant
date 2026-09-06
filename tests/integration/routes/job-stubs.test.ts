@@ -1,0 +1,159 @@
+// tests/integration/routes/job-stubs.test.ts
+
+import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import Fastify, { FastifyInstance } from 'fastify';
+import Database from 'better-sqlite3';
+import { createTestDb } from '../../helpers/db';
+import { jobStubsRouter } from '../../../server/routes/job-stubs';
+import { addRole } from '../../../lib/roles';
+
+let app: FastifyInstance;
+let sqlite: Database.Database;
+
+beforeEach(async () => {
+  sqlite = createTestDb();
+  app = Fastify();
+  await app.register(jobStubsRouter, { prefix: '/api/job-stubs', db: sqlite });
+  await app.ready();
+});
+
+afterEach(async () => {
+  await app.close();
+  sqlite.close();
+});
+
+describe('GET /api/job-stubs', () => {
+  test('returns an empty array when there are no stubs', async () => {
+    const emptyListResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
+    expect(emptyListResponse.statusCode).toBe(200);
+    expect(emptyListResponse.json()).toEqual([]);
+  });
+
+  test('returns all stubs, most recently created first', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/2' },
+    });
+
+    const listResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
+    const stubs = listResponse.json();
+    expect(stubs).toHaveLength(2);
+    expect(stubs[0].url).toBe('https://example.com/jobs/2');
+    expect(stubs[1].url).toBe('https://example.com/jobs/1');
+  });
+});
+
+describe('POST /api/job-stubs', () => {
+  test('creates a stub and returns 201 with an id', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1?utm_source=linkedin' },
+    });
+    expect(createResponse.statusCode).toBe(201);
+    expect(typeof createResponse.json().id).toBe('number');
+  });
+
+  test('stores the URL cleansed, not as submitted', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'HTTP://Example.com/jobs/1/?utm_source=linkedin' },
+    });
+    const { id } = createResponse.json();
+
+    const listResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
+    const stub = listResponse.json().find((s: { id: number }) => s.id === id);
+    expect(stub.url).toBe('https://example.com/jobs/1');
+  });
+
+  test('missing url returns 400', async () => {
+    const missingUrlResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: {},
+    });
+    expect(missingUrlResponse.statusCode).toBe(400);
+    expect(missingUrlResponse.json().error).toBeTruthy();
+  });
+
+  test('empty string url returns 400', async () => {
+    const emptyUrlResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: '   ' },
+    });
+    expect(emptyUrlResponse.statusCode).toBe(400);
+  });
+
+  test('invalid (unparseable) url returns 400', async () => {
+    const invalidUrlResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'not a url' },
+    });
+    expect(invalidUrlResponse.statusCode).toBe(400);
+  });
+
+  test('duplicate url (even differently decorated) returns 409', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const duplicateUrlResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'http://EXAMPLE.com/jobs/1/?utm_source=x' },
+    });
+    expect(duplicateUrlResponse.statusCode).toBe(409);
+  });
+
+  test('a url already promoted to a role returns 409', async () => {
+    addRole(sqlite, {
+      company: 'Acme',
+      title: 'Eng',
+      url: 'https://example.com/jobs/2',
+      role_status: 'Resume Needed',
+      jd: 'A job.',
+    });
+
+    const alreadyPromotedResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/2' },
+    });
+    expect(alreadyPromotedResponse.statusCode).toBe(409);
+  });
+});
+
+describe('DELETE /api/job-stubs/:id', () => {
+  test('deletes an existing stub and returns 204', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const deleteResponse = await app.inject({ method: 'DELETE', url: `/api/job-stubs/${id}` });
+    expect(deleteResponse.statusCode).toBe(204);
+
+    const listResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
+    expect(listResponse.json()).toEqual([]);
+  });
+
+  test('a nonexistent id returns 404', async () => {
+    const nonexistentDeleteResponse = await app.inject({
+      method: 'DELETE',
+      url: '/api/job-stubs/9999',
+    });
+    expect(nonexistentDeleteResponse.statusCode).toBe(404);
+  });
+});

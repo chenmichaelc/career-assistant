@@ -6,6 +6,7 @@ export class TopMenuBarComponent {
   readonly topMenuBarContainer: Locator;
   readonly rolesLink: Locator;
   readonly addLink: Locator;
+  readonly triageLink: Locator;
   readonly queryLink: Locator;
   readonly adminDropdownMenu: Locator;
   readonly adminMenuButton: Locator;
@@ -20,6 +21,7 @@ export class TopMenuBarComponent {
     this.topMenuBarContainer = page.getByTestId('menu-bar');
     this.rolesLink = this.topMenuBarContainer.getByRole('link', { name: 'roles' });
     this.addLink = this.topMenuBarContainer.getByRole('link', { name: 'add' });
+    this.triageLink = this.topMenuBarContainer.getByRole('link', { name: 'triage' });
     this.queryLink = this.topMenuBarContainer.getByRole('link', { name: 'query' });
     this.adminDropdownMenu = this.topMenuBarContainer.getByTestId('admin-menu');
     this.adminMenuButton = this.adminDropdownMenu.getByRole('button', { name: 'admin ▾' });

@@ -13,7 +13,7 @@ export default defineConfig({
           exclude: ['**/node_modules/**', '**/e2e/tests/*.spec.ts', 'client/**'],
         },
       },
-      'client/vitest.config.ts',
+      'client/vite.config.ts',
     ],
   },
 });
