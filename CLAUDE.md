@@ -10,8 +10,9 @@ Working agreement for how Claude should operate in this project, based on patter
 ## Verification
 
 - **Never present reasoning as verification.** "I traced the logic by hand and it should work" is not the same claim as "I ran it and confirmed it works." Say which one is true. If only the former is true, say so explicitly, in the same message, not as a footnote.
-- **Don't run tests, builds, or ESLint live in this environment** to check work. It costs real usage against the account and isn't worth it for verification that a human can do in seconds locally. Instead: propose the exact command to run, or a minimal scratch file that isolates the thing being checked, and wait for the result before proceeding on top of it.
-- **When a live check isn't available, say what specifically is unverified** — not just "this should work," but "X and Y are confirmed by reasoning, Z is the part I can't verify without running it."
+- **Run tests, builds, lint, and typecheck live when running as Claude Code (or an equivalent local session with direct filesystem access) an exception.** Explicit signal to look for: the session is identified as running through a local product surface (e.g. "the Claude desktop app's Code tab," a local CLI invocation) with direct access to this repo on disk.
+- **Live verification should not occur when running as a remote/cloud-hosted session** — explicit signal: launched via a remote agent, `isolation: "remote"`, a scheduled cloud task, or other explicit cloud-session framing. In this case, in the output, recommend running the algorithmic checks on the updated codebase.
+- **When genuinely uncertain which mode applies, or a live check isn't available, assume that you're on cloud.**
 - If asked "is this sufficient?" after a green check, answer honestly about what that check does and doesn't prove. A passing lint run doesn't prove a new rule fires; it proves nothing currently in the repo trips it.
 
 ## When something is reported broken
@@ -61,3 +62,4 @@ Working agreement for how Claude should operate in this project, based on patter
 
 - If a stated cost/effort estimate turns out to be wrong once real constraints surface (e.g. "this is the easy option" turns out not to be), say so directly when it becomes clear, rather than continuing to build on the original premise.
 - Prefer catching your own mistakes mid-task and narrating the correction over shipping the first plausible-looking answer.
+- **After running an experimental build/verification command, check the whole repo for stray output, not just the directory you ran it in.** A command can emit files anywhere its dependency graph reaches — `client/`'s `tsc --build` experiment left a compiled `lib/url-cleanse.js` behind (a cross-directory import target), which escaped a cleanup pass scoped only to `client/`. `git status` at the repo root, not a scoped directory listing, is what actually catches this.

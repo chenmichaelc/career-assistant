@@ -27,7 +27,7 @@ career-assistant/
 ├── .prettierrc.json                # Prettier formatting configuration
 ├── .prettierignore                 # Paths excluded from Prettier
 ├── .husky/
-│   └── pre-commit                  # lint-staged (Prettier on staged files), then npm run test:run
+│   └── pre-commit                  # lint-staged (Prettier), npm run test:run, npm run typecheck
 ├── .github/
 │   └── workflows/
 │       ├── push.yml                # CI — runs on every push, includes lint gate
@@ -39,17 +39,20 @@ career-assistant/
 │   └── setup.ts                    # Exports applySchema() for server and test use
 ├── lib/                            # Business logic — no I/O, independently testable
 │   ├── types.ts                    # Domain vocabulary types and runtime arrays
-│   ├── roles.ts                    # Role insertion with validation
+│   ├── roles.ts                    # Role insertion with validation; retires a matching job_stubs row
 │   ├── updates.ts                  # Status update validation + orchestration
 │   ├── deletes.ts                  # Delete operations with FK awareness
 │   ├── admin.ts                    # Admin/test-support orchestration (cleanup)
 │   ├── parse-records.ts            # Plain-text import format parser
+│   ├── job-stubs.ts                # Job stub creation + dedup (addStub)
+│   ├── url-cleanse.ts              # URL normalization for stub/role dedup matching
 │   ├── db/                         # Single-table CRUD modules
 │   │   ├── index.ts                # db namespace — aggregates all modules for callers
 │   │   ├── roles.db.ts
-│   │   ├── skip-reasons.db.ts
-│   │   ├── termination-reasons.db.ts
-│   │   └── job-descriptions.db.ts
+│   │   ├── skip-reasons.db.ts      # insert, insertMany, getAllByRoleId, ...
+│   │   ├── termination-reasons.db.ts  # insert, insertMany, getAllByRoleId, ...
+│   │   ├── job-descriptions.db.ts
+│   │   └── job-stubs.db.ts
 │   └── exporters/
 │       ├── index.ts                # Export entry point + format type
 │       ├── simple.ts               # company + title + JD format
@@ -61,6 +64,7 @@ career-assistant/
 │   ├── index.ts                    # Fastify server setup + route registration
 │   └── routes/
 │       ├── roles.ts                # Role CRUD, status updates, reason management
+│       ├── job-stubs.ts            # Job stub queue CRUD (list, create, delete)
 │       ├── query.ts                # Raw SQL query endpoint
 │       ├── backup.ts               # DB backup endpoint
 │       └── admin.ts                # Admin endpoints (cleanup)
@@ -68,15 +72,16 @@ career-assistant/
 │   ├── tsconfig.json               # Thin reference file — points to app and node configs
 │   ├── tsconfig.app.json           # Browser-targeted TypeScript config for src/
 │   ├── tsconfig.node.json          # Node-targeted TypeScript config for vite.config.ts
-│   ├── vite.config.ts              # Vite config with Vue plugin + API proxy
-│   ├── vitest.config.ts            # Client Vitest project — resolves against client/node_modules
+│   ├── tsconfig.test.json          # src/ + tests/ together, browser + node types — see "Five tsconfigs"
+│   ├── vite.config.ts              # Vite config (Vue plugin + API proxy) — also defines the client Vitest project
 │   ├── tests/
 │   │   └── unit/
 │   │       ├── composables/
 │   │       │   └── useDiff.test.ts          # Reactive line-level diff tests
 │   │       └── utils/
 │   │           ├── parseResumeText.test.ts
-│   │           └── buildResumeDocx.test.ts
+│   │           ├── buildResumeDocx.test.ts
+│   │           └── validateUrl.test.ts
 │   └── src/
 │       ├── main.ts                 # Vue app entry point
 │       ├── App.vue                 # Root component — nav bar, admin dropdown, router view
@@ -89,11 +94,13 @@ career-assistant/
 │       │   └── useDiff.ts          # Reactive line-level diff via jsdiff
 │       ├── utils/
 │       │   ├── parseResumeText.ts  # Plain-text resume → structured intermediate rep
-│       │   └── buildResumeDocx.ts  # Structured resume → docx.Document matching reference template
+│       │   ├── buildResumeDocx.ts  # Structured resume → docx.Document matching reference template
+│       │   └── validateUrl.ts      # URL format check, wraps lib/url-cleanse.ts's cleanseUrl()
 │       └── views/
 │           ├── RoleList.vue        # Role list with multi-select filter + column sort
 │           ├── RoleDetail.vue      # Role detail, status updates, reason management
-│           ├── AddRole.vue         # Role creation form
+│           ├── AddRole.vue         # Role creation form — prefillable via ?url= query param
+│           ├── TriageQueue.vue     # Job stub queue — promote, delete, quick-add
 │           ├── SqlQuery.vue        # Raw SQL interface with CSV export
 │           ├── DiffVisualizer.vue  # Utilities — text diff visualizer
 │           └── ResumeConverter.vue # Utilities — resume-to-docx converter
@@ -123,10 +130,13 @@ career-assistant/
     ├── helpers/
     │   └── db.ts                   # createTestDb() — in-memory SQLite with schema
     ├── unit/                       # Pure function tests
-    │   └── lib/db/                 # Tests for single-table lib/db/ modules
+    │   ├── job-stubs.test.ts       # addStub — dedup against stubs and roles
+    │   ├── url-cleanse.test.ts
+    │   └── lib/db/                 # Tests for single-table lib/db/ modules, incl. job-stubs.db.test.ts
     └── integration/                # Fastify inject() HTTP route tests
         └── routes/
             ├── roles.test.ts
+            ├── job-stubs.test.ts
             ├── query.test.ts
             └── backup.test.ts      # HTTP contract only — pending CAR-104/CAR-179
 ```
@@ -526,20 +536,25 @@ A meaningful subset of this pipeline — formatting and the fast test tier — a
 
 ## TypeScript conventions
 
-### Four tsconfigs
+### Five tsconfigs
 
-Four distinct TypeScript configurations cover the distinct runtime environments in the project:
+Five distinct TypeScript configurations cover the distinct runtime environments in the project:
 
-| Config                      | Target | Module         | Environment                        |
-| --------------------------- | ------ | -------------- | ---------------------------------- |
-| `tsconfig.json` (root)      | ES2024 | CommonJS       | Node.js, ts-node                   |
-| `client/tsconfig.app.json`  | ESNext | ESNext/bundler | Browser, Vite                      |
-| `client/tsconfig.node.json` | ESNext | ESNext/bundler | Node.js, for `vite.config.ts` only |
-| `e2e/tsconfig.json`         | ESNext | ESNext/bundler | Node.js, Playwright                |
+| Config                      | Target | Module         | Environment                                                  |
+| --------------------------- | ------ | -------------- | ------------------------------------------------------------ |
+| `tsconfig.json` (root)      | ES2024 | CommonJS       | Node.js, ts-node                                             |
+| `client/tsconfig.app.json`  | ESNext | ESNext/bundler | Browser, Vite — `client/src/` only                           |
+| `client/tsconfig.node.json` | ESNext | ESNext/bundler | Node.js, for `vite.config.ts` only                           |
+| `client/tsconfig.test.json` | ESNext | ESNext/bundler | Browser + Node.js — `client/src/` + `client/tests/` together |
+| `e2e/tsconfig.json`         | ESNext | ESNext/bundler | Node.js, Playwright                                          |
 
 The root config uses CommonJS because `ts-node` — used to run CLI scripts and the server — requires it. The client and e2e configs use ESNext because Vite and Playwright handle their own TypeScript compilation and work with native ES modules.
 
 `client/tsconfig.json` itself is a thin reference file with no compiler options — it exists only to point TypeScript project references at `tsconfig.app.json` and `tsconfig.node.json`. This split exists because `vite.config.ts` uses Node built-ins (`path`, `__dirname`) that don't belong in the browser-targeted app config. `client/tsconfig.node.json` requires `@types/node` as a real devDependency in `client/package.json` — omitting it causes `npm ci` to fail in CI with a lock-file mismatch error, since the package wouldn't be present in `package-lock.json` despite being referenced by the tsconfig's `types` array.
+
+**`client/tsconfig.test.json`** exists because test files import real source, so `tsc` needs `client/src/**` and `client/tests/**` loaded as one program to check compatibility between them. Neither of the other two client configs can be widened to cover this for free: `tsconfig.app.json` would gain `node` globals (`process`, `Buffer`) becoming silently valid in browser code that would actually crash there, and `tsconfig.node.json` doesn't include `src/` at all. It `extends` `tsconfig.app.json` and overrides only what differs (`types`, `noEmit`, `include`) rather than duplicating its options, so a future change to the shared settings can't drift between the two files. It's invoked by `npm run typecheck` (client and root), wired into CI and the husky pre-commit hook — not used by `vite build`/`vite dev`, and not part of `client/tsconfig.json`'s `references`.
+
+It's deliberately excluded from that `references` array, and this was verified empirically, not assumed: TypeScript Project References' build mode (`tsc --build`) does not understand `.vue` files — it fails immediately on any `.vue` import, since Vue SFC checking is `vue-tsc`-specific, a different tool path than plain `tsc --build`. Adding `composite: true` (required for a project to be a real build-mode reference target) independently fails too, since it requires every file a project touches to be inside its own declared `include` — this codebase's client code deliberately imports directly from sibling top-level directories (`lib/url-cleanse.ts`, `e2e/fixtures/roles.ts`), which this config doesn't and shouldn't try to enumerate. It's a standalone verification config, not a live member of the IDE-driven project graph the other two client configs are.
 
 ### Strict mode
 
@@ -551,7 +566,7 @@ All configs use `strict: true`. `client/tsconfig.app.json` additionally enables 
 
 Each module owns its configuration files, with one deliberate exception:
 
-- `client/tsconfig.app.json` / `client/tsconfig.node.json` — Vue frontend TypeScript config
+- `client/tsconfig.app.json` / `client/tsconfig.node.json` / `client/tsconfig.test.json` — Vue frontend TypeScript config, see [Five tsconfigs](#five-tsconfigs)
 - `e2e/playwright.config.ts` — Playwright config
 - `e2e/tsconfig.json` — Playwright TypeScript config
 - `eslint.config.mts` — **the exception.** Lives at the repository root because it needs to govern all layers simultaneously in one pass. See [Code quality and formatting](#code-quality-and-formatting) above.

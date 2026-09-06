@@ -1,0 +1,17 @@
+// client/tsconfig.test.json — client/src/** AND client/tests/** together
+// (tests import real source, so both must type-check as one program), with
+// both browser (vite/client) and `node` types (tests run under Vitest's Node
+// environment). Extends tsconfig.app.json, overriding only what differs.
+// Used by `npm run typecheck` (this package) → root `npm run typecheck` →
+// CI + husky pre-commit. NOT part of client/tsconfig.json's project
+// references — it's a standalone verification config, not IDE-live the way
+// tsconfig.app.json/tsconfig.node.json are (TypeScript Project References'
+// build mode doesn't work with Vue SFCs — see ARCHITECTURE.md, "Five tsconfigs").
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "tests/**/*.ts"]
+}
