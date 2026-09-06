@@ -2,12 +2,14 @@
 
 import { cleanseUrl, InvalidUrlError } from '../../../lib/url-cleanse';
 
-// Returns null when valid, or a user-facing error message otherwise.
-export function validateUrl(rawUrl: string): string | null {
+export type UrlValidation = { valid: true } | { valid: false; message: string };
+
+export function validateUrl(rawUrl: string): UrlValidation {
   try {
     cleanseUrl(rawUrl);
-    return null;
+    return { valid: true };
   } catch (err) {
-    return err instanceof InvalidUrlError ? err.message : (err as Error).message;
+    const message = err instanceof InvalidUrlError ? err.message : (err as Error).message;
+    return { valid: false, message };
   }
 }

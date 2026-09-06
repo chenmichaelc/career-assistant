@@ -116,9 +116,9 @@ async function queueStub() {
   if (!stubUrl.value) return;
   error.value = '';
 
-  const urlError = validateUrl(stubUrl.value);
-  if (urlError != null) {
-    error.value = urlError;
+  const urlValidation = validateUrl(stubUrl.value);
+  if (!urlValidation.valid) {
+    error.value = urlValidation.message;
     return;
   }
 

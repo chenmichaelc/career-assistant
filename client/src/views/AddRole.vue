@@ -94,9 +94,9 @@ const form = ref({
 async function submit() {
   error.value = '';
 
-  const urlError = validateUrl(form.value.url);
-  if (urlError != null) {
-    error.value = urlError;
+  const urlValidation = validateUrl(form.value.url);
+  if (!urlValidation.valid) {
+    error.value = urlValidation.message;
     return;
   }
 

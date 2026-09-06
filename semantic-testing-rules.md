@@ -337,6 +337,36 @@ At current scale (~6,000 lines, one cohesive module), a single document is right
 
 ---
 
+## Scope a `try` block to only the statement that can throw the error you're catching
+
+```typescript
+// Bad — getByUrl/deleteById can't throw InvalidUrlError, but they're
+// wrapped as if the catch is meant to guard them too
+try {
+  const cleansed = cleanseUrl(role.url);
+  const stub = db.jobStubs.getByUrl(sqlite, cleansed);
+  if (stub != null) db.jobStubs.deleteById(sqlite, stub.id);
+} catch (err) {
+  if (!(err instanceof InvalidUrlError)) throw err;
+}
+
+// Good — the try covers exactly the call that can throw the error being handled
+let cleansed: string | null = null;
+try {
+  cleansed = cleanseUrl(role.url);
+} catch (err) {
+  if (!(err instanceof InvalidUrlError)) throw err;
+}
+if (cleansed != null) {
+  const stub = db.jobStubs.getByUrl(sqlite, cleansed);
+  if (stub != null) db.jobStubs.deleteById(sqlite, stub.id);
+}
+```
+
+A broad `try` doesn't behave differently today if the `catch` rethrows anything it doesn't recognize — but it reads as if the catch is guarding all of it, which misleads the next person who adds a line inside that block. Scoping the `try` to just the throwing call keeps the block's actual contract visible: this catches parsing failures, nothing else.
+
+---
+
 ## Pure logic in a `.vue` file: composable vs. plain util, and when to extract
 
 Composables (`useXxx()`) exist for logic that needs Vue's reactivity system — shared `ref`/`computed` state, lifecycle hooks (`useConfirmModal` is the model: promise-based state a component subscribes to). A synchronous, stateless check — "is this string an acceptable URL," `statusClass()`'s status-to-CSS-class mapping — has no reactive state and gains nothing from being a composable; wrapping it as one is itself a mild anti-pattern, not the safe default. That kind of logic belongs in a plain function in `client/src/utils/`, importable and unit-testable without mounting the component.

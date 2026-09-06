@@ -17,6 +17,9 @@ jobs:
         working-directory: client
       - name: Run ESLint rules
         run: npm run lint
+      - name: Type-check client (src and tests)
+        run: npm run typecheck
+        working-directory: client
       - name: Initialise database
         run: npm run init
       - name: Run vitest unit and integration tests

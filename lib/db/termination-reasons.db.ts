@@ -30,6 +30,18 @@ export function insert(
   return Number(result.lastInsertRowid);
 }
 
+export function getAll(sqlite: Database.Database): TerminationReasonRow[] {
+  return sqlite
+    .prepare(
+      `
+                SELECT id, role_id, reason, note
+                FROM termination_reasons
+                ORDER BY id
+            `
+    )
+    .all() as TerminationReasonRow[];
+}
+
 export function getAllByRoleId(sqlite: Database.Database, roleId: number): TerminationReasonRow[] {
   return sqlite
     .prepare(

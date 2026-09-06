@@ -30,6 +30,18 @@ export function insert(
   return Number(result.lastInsertRowid);
 }
 
+export function getAll(sqlite: Database.Database): SkipReasonRow[] {
+  return sqlite
+    .prepare(
+      `
+                SELECT id, role_id, reason, note
+                FROM skip_reasons
+                ORDER BY id
+            `
+    )
+    .all() as SkipReasonRow[];
+}
+
 export function getAllByRoleId(sqlite: Database.Database, roleId: number): SkipReasonRow[] {
   return sqlite
     .prepare(

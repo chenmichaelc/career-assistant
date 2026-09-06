@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "typecheck:test": "vue-tsc -p tsconfig.test.json"
+    "typecheck": "vue-tsc -p tsconfig.all.json"
   },
   "dependencies": {
     "diff": "^9.0.0",

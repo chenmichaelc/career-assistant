@@ -218,6 +218,10 @@ This mirrors the call pattern of ORM clients (Drizzle, Prisma) and makes the dat
 
 `lib/db/` functions are neutral primitives. They return `undefined` for missing records — they never throw on missing data, and they never enforce domain rules. The decision of whether a missing record is an error belongs to the orchestration layer.
 
+**Orchestration functions compose across tables when the domain rule requires it** (pending CAR-224)
+
+`lib/roles.ts`'s `addRole()` retires any `job_stubs` row queued for the same (cleansed) URL as part of creating a role — reaching into `db.jobStubs.getByUrl`/`deleteById` directly, the same way `lib/deletes.ts`'s `deleteRole()` already reaches into `db.jobDescriptions`, `db.skipReasons`, and `db.terminationReasons`. This is the established pattern for a domain rule that spans tables: the orchestration function composes multiple `lib/db/` modules inside one transaction, rather than the rule being scattered across whichever HTTP route happens to trigger it. `lib/roles.ts` never imports `lib/job-stubs.ts` (or vice versa) to do this — both reach the shared `db` namespace independently, so the two orchestration modules stay decoupled from each other.
+
 **Type ownership**
 
 Row-level types (`SkipReasonRow`, `TerminationReasonRow`, `JobDescriptionRow`, `RoleInsertData`) are defined in their respective `lib/db/` modules, co-located with the queries that use them. This is intentional — these types describe persistence shapes that change together with the SQL that produces them. A database schema change touches the module and its types in one place.

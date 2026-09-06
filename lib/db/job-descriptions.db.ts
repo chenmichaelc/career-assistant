@@ -23,6 +23,17 @@ export function insert(sqlite: Database.Database, roleId: number, content: strin
   return Number(result.lastInsertRowid);
 }
 
+export function getAll(sqlite: Database.Database): JobDescriptionRow[] {
+  return sqlite
+    .prepare(
+      `
+            SELECT id, role_id, content
+            FROM job_descriptions
+          `
+    )
+    .all() as JobDescriptionRow[];
+}
+
 export function getByRoleId(
   sqlite: Database.Database,
   roleId: number
