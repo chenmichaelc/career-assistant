@@ -93,14 +93,18 @@ export function addRole(sqlite: Database.Database, role: RoleInput): number {
       }
     }
 
+    let cleansed: string | null = null;
     try {
-      const cleansed = cleanseUrl(role.url);
+      cleansed = cleanseUrl(role.url);
+    } catch (err) {
+      if (!(err instanceof InvalidUrlError)) throw err;
+    }
+
+    if (cleansed != null) {
       const stub = db.jobStubs.getByUrl(sqlite, cleansed);
       if (stub != null) {
         db.jobStubs.deleteById(sqlite, stub.id);
       }
-    } catch (err) {
-      if (!(err instanceof InvalidUrlError)) throw err;
     }
   });
 

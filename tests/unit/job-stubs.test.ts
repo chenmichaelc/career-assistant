@@ -3,6 +3,7 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../helpers/db';
 import { addStub, DuplicateStubUrlError, DuplicateRoleUrlError } from '../../lib/job-stubs';
+import { addRole } from '../../lib/roles';
 import { db } from '../../lib/db';
 
 let sqlite: Database.Database;
@@ -32,11 +33,13 @@ describe('addStub', () => {
   });
 
   test('rejects a URL that already exists as a promoted role', () => {
-    sqlite
-      .prepare(
-        `INSERT INTO roles (company, title, url, role_status) VALUES ('Acme', 'Eng', 'https://example.com/jobs/2', 'Applied')`
-      )
-      .run();
+    addRole(sqlite, {
+      company: 'Acme',
+      title: 'Eng',
+      url: 'https://example.com/jobs/2',
+      role_status: 'Pending Triage',
+      jd: 'A job.',
+    });
     expect(() => addStub(sqlite, 'https://example.com/jobs/2')).toThrow(DuplicateRoleUrlError);
   });
 });
