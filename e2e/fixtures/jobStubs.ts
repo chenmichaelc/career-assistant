@@ -10,5 +10,6 @@
 export const E2E_STUB_URL_PREFIX = 'https://e2e.testing.stub.com/';
 
 export function e2eStubUrl(testInfo: { project: { name: string }; testId: string }): string {
-  return `${E2E_STUB_URL_PREFIX}${testInfo.project.name}/${testInfo.testId}`;
+  const projectSlug = testInfo.project.name.replace(/\s+/g, '-');
+  return `${E2E_STUB_URL_PREFIX}${projectSlug}/${testInfo.testId}`;
 }
