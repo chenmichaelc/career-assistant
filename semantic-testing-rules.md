@@ -367,16 +367,6 @@ A broad `try` doesn't behave differently today if the `catch` rethrows anything 
 
 ---
 
-## Pure logic in a `.vue` file: composable vs. plain util, and when to extract
-
-Composables (`useXxx()`) exist for logic that needs Vue's reactivity system — shared `ref`/`computed` state, lifecycle hooks (`useConfirmModal` is the model: promise-based state a component subscribes to). A synchronous, stateless check — "is this string an acceptable URL," `statusClass()`'s status-to-CSS-class mapping — has no reactive state and gains nothing from being a composable; wrapping it as one is itself a mild anti-pattern, not the safe default. That kind of logic belongs in a plain function in `client/src/utils/`, importable and unit-testable without mounting the component.
-
-This isn't a new rule — it's already the shape of the planned CAR-183 decomposition (composable extraction for the stateful pieces, a `statusClass` utility "extracted and unit-tested separately" for the pure one, per CAR-188). Stating it generally here because it applies well before a component reaches CAR-183's ~600-line scale.
-
-**When to extract, not before**: a single call site inline in one component is fine — don't preemptively extract. Extract once either becomes true: (a) a second real consumer exists (not a hypothetical future one), or (b) the logic is complex enough that testing it via the component's behavior would be indirect or awkward. `validateUrl()` (CAR-224) is the concrete case: inline in `AddRole.vue` while it had one caller, extracted to `client/src/utils/validateUrl.ts` once `TriageQueue.vue`'s quick-add needed the same check.
-
-**Why this can't be an ESLint rule**: "should this have been extracted" depends on whether a second consumer exists or will exist, and on a judgment about complexity — neither is a syntactic property a lint rule can evaluate. A copy-paste-detection tool (jscpd, `eslint-plugin-sonarjs`) only catches literal duplicated code; it wouldn't have caught this case, since `TriageQueue.vue` didn't have a competing inline copy to flag — it had no validation at all. The gap here was a missing consumer, not duplicated code, which is a design judgment, not a mechanical one.
-
 ## Audit cadence
 
 Read this: at the start of a session with significant new code, before closing a major epic, and when back-applying a new convention to existing code.
