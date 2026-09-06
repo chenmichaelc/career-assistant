@@ -65,6 +65,25 @@ export default defineConfig([
     },
   },
 
+  // ─── Function length — nudge toward decomposing large orchestration functions ──
+  //
+  // Soft signal only (warn). See semantic-testing-rules.md, "Decompose an
+  // orchestration function into named, single-purpose steps" for the pattern
+  // this is meant to trigger — max-lines-per-function can only flag length,
+  // not whether a resulting decomposition is actually meaningful.
+  //
+  // Scoped to lib/ only, not server/routes/ — a Fastify router registration
+  // function (e.g. rolesRouter, 158 lines) is a container of several already-
+  // independent route handlers, not one long sequential flow; this rule would
+  // just produce noise there, not real signal.
+
+  {
+    files: ['lib/**/*.ts'],
+    rules: {
+      'max-lines-per-function': ['warn', { max: 25, skipBlankLines: true, skipComments: true }],
+    },
+  },
+
   // ─── Layer boundary rules ─────────────────────────────────────────────────
   //
   // Enforces the three-layer boundary (HTTP / orchestration / data).
