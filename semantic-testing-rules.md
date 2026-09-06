@@ -400,6 +400,27 @@ export function addRole(sqlite, role) {
 
 ---
 
+## Before extracting duplicated logic into a new shared module, check whether an existing one should absorb it instead
+
+Finding the same logic duplicated in two places is a real problem, but "create a new file both can import" isn't automatically the fix — it's one option, and often the wrong one if an existing, already-correctly-scoped module could take the logic instead.
+
+**Example**
+
+- `lib/roles.ts` and `lib/updates.ts` both looped over a list of reasons calling `db.skipReasons.insert()`/`db.terminationReasons.insert()` one at a time. First instinct: extract a new `lib/reasons.ts` spanning both tables. Wrong home — this codebase's data layer is one file per table (`lib/db/skip-reasons.db.ts`, `lib/db/termination-reasons.db.ts`, matching their existing `getAll`/`getAllByRoleId` pattern); the fix was adding `insertMany()` to each of those two files, not inventing a third, cross-table one.
+- `client/vite.config.ts` and `client/vitest.config.ts` both independently declared the same `resolve.alias`. First instinct (elsewhere in this same session, before catching the roles/updates case) was framed as "extract vs. duplicate." Neither — Vitest supports being configured _inside_ `vite.config.ts` itself (`defineConfig` from `vitest/config`), so the fix was deleting the second file entirely, not creating a third.
+
+The check, before reaching for a new file: does this codebase already have an established, narrower-scoped place this logic belongs (a per-table data-layer file, a tool's own native configuration surface), before creating something new that spans what previously-separate things had good reasons to keep separate.
+
+---
+
+## Shared logic between orchestration modules belongs to whichever module owns the resource it touches — never duplicated, never imported peer-to-peer in both directions
+
+If two orchestration modules need the same logic, the function goes in the module for the table/resource it actually operates on; the other module imports it from there.
+
+Concretely: if `updateRole()` (`lib/updates.ts`) ever needed the same stub-cleanup logic `addRole()` (`lib/roles.ts`) has, that function belongs in `lib/job-stubs.ts` — the module that owns `job_stubs` — imported one-directionally by both `roles.ts` and `updates.ts`. Not copy-pasted into `updates.ts` (recreates the two-copies-that-can-drift risk this codebase already hit once — the `Applied`-without-`applied_date` bug), and not imported by `updates.ts` directly from `roles.ts` (that's not where the logic belongs, it's just where it happened to be written first).
+
+---
+
 ## Audit cadence
 
 Read this: at the start of a session with significant new code, before closing a major epic, and when back-applying a new convention to existing code.

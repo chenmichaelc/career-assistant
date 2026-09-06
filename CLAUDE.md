@@ -9,8 +9,8 @@ Working agreement for how Claude should operate in this project, based on patter
 
 ## Verification
 
-- **Never present reasoning as verification.** "I traced the logic by hand and it should work" is not the same claim as "I ran it and confirmed it works." Say which one is true. If only the former is true, say so explicitly, in the same message, not as a footnote.
-- **Run tests, builds, lint, and typecheck live when running as Claude Code (or an equivalent local session with direct filesystem access) an exception.** Explicit signal to look for: the session is identified as running through a local product surface (e.g. "the Claude desktop app's Code tab," a local CLI invocation) with direct access to this repo on disk.
+- **Never present reasoning as verification.** "I traced the logic by hand, and it should work" is not the same claim as "I ran it and confirmed it works." Say which one is true. If only the former is true, say so explicitly, in the same message, not as a footnote.
+- **Run tests, builds, lint, and typecheck live when running as Claude Code (or an equivalent local session with direct filesystem access) on every turn that implements a code change.** Explicit signal to look for: the session is identified as running through a local product surface (e.g. "the Claude desktop app's Code tab," a local CLI invocation) with direct access to this repo on disk.
 - **Live verification should not occur when running as a remote/cloud-hosted session** — explicit signal: launched via a remote agent, `isolation: "remote"`, a scheduled cloud task, or other explicit cloud-session framing. In this case, in the output, recommend running the algorithmic checks on the updated codebase.
 - **When genuinely uncertain which mode applies, or a live check isn't available, assume that you're on cloud.**
 - If asked "is this sufficient?" after a green check, answer honestly about what that check does and doesn't prove. A passing lint run doesn't prove a new rule fires; it proves nothing currently in the repo trips it.
@@ -18,7 +18,7 @@ Working agreement for how Claude should operate in this project, based on patter
 ## When something is reported broken
 
 - **Take a direct user report of a bug as the primary fact**, over your own re-derivation of whether the code "should" work. If those conflict, the user's observation wins until proven otherwise — don't keep re-litigating "but the logic looks right to me" once they've told you they tested it and it isn't.
-- Ask for the exact evidence (error output, expected vs. actual) before diagnosing. Don't guess at a root cause and start fixing before you have it, especially when the first guess turns out to explain some but not all of the failures.
+- Ask for the exact evidence (error output, expected vs. actual) before diagnosing. Don't guess at a root cause and start fixing before you have it, especially when the first guess turns out to explain some but not all the failures.
 - When you do find the root cause, distinguish clearly between "this confirms the user's report" and "this is a different, additional bug I found while looking." Don't let a real secondary bug (e.g. a test-cleanup bug) overshadow or get confused with the primary one the user actually reported.
 
 ## Decisions
