@@ -2,13 +2,7 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
-import {
-  addStub,
-  promoteStub,
-  DuplicateStubUrlError,
-  DuplicateRoleUrlError,
-  StubNotFoundError,
-} from '../../lib/job-stubs';
+import { addStub, DuplicateStubUrlError, DuplicateRoleUrlError } from '../../lib/job-stubs';
 import { InvalidUrlError } from '../../lib/url-cleanse';
 import { db } from '../../lib/db';
 
@@ -43,23 +37,6 @@ export async function jobStubsRouter(fastify: FastifyInstance, options: PluginOp
       }
       if (err instanceof DuplicateStubUrlError || err instanceof DuplicateRoleUrlError) {
         return reply.status(409).send({ error: (err as Error).message });
-      }
-      return reply.status(400).send({ error: (err as Error).message });
-    }
-  });
-
-  // ─── POST /api/job-stubs/:id/promote ────────────────────────────────────────
-
-  fastify.post('/:id/promote', async (request, reply) => {
-    const { id } = request.params as { id: string };
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- request body validation via Zod tracked in CAR-44, matches existing convention in server/routes/roles.ts
-      const roleId = promoteStub(sqlite, parseInt(id, 10), request.body as any);
-      return reply.status(201).send({ roleId });
-    } catch (err) {
-      if (err instanceof StubNotFoundError) {
-        return reply.status(404).send({ error: (err as Error).message });
       }
       return reply.status(400).send({ error: (err as Error).message });
     }

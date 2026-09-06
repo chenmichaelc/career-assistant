@@ -229,13 +229,13 @@ A test's name and framing should describe the property actually being verified, 
 
 ```typescript
 // Bad — reads as if empty titles are the interesting case
-test('invalid role data returns 400, and the stub is NOT deleted (atomicity, over HTTP)', ...)
+test('invalid role data does not insert a role, even with a matching stub queued', ...)
 
 // Good — names the actual guarantee; a comment states the trigger is incidental
-test('a failed promotion leaves the stub intact (rollback, over HTTP)', ...)
+test('a failed role creation leaves a matching stub intact (rollback)', ...)
 ```
 
-`promoteStub()`'s atomicity — a failed promotion must never leave the stub deleted with no role created, or the reverse — is what's being protected. An empty `title` is only the deterministic way to force `addRole()` to fail inside that transaction; any validation failure would exercise the same rollback path. Naming the test around "invalid role data" misleads a future reader into thinking title validation is the point, when the transaction boundary is.
+`addRole()`'s atomicity — a failed role creation must never leave a matching stub deleted with no role created — is what's being protected. An empty `title` is only the deterministic way to force validation to fail inside that transaction; any validation failure would exercise the same rollback path. Naming the test around "invalid role data" misleads a future reader into thinking title validation is the point, when the transaction boundary is.
 
 ---
 
@@ -334,6 +334,18 @@ const activeRoles = parsedRoles.filter((role) => role.status === 'active');
 ---
 
 At current scale (~6,000 lines, one cohesive module), a single document is right. As the project splits into genuine subsystems, subsystem-specific conventions should move to docs co-located with them — the same way ESLint rules are already scoped by glob. The right unit of modularization is the subsystem boundary, not line count.
+
+---
+
+## Pure logic in a `.vue` file: composable vs. plain util, and when to extract
+
+Composables (`useXxx()`) exist for logic that needs Vue's reactivity system — shared `ref`/`computed` state, lifecycle hooks (`useConfirmModal` is the model: promise-based state a component subscribes to). A synchronous, stateless check — "is this string an acceptable URL," `statusClass()`'s status-to-CSS-class mapping — has no reactive state and gains nothing from being a composable; wrapping it as one is itself a mild anti-pattern, not the safe default. That kind of logic belongs in a plain function in `client/src/utils/`, importable and unit-testable without mounting the component.
+
+This isn't a new rule — it's already the shape of the planned CAR-183 decomposition (composable extraction for the stateful pieces, a `statusClass` utility "extracted and unit-tested separately" for the pure one, per CAR-188). Stating it generally here because it applies well before a component reaches CAR-183's ~600-line scale.
+
+**When to extract, not before**: a single call site inline in one component is fine — don't preemptively extract. Extract once either becomes true: (a) a second real consumer exists (not a hypothetical future one), or (b) the logic is complex enough that testing it via the component's behavior would be indirect or awkward. `validateUrl()` (CAR-224) is the concrete case: inline in `AddRole.vue` while it had one caller, extracted to `client/src/utils/validateUrl.ts` once `TriageQueue.vue`'s quick-add needed the same check.
+
+**Why this can't be an ESLint rule**: "should this have been extracted" depends on whether a second consumer exists or will exist, and on a judgment about complexity — neither is a syntactic property a lint rule can evaluate. A copy-paste-detection tool (jscpd, `eslint-plugin-sonarjs`) only catches literal duplicated code; it wouldn't have caught this case, since `TriageQueue.vue` didn't have a competing inline copy to flag — it had no validation at all. The gap here was a missing consumer, not duplicated code, which is a design judgment, not a mechanical one.
 
 ## Audit cadence
 

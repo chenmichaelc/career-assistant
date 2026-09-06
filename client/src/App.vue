@@ -22,6 +22,12 @@
           >add</router-link
         >
         <router-link
+          to="/triage"
+          class="text-dim hover:text-text transition-colors"
+          active-class="text-text"
+          >triage</router-link
+        >
+        <router-link
           to="/query"
           class="text-dim hover:text-text transition-colors"
           active-class="text-text"

@@ -4,6 +4,7 @@
 import Database from 'better-sqlite3';
 import { RoleInput } from './types';
 import { db } from './db';
+import { cleanseUrl, InvalidUrlError } from './url-cleanse';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -90,6 +91,16 @@ export function addRole(sqlite: Database.Database, role: RoleInput): number {
       for (const tr of role.termination_reasons) {
         db.terminationReasons.insert(sqlite, roleId!, tr.reason, tr.note ?? null);
       }
+    }
+
+    try {
+      const cleansed = cleanseUrl(role.url);
+      const stub = db.jobStubs.getByUrl(sqlite, cleansed);
+      if (stub != null) {
+        db.jobStubs.deleteById(sqlite, stub.id);
+      }
+    } catch (err) {
+      if (!(err instanceof InvalidUrlError)) throw err;
     }
   });
 

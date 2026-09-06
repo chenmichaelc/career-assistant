@@ -70,10 +70,12 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { apiFetch } from '@/composables/useApi';
 import { VALID_STATUSES } from '@/constants';
+import { validateUrl } from '@/utils/validateUrl';
 
+const route = useRoute();
 const router = useRouter();
 const error = ref('');
 const submitting = ref(false);
@@ -81,7 +83,7 @@ const submitting = ref(false);
 const form = ref({
   company: '',
   title: '',
-  url: '',
+  url: typeof route.query.url === 'string' ? route.query.url : '',
   role_status: 'Pending Triage' as string,
   salary_min: null as number | null,
   salary_max: null as number | null,
@@ -91,6 +93,13 @@ const form = ref({
 
 async function submit() {
   error.value = '';
+
+  const urlError = validateUrl(form.value.url);
+  if (urlError != null) {
+    error.value = urlError;
+    return;
+  }
+
   submitting.value = true;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shared RoleInput type not yet accessible from client; tracked in CAR-4

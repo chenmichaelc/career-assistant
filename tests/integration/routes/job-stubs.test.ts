@@ -6,7 +6,6 @@ import Database from 'better-sqlite3';
 import { createTestDb } from '../../helpers/db';
 import { jobStubsRouter } from '../../../server/routes/job-stubs';
 import { addRole } from '../../../lib/roles';
-import { db } from '../../../lib/db';
 
 let app: FastifyInstance;
 let sqlite: Database.Database;
@@ -156,108 +155,5 @@ describe('DELETE /api/job-stubs/:id', () => {
       url: '/api/job-stubs/9999',
     });
     expect(nonexistentDeleteResponse.statusCode).toBe(404);
-  });
-});
-
-describe('POST /api/job-stubs/:id/promote', () => {
-  const validRole = {
-    company: 'Acme',
-    title: 'Engineer',
-    url: 'https://example.com/jobs/1',
-    role_status: 'Resume Needed',
-    jd: 'Do engineering things.',
-  };
-
-  test('promotes a stub to a role and returns 201 with a roleId', async () => {
-    const createResponse = await app.inject({
-      method: 'POST',
-      url: '/api/job-stubs',
-      payload: { url: 'https://example.com/jobs/1' },
-    });
-    const { id } = createResponse.json();
-
-    const promoteResponse = await app.inject({
-      method: 'POST',
-      url: `/api/job-stubs/${id}/promote`,
-      payload: validRole,
-    });
-    expect(promoteResponse.statusCode).toBe(201);
-    expect(typeof promoteResponse.json().roleId).toBe('number');
-  });
-
-  test('the stub no longer appears in the list after promotion', async () => {
-    const createResponse = await app.inject({
-      method: 'POST',
-      url: '/api/job-stubs',
-      payload: { url: 'https://example.com/jobs/1' },
-    });
-    const { id } = createResponse.json();
-    await app.inject({ method: 'POST', url: `/api/job-stubs/${id}/promote`, payload: validRole });
-
-    const listResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
-    expect(listResponse.json()).toEqual([]);
-  });
-
-  test('the promoted role is actually queryable afterward', async () => {
-    const createResponse = await app.inject({
-      method: 'POST',
-      url: '/api/job-stubs',
-      payload: { url: 'https://example.com/jobs/1' },
-    });
-    const { id } = createResponse.json();
-    const promoteResponse = await app.inject({
-      method: 'POST',
-      url: `/api/job-stubs/${id}/promote`,
-      payload: validRole,
-    });
-    const { roleId } = promoteResponse.json();
-
-    const role = db.roles.getById(sqlite, roleId);
-    expect(role?.company).toBe('Acme');
-  });
-
-  test('a nonexistent stub id returns 404', async () => {
-    const nonexistentPromoteResponse = await app.inject({
-      method: 'POST',
-      url: '/api/job-stubs/9999/promote',
-      payload: validRole,
-    });
-    expect(nonexistentPromoteResponse.statusCode).toBe(404);
-  });
-
-  test('a failed promotion leaves the stub intact (rollback, over HTTP)', async () => {
-    const createResponse = await app.inject({
-      method: 'POST',
-      url: '/api/job-stubs',
-      payload: { url: 'https://example.com/jobs/1' },
-    });
-    const { id } = createResponse.json();
-
-    const promoteResponse = await app.inject({
-      method: 'POST',
-      url: `/api/job-stubs/${id}/promote`,
-      payload: { ...validRole, title: '' },
-    });
-    expect(promoteResponse.statusCode).toBe(400);
-
-    const listResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
-    expect(listResponse.json()).toHaveLength(1);
-  });
-
-  test('a failed promotion creates no partial role (rollback, over HTTP)', async () => {
-    const createResponse = await app.inject({
-      method: 'POST',
-      url: '/api/job-stubs',
-      payload: { url: 'https://example.com/jobs/1' },
-    });
-    const { id } = createResponse.json();
-
-    await app.inject({
-      method: 'POST',
-      url: `/api/job-stubs/${id}/promote`,
-      payload: { ...validRole, title: '' },
-    });
-
-    expect(db.roles.getAll(sqlite)).toHaveLength(0);
   });
 });

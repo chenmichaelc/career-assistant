@@ -3,6 +3,7 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../helpers/db';
 import { addRole } from '../../lib/roles';
+import { addStub } from '../../lib/job-stubs';
 import { RoleInput } from '../../lib/types';
 
 let db: Database.Database;
@@ -157,6 +158,66 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
     const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
     expect(role.role_status).toBe(roleStatus);
     expect(role.applied_date).toBe(appliedDate);
+  });
+});
+
+// ─── Stub cleanup ──────────────────────────────────────────────────────────────
+
+describe('addRole — stub cleanup', () => {
+  const baseRole: RoleInput = {
+    company: 'Acme',
+    title: 'QA Engineer',
+    url: 'https://example.com/job/1',
+    role_status: 'Pending Triage',
+    jd: 'This is a job description.',
+  };
+
+  test('deletes the job stub queued for the same (cleansed) URL', () => {
+    const stubId = addStub(db, 'https://example.com/job/1?utm_source=linkedin');
+
+    addRole(db, baseRole);
+
+    const stub = db.prepare('SELECT * FROM job_stubs WHERE id = ?').get(stubId);
+    expect(stub).toBeUndefined();
+  });
+
+  test('matches the stub by cleansed URL even when the submitted URL is decorated differently', () => {
+    const stubId = addStub(db, 'https://example.com/job/1');
+
+    addRole(db, { ...baseRole, url: 'HTTP://Example.com/job/1/?utm_source=linkedin' });
+
+    const stub = db.prepare('SELECT * FROM job_stubs WHERE id = ?').get(stubId);
+    expect(stub).toBeUndefined();
+  });
+
+  test('leaves stubs for other URLs untouched', () => {
+    const unrelatedStubId = addStub(db, 'https://example.com/job/2');
+
+    addRole(db, baseRole);
+
+    const stub = db.prepare('SELECT * FROM job_stubs WHERE id = ?').get(unrelatedStubId);
+    expect(stub).toBeDefined();
+  });
+
+  test('succeeds normally when no stub matches the URL', () => {
+    const id = addRole(db, baseRole);
+    expect(typeof id).toBe('number');
+  });
+
+  test('does not block role creation when the submitted URL is not a valid URL', () => {
+    const id = addRole(db, { ...baseRole, url: 'not a url' });
+
+    const role = db.prepare('SELECT * FROM roles WHERE id = ?').get(id) as Record<string, unknown>;
+    expect(role.url).toBe('not a url');
+  });
+
+  test('a failed role creation leaves a matching stub intact (rollback)', () => {
+    const stubId = addStub(db, 'https://example.com/job/1');
+
+    expect(() => addRole(db, { ...baseRole, title: '' })).toThrow();
+
+    const stub = db.prepare('SELECT * FROM job_stubs WHERE id = ?').get(stubId);
+    expect(stub).toBeDefined();
   });
 });
 
