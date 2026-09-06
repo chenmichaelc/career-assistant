@@ -6,7 +6,7 @@ import { validateUpdateInput, updateRole, UpdateRoleInput } from '../../lib/upda
 import { addRole } from '../../lib/roles';
 import { RoleInput } from '../../lib/types';
 
-let db: Database.Database;
+let sqlite: Database.Database;
 
 const baseRole: RoleInput = {
   company: 'Acme/Turner & Sons',
@@ -20,11 +20,11 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
 };
 
 beforeEach(() => {
-  db = createTestDb();
+  sqlite = createTestDb();
 });
 
 afterEach(() => {
-  db.close();
+  sqlite.close();
 });
 
 // ─── validateUpdateInput ──────────────────────────────────────────────────────
@@ -135,19 +135,19 @@ describe('validateUpdateInput — contextual rules', () => {
 
 describe('updateRole', () => {
   test('updates role_status correctly', () => {
-    const id = addRole(db, baseRole);
+    const id = addRole(sqlite, baseRole);
     const input: UpdateRoleInput = { id, status: 'Applied', reasons: [], termination: [] };
-    const role = updateRole(db, input);
+    const role = updateRole(sqlite, input);
     expect(role.role_status).toBe('Applied');
   });
 
   test('sets applied_date when transitioning to Applied and no date exists', () => {
-    const id = addRole(db, baseRole);
+    const id = addRole(sqlite, baseRole);
     const input: UpdateRoleInput = { id, status: 'Applied', reasons: [], termination: [] };
 
-    updateRole(db, input);
+    updateRole(sqlite, input);
 
-    const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
+    const role = sqlite.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
       string,
       unknown
     >;
@@ -156,12 +156,12 @@ describe('updateRole', () => {
 
   test('preserves existing applied_date when transitioning to Applied', () => {
     const roleWithDate: RoleInput = { ...baseRole, applied_date: '2024-01-15' };
-    const id = addRole(db, roleWithDate);
+    const id = addRole(sqlite, roleWithDate);
     const input: UpdateRoleInput = { id, status: 'Applied', reasons: [], termination: [] };
 
-    updateRole(db, input);
+    updateRole(sqlite, input);
 
-    const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
+    const role = sqlite.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
       string,
       unknown
     >;
@@ -169,12 +169,12 @@ describe('updateRole', () => {
   });
 
   test('does not set applied_date when transitioning to a non-Applied status', () => {
-    const id = addRole(db, baseRole);
+    const id = addRole(sqlite, baseRole);
     const input: UpdateRoleInput = { id, status: 'On Hold', reasons: [], termination: [] };
 
-    updateRole(db, input);
+    updateRole(sqlite, input);
 
-    const role = db.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
+    const role = sqlite.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
       string,
       unknown
     >;
@@ -182,7 +182,7 @@ describe('updateRole', () => {
   });
 
   test('inserts skip reasons correctly', () => {
-    const id = addRole(db, baseRole);
+    const id = addRole(sqlite, baseRole);
     const input: UpdateRoleInput = {
       id,
       status: 'Skipped',
@@ -191,12 +191,11 @@ describe('updateRole', () => {
       note: 'Austin in-office; below floor',
     };
 
-    updateRole(db, input);
+    updateRole(sqlite, input);
 
-    const reasons = db.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').all(id) as Record<
-      string,
-      unknown
-    >[];
+    const reasons = sqlite
+      .prepare('SELECT * FROM skip_reasons WHERE role_id = ?')
+      .all(id) as Record<string, unknown>[];
     expect(reasons).toHaveLength(2);
     expect(reasons[0].reason).toBe('Location');
     expect(reasons[0].note).toBe('Austin in-office; below floor');
@@ -204,7 +203,7 @@ describe('updateRole', () => {
   });
 
   test('inserts termination reasons correctly', () => {
-    const id = addRole(db, baseRole);
+    const id = addRole(sqlite, baseRole);
     const input: UpdateRoleInput = {
       id,
       status: 'Closed',
@@ -212,9 +211,9 @@ describe('updateRole', () => {
       termination: ['Screened Out'],
     };
 
-    updateRole(db, input);
+    updateRole(sqlite, input);
 
-    const reasons = db
+    const reasons = sqlite
       .prepare('SELECT * FROM termination_reasons WHERE role_id = ?')
       .all(id) as Record<string, unknown>[];
     expect(reasons).toHaveLength(1);
@@ -222,7 +221,7 @@ describe('updateRole', () => {
   });
 
   test('throws on invalid flags without touching DB', () => {
-    const id = addRole(db, baseRole);
+    const id = addRole(sqlite, baseRole);
     const input: UpdateRoleInput = {
       id,
       status: 'InvalidStatus',
@@ -230,9 +229,9 @@ describe('updateRole', () => {
       termination: [],
     };
 
-    expect(() => updateRole(db, input)).toThrow();
+    expect(() => updateRole(sqlite, input)).toThrow();
 
-    const role = db.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<
+    const role = sqlite.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<
       string,
       unknown
     >;

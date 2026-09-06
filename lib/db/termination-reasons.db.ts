@@ -42,6 +42,16 @@ export function getAll(sqlite: Database.Database): TerminationReasonRow[] {
     .all() as TerminationReasonRow[];
 }
 
+export function insertMany(
+  sqlite: Database.Database,
+  roleId: number,
+  reasons: { reason: string; note: string | null }[]
+): void {
+  for (const terminationReason of reasons) {
+    insert(sqlite, roleId, terminationReason.reason, terminationReason.note);
+  }
+}
+
 export function getAllByRoleId(sqlite: Database.Database, roleId: number): TerminationReasonRow[] {
   return sqlite
     .prepare(

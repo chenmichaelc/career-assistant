@@ -367,6 +367,39 @@ A broad `try` doesn't behave differently today if the `catch` rethrows anything 
 
 ---
 
+## Decompose an orchestration function into named, single-purpose steps
+
+A function that does several distinct things in sequence — insert a row, insert child rows, clean up a related record, and so on — should read as a short list of named calls, each naming the business step it performs, with the mechanics of each step in its own function underneath. Not one long block where every step's logic is inlined in place.
+
+```typescript
+// Bad — one long block; you have to read every line to know what addRole() does
+export function addRole(sqlite, role) {
+  const run = sqlite.transaction(() => {
+    roleId = db.roles.insertRole(sqlite, { company: role.company, title: role.title /* ... */ });
+    db.jobDescriptions.insert(sqlite, roleId, role.jd);
+    for (const sr of role.skip_reasons ?? [])
+      db.skipReasons.insert(sqlite, roleId, sr.reason, sr.note);
+    // ... url cleansing and stub lookup inlined here too
+  });
+  run();
+}
+
+// Good — the transaction body reads as the steps; each step's mechanics live in its own function
+export function addRole(sqlite, role) {
+  const run = sqlite.transaction(() => {
+    roleId = insertRoleRow(sqlite, role);
+    db.jobDescriptions.insert(sqlite, roleId, role.jd);
+    db.skipReasons.insertMany(sqlite, roleId, role.skip_reasons ?? []);
+    retireMatchingStub(sqlite, role.url);
+  });
+  run();
+}
+```
+
+`lib/roles.ts`'s `addRole()` (CAR-224) is the concrete example — `insertRoleRow()` and `retireMatchingStub()` are named for what they accomplish, not how; the transaction body is readable top to bottom as "what addRole does" without needing every implementation detail inline.
+
+---
+
 ## Audit cadence
 
 Read this: at the start of a session with significant new code, before closing a major epic, and when back-applying a new convention to existing code.

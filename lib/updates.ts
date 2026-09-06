@@ -91,13 +91,17 @@ export function updateRole(sqlite: Database.Database, input: UpdateRoleInput): R
   const run = sqlite.transaction(() => {
     db.roles.updateStatus(sqlite, input.id, input.status.trim());
 
-    for (const reason of input.reasons) {
-      db.skipReasons.insert(sqlite, input.id, reason.trim(), input.note ?? null);
-    }
+    db.skipReasons.insertMany(
+      sqlite,
+      input.id,
+      input.reasons.map((reason) => ({ reason: reason.trim(), note: input.note ?? null }))
+    );
 
-    for (const reason of input.termination) {
-      db.terminationReasons.insert(sqlite, input.id, reason.trim(), input.note ?? null);
-    }
+    db.terminationReasons.insertMany(
+      sqlite,
+      input.id,
+      input.termination.map((reason) => ({ reason: reason.trim(), note: input.note ?? null }))
+    );
   });
 
   run();

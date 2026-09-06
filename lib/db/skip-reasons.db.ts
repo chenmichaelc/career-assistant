@@ -42,6 +42,16 @@ export function getAll(sqlite: Database.Database): SkipReasonRow[] {
     .all() as SkipReasonRow[];
 }
 
+export function insertMany(
+  sqlite: Database.Database,
+  roleId: number,
+  reasons: { reason: string; note: string | null }[]
+): void {
+  for (const skipReason of reasons) {
+    insert(sqlite, roleId, skipReason.reason, skipReason.note);
+  }
+}
+
 export function getAllByRoleId(sqlite: Database.Database, roleId: number): SkipReasonRow[] {
   return sqlite
     .prepare(

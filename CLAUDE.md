@@ -2,6 +2,11 @@
 
 Working agreement for how Claude should operate in this project, based on patterns from actual sessions — not generic best practice.
 
+## Before writing code or tests
+
+- Read `semantic-testing-rules.md` before writing or editing any file. It documents system architecture conventions that aren't testable via ESLint, Vitest, or Playwright.
+- Read `ARCHITECTURE.md` for general architecture guidance on the implementation in this application, especially interactions between the app, library, and database.
+
 ## Verification
 
 - **Never present reasoning as verification.** "I traced the logic by hand and it should work" is not the same claim as "I ran it and confirmed it works." Say which one is true. If only the former is true, say so explicitly, in the same message, not as a footnote.
