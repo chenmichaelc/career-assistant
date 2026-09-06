@@ -23,3 +23,16 @@ export function cleanupTestRoles(sqlite: Database.Database, companies: string[])
 
   return { deleted, count: deleted.length };
 }
+
+export function cleanupTestStubs(sqlite: Database.Database, urlPrefix: string): CleanupResult {
+  const stubs = db.jobStubs.getAllByUrlPrefix(sqlite, urlPrefix);
+
+  const deleted: number[] = [];
+
+  for (const stub of stubs) {
+    db.jobStubs.deleteById(sqlite, stub.id);
+    deleted.push(stub.id);
+  }
+
+  return { deleted, count: deleted.length };
+}

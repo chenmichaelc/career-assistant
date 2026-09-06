@@ -83,6 +83,57 @@ describe('getByUrl', () => {
   });
 });
 
+// ─── getAllByUrlPrefix ──────────────────────────────────────────────
+
+describe('getAllByUrlPrefix', () => {
+  test('returns only stubs whose URL starts with the prefix', () => {
+    const urlPrefix = 'https://e2e.testing.stub.com/';
+    const chromiumUrl = `${urlPrefix}chromium/1`;
+    const firefoxUrl = `${urlPrefix}firefox/2`;
+    db.jobStubs.insertStub(sqlite, chromiumUrl);
+    db.jobStubs.insertStub(sqlite, firefoxUrl);
+    db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+
+    const matches = db.jobStubs.getAllByUrlPrefix(sqlite, urlPrefix);
+
+    expect(matches).toHaveLength(2);
+    expect(matches.map((s) => s.url).sort()).toEqual([chromiumUrl, firefoxUrl].sort());
+  });
+
+  test('returns an empty array when nothing matches', () => {
+    db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    expect(db.jobStubs.getAllByUrlPrefix(sqlite, 'https://e2e.testing.stub.com/')).toEqual([]);
+  });
+
+  test('treats % in the prefix as a literal character, not a SQL wildcard', () => {
+    const urlPrefix = 'https://example.com/100%off/';
+    const matchingUrl = `${urlPrefix}1`;
+    db.jobStubs.insertStub(sqlite, matchingUrl);
+    // Would match if the '%' above were left unescaped, since LIKE would then
+    // treat it as "any characters" and match this decoy too.
+    db.jobStubs.insertStub(sqlite, 'https://example.com/100XXXoff/1');
+
+    const matches = db.jobStubs.getAllByUrlPrefix(sqlite, urlPrefix);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].url).toBe(matchingUrl);
+  });
+
+  test('treats _ in the prefix as a literal character, not a SQL wildcard', () => {
+    const urlPrefix = 'https://example.com/100_off/';
+    const matchingUrl = `${urlPrefix}1`;
+    db.jobStubs.insertStub(sqlite, matchingUrl);
+    // Would match if the '_' above were left unescaped, since LIKE would then
+    // treat it as "any single character" and match this decoy too.
+    db.jobStubs.insertStub(sqlite, 'https://example.com/100Xoff/1');
+
+    const matches = db.jobStubs.getAllByUrlPrefix(sqlite, urlPrefix);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].url).toBe(matchingUrl);
+  });
+});
+
 // ─── deleteById ─────────────────────────────────────────────────────
 
 describe('deleteById', () => {

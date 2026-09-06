@@ -26,6 +26,30 @@ Note: `tests/integration/routes/roles.test.ts` drifts from this (`fetchedRole` a
 
 ---
 
+## Name a value once, reference it everywhere it's needed
+
+A literal used in more than one place within a test — as a function argument and again in an assertion, or in two separate setup calls — must be a single named variable, not retyped independently at each site. This includes values passed inline into a function call: build the input as a variable first, so later assertions can reference its fields instead of retyping literals.
+
+```typescript
+// Bad — 'Acme' would have to be retyped if it ever needs to appear in an assertion,
+// and nothing would catch the two copies drifting apart
+addRole(sqlite, { company: 'Acme', ... });
+// ...
+expect(preview.role.company).toBe('Acme');
+
+// Good — one value, referenced by both the setup call and the assertion
+const baseRole: RoleInput = { company: 'Acme', ... };
+addRole(sqlite, baseRole);
+// ...
+expect(preview.role.company).toBe(baseRole.company);
+```
+
+`deletes.test.ts`, `updates.test.ts`, and `roles.test.ts` already follow this — `baseRole`/`input` are named variables passed into the function under test, and assertions read `baseRole.company`, never a retyped `'Acme'`. It was violated in `admin.test.ts`'s `cleanupTestRoles` test (CAR-224): `company` was never set in the "matching" role's setup at all, and only passed because it happened to equal `makeRole()`'s unrelated default — caught in review with "none of the roles matching the pattern is created as part of this test." A companion bug in the same file passed a bare literal into `insertStub()` and retyped it in the assertion instead of naming it once.
+
+Not every literal needs this — a value used exactly once, with nothing else in the test depending on it, is fine written inline. The rule is about values whose reuse creates a relationship the test's correctness depends on.
+
+---
+
 ## Page object locator scoping
 
 Scope locators to a zone container before targeting elements within it. A bare `page.getByRole(...)` is only safe if the element is unique on the page.
@@ -268,7 +292,7 @@ Live example: `server/routes/admin.ts` imports `TEST_COMPANIES` from `e2e/fixtur
 
 ## Test coverage layer assignment
 
-Pure functions → unit tests. HTTP contract and status codes → integration tests. User-visible workflows → E2E. Each layer tests what only it can test; don't duplicate coverage across layers — it adds maintenance cost without adding signal.
+Tests in the e2e, integration, unit, semantic, and static layers should follow the architectural boundaries laid down in `CLAUDE.md`.
 
 ---
 

@@ -52,6 +52,20 @@ export function getByUrl(sqlite: Database.Database, url: string): JobStubRow | u
     .get(url) as JobStubRow | undefined;
 }
 
+export function getAllByUrlPrefix(sqlite: Database.Database, urlPrefix: string): JobStubRow[] {
+  return sqlite
+    .prepare(
+      `
+                SELECT id, url, status, raw_content, created_at
+                FROM job_stubs
+                WHERE url LIKE @pattern ESCAPE '\\'
+            `
+    )
+    .all({
+      pattern: `${urlPrefix.replace(/[\\%_]/g, '\\$&')}%`,
+    }) as JobStubRow[];
+}
+
 export function setRawContent(
   sqlite: Database.Database,
   id: number,

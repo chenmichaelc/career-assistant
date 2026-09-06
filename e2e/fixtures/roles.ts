@@ -20,4 +20,4 @@ export const baseRole: RoleFixture = {
   jd: 'A great job.',
 };
 
-export const TEST_COMPANIES: string[] = ['[E2E] Acme Corp'];
+export const TEST_COMPANIES: string[] = ['[E2E] Acme Corp', '[E2E] Triage Test Co'];
