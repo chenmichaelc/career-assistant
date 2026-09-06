@@ -6,6 +6,7 @@ import Database from 'better-sqlite3';
 import { createTestDb } from '../../helpers/db';
 import { jobStubsRouter } from '../../../server/routes/job-stubs';
 import { addRole } from '../../../lib/roles';
+import { RoleInput } from '../../../lib/types';
 
 let app: FastifyInstance;
 let sqlite: Database.Database;
@@ -116,18 +117,19 @@ describe('POST /api/job-stubs', () => {
   });
 
   test('a url already promoted to a role returns 409', async () => {
-    addRole(sqlite, {
+    const role: RoleInput = {
       company: 'Acme',
       title: 'Eng',
       url: 'https://example.com/jobs/2',
       role_status: 'Resume Needed',
       jd: 'A job.',
-    });
+    };
+    addRole(sqlite, role);
 
     const alreadyPromotedResponse = await app.inject({
       method: 'POST',
       url: '/api/job-stubs',
-      payload: { url: 'https://example.com/jobs/2' },
+      payload: { url: role.url },
     });
     expect(alreadyPromotedResponse.statusCode).toBe(409);
   });

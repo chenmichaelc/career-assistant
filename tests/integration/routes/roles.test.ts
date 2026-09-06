@@ -86,12 +86,12 @@ describe('POST /api/roles', () => {
   });
 
   test('returns 400 when role_status is Closed with no termination_reasons', async () => {
-    const rejected = await app.inject({
+    const invalidRoleResponse = await app.inject({
       method: 'POST',
       url: '/api/roles',
       payload: { ...baseRole, role_status: 'Closed' },
     });
-    expect(rejected.statusCode).toBe(400);
+    expect(invalidRoleResponse.statusCode).toBe(400);
   });
 
   test('returns 400 when role_status is Applied with no applied_date', async () => {
@@ -136,13 +136,13 @@ describe('POST /api/roles', () => {
     expect(roleCreationResponse.statusCode).toBe(201);
     const { id } = roleCreationResponse.json();
 
-    const fetchedRole = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
-    expect(fetchedRole.json().skip_reasons).toHaveLength(2);
+    const roleFetchResponse = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
+    expect(roleFetchResponse.json().skip_reasons).toHaveLength(2);
     expect(
-      fetchedRole.json().skip_reasons.map((role: { reason: string }) => role.reason)
+      roleFetchResponse.json().skip_reasons.map((role: { reason: string }) => role.reason)
     ).toContain('Compensation');
     expect(
-      fetchedRole.json().skip_reasons.map((role: { reason: string }) => role.reason)
+      roleFetchResponse.json().skip_reasons.map((role: { reason: string }) => role.reason)
     ).toContain('Location');
   });
 
@@ -161,13 +161,13 @@ describe('POST /api/roles', () => {
     expect(roleCreationResponse.statusCode).toBe(201);
     const { id } = roleCreationResponse.json();
 
-    const fetchedRole = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
-    expect(fetchedRole.json().termination_reasons).toHaveLength(2);
+    const roleFetchResponse = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
+    expect(roleFetchResponse.json().termination_reasons).toHaveLength(2);
     expect(
-      fetchedRole.json().termination_reasons.map((role: { reason: string }) => role.reason)
+      roleFetchResponse.json().termination_reasons.map((role: { reason: string }) => role.reason)
     ).toContain('Filled');
     expect(
-      fetchedRole.json().termination_reasons.map((role: { reason: string }) => role.reason)
+      roleFetchResponse.json().termination_reasons.map((role: { reason: string }) => role.reason)
     ).toContain('Cancelled');
   });
 });
@@ -339,9 +339,9 @@ describe('GET /api/roles/:id', () => {
     });
     const { id } = roleWithJdAndSkipReasonsResponse.json();
 
-    const fetched = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
-    expect(fetched.statusCode).toBe(200);
-    const role = fetched.json();
+    const roleFetchResponse = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
+    expect(roleFetchResponse.statusCode).toBe(200);
+    const role = roleFetchResponse.json();
     expect(role.id).toBe(id);
     expect(role.jd).toBe(skippedRole.jd);
     expect(Array.isArray(role.skip_reasons)).toBe(true);
@@ -358,9 +358,9 @@ describe('GET /api/roles/:id', () => {
     });
     const { id } = roleWithTerminationReasonsResponse.json();
 
-    const fetched = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
-    expect(fetched.statusCode).toBe(200);
-    const role = fetched.json();
+    const roleFetchResponse = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
+    expect(roleFetchResponse.statusCode).toBe(200);
+    const role = roleFetchResponse.json();
     expect(role.id).toBe(id);
     expect(role.termination_reasons).toHaveLength(1);
     expect(Array.isArray(role.termination_reasons)).toBe(true);
@@ -368,8 +368,8 @@ describe('GET /api/roles/:id', () => {
   });
 
   test('returns 404 for unknown ID', async () => {
-    const invalidRole = await app.inject({ method: 'GET', url: '/api/roles/99999' });
-    expect(invalidRole.statusCode).toBe(404);
+    const invalidRoleResponse = await app.inject({ method: 'GET', url: '/api/roles/99999' });
+    expect(invalidRoleResponse.statusCode).toBe(404);
   });
 });
 
@@ -384,13 +384,13 @@ describe('PATCH /api/roles/:id/status', () => {
     });
     const { id } = validRoleResponse.json();
 
-    const updated = await app.inject({
+    const statusUpdateResponse = await app.inject({
       method: 'PATCH',
       url: `/api/roles/${id}/status`,
       payload: { status: 'Resume Ready', reasons: [], termination: [] },
     });
-    expect(updated.statusCode).toBe(200);
-    expect(updated.json().role.role_status).toBe('Resume Ready');
+    expect(statusUpdateResponse.statusCode).toBe(200);
+    expect(statusUpdateResponse.json().role.role_status).toBe('Resume Ready');
   });
 
   test('returns 400 on invalid status', async () => {
@@ -595,12 +595,12 @@ describe('POST /api/roles/:id/termination-reasons', () => {
   });
 
   test('returns 404 for unknown role ID', async () => {
-    const rejected = await app.inject({
+    const invalidTerminationReasonCreationResponse = await app.inject({
       method: 'POST',
       url: '/api/roles/99999/termination-reasons',
       payload: { reason: 'Filled' },
     });
-    expect(rejected.statusCode).toBe(404);
+    expect(invalidTerminationReasonCreationResponse.statusCode).toBe(404);
   });
 });
 

@@ -5,6 +5,7 @@ import { createTestDb } from '../helpers/db';
 import { addStub, DuplicateStubUrlError, DuplicateRoleUrlError } from '../../lib/job-stubs';
 import { addRole } from '../../lib/roles';
 import { db } from '../../lib/db';
+import { RoleInput } from '../../lib/types';
 
 let sqlite: Database.Database;
 
@@ -33,13 +34,14 @@ describe('addStub', () => {
   });
 
   test('rejects a URL that already exists as a promoted role', () => {
-    addRole(sqlite, {
+    const role: RoleInput = {
       company: 'Acme',
       title: 'Eng',
       url: 'https://example.com/jobs/2',
       role_status: 'Pending Triage',
       jd: 'A job.',
-    });
-    expect(() => addStub(sqlite, 'https://example.com/jobs/2')).toThrow(DuplicateRoleUrlError);
+    };
+    addRole(sqlite, role);
+    expect(() => addStub(sqlite, role.url)).toThrow(DuplicateRoleUrlError);
   });
 });

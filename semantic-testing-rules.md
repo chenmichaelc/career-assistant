@@ -22,8 +22,6 @@ Name variables by what the request _does_, not what it _is_: `roleCreationRespon
 
 A failing `expect(response.statusCode).toBe(201)` tells you nothing; a failing `expect(roleCreationResponse.statusCode).toBe(201)` tells you which operation failed without reading surrounding code.
 
-Note: `tests/integration/routes/roles.test.ts` drifts from this (`fetchedRole` after `roleCreationResponse`) — worth a tightening pass, not urgent.
-
 ---
 
 ## Name a value once, reference it everywhere it's needed
@@ -47,6 +45,35 @@ expect(preview.role.company).toBe(baseRole.company);
 `deletes.test.ts`, `updates.test.ts`, and `roles.test.ts` already follow this — `baseRole`/`input` are named variables passed into the function under test, and assertions read `baseRole.company`, never a retyped `'Acme'`. It was violated in `admin.test.ts`'s `cleanupTestRoles` test (CAR-224): `company` was never set in the "matching" role's setup at all, and only passed because it happened to equal `makeRole()`'s unrelated default — caught in review with "none of the roles matching the pattern is created as part of this test." A companion bug in the same file passed a bare literal into `insertStub()` and retyped it in the assertion instead of naming it once.
 
 Not every literal needs this — a value used exactly once, with nothing else in the test depending on it, is fine written inline. The rule is about values whose reuse creates a relationship the test's correctness depends on.
+
+**When the shared value is one field of a larger object literal, extract the whole object — not just that one field.** Pulling out only the field that happens to repeat and leaving the rest of the literal inline is a half-measure: it fixes the immediate duplication but produces the same inconsistent shape the rule exists to avoid (a bare variable sitting next to an unnamed object).
+
+```typescript
+// Bad — half-measure: only the repeated field is named, the rest of the
+// object stays anonymous and disconnected from it
+const url = 'https://example.com/jobs/2';
+addRole(sqlite, {
+  company: 'Acme',
+  title: 'Eng',
+  url,
+  role_status: 'Pending Triage',
+  jd: 'A job.',
+});
+expect(() => addStub(sqlite, url)).toThrow(DuplicateRoleUrlError);
+
+// Good — the whole input is one named value; the repeated field is accessed off it
+const role: RoleInput = {
+  company: 'Acme',
+  title: 'Eng',
+  url: 'https://example.com/jobs/2',
+  role_status: 'Pending Triage',
+  jd: 'A job.',
+};
+addRole(sqlite, role);
+expect(() => addStub(sqlite, role.url)).toThrow(DuplicateRoleUrlError);
+```
+
+Caught in review in `tests/unit/job-stubs.test.ts` and `tests/integration/routes/job-stubs.test.ts` (CAR-256): fixing the literal-duplication violation by extracting only `url` out of the `addRole()` payload left the surrounding role object inline and anonymous, inconsistent with `deletes.test.ts`/`updates.test.ts`/`roles.test.ts`'s existing whole-object convention. Michael's framing: "It seems like the whole payload should be encapsulated in a variable, or none of it."
 
 ---
 
@@ -273,6 +300,18 @@ await expect(roleDetailPage.addSkipReasonSelect).toHaveValue('');
 ```
 
 These assertions pass when the feature is broken in user-visible ways, and fail when implementation changes in ways no user would notice.
+
+**Visual expectations are a potential exception. But in such cases, assert the rendered value, not the class name.**
+
+**Example**
+
+```typescript
+// Bad — breaks if the class is renamed, even though the rendered color is unchanged
+await expect(sqlQueryPage.writeModeToggle).toHaveClass(/bg-danger/);
+
+// Good — asserts what's actually rendered, independent of how it's achieved
+await expect(sqlQueryPage.writeModeToggle).toHaveCSS('background-color', 'rgb(248, 113, 113)');
+```
 
 ---
 
