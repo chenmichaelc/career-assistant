@@ -45,7 +45,6 @@
           target="_blank"
           rel="noopener noreferrer"
           class="font-mono text-sm text-text truncate hover:text-accent transition-colors"
-          data-testid="stub-url"
         >
           {{ stub.url }}
         </a>
@@ -53,14 +52,12 @@
           <button
             @click="promote(stub)"
             class="bg-accent text-surface font-mono text-sm px-4 py-1.5 rounded hover:opacity-90 transition-opacity"
-            data-testid="promote-stub"
           >
             promote
           </button>
           <button
             @click="requestDelete(stub)"
             class="border border-border text-dim font-mono text-sm px-4 py-1.5 rounded hover:text-danger transition-colors"
-            data-testid="delete-stub"
           >
             delete
           </button>

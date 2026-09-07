@@ -88,6 +88,7 @@ test('Promoting a stub prefills Add Role, creates the role, and removes the stub
   const roleDetailPage = new RoleDetailPage(page);
   const url = e2eStubUrl(testInfo);
   const jobTitle = `Promoted Role ${testInfo.project.name} ${testInfo.testId}`;
+  const companyName = '[E2E] Triage Test Co';
 
   await test.step('Arrange: Queue a stub directly via the API (promotion is the subject here, not queueing)', async () => {
     const response = await page.request.post('/api/job-stubs', { data: { url } });
@@ -105,14 +106,14 @@ test('Promoting a stub prefills Add Role, creates the role, and removes the stub
   });
 
   await test.step('Act: Complete the remaining fields and submit', async () => {
-    await addRolePage.companyNameField.fill('[E2E] Triage Test Co');
+    await addRolePage.companyNameField.fill(companyName);
     await addRolePage.jobTitleField.fill(jobTitle);
     await addRolePage.jobDescriptionField.fill('Promoted from a queued stub.');
     await addRolePage.addRoleButton.click();
   });
 
   await test.step('Assert: The role was created with the promoted URL', async () => {
-    await expect(roleDetailPage.companyNameHeading).toHaveText('[E2E] Triage Test Co');
+    await expect(roleDetailPage.companyNameHeading).toHaveText(companyName);
     await expect(roleDetailPage.urlCard.getByText(url)).toBeVisible();
   });
 

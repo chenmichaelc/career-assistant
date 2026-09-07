@@ -43,7 +43,6 @@ career-assistant/
 │   ├── updates.ts                  # Status update validation + orchestration
 │   ├── deletes.ts                  # Delete operations with FK awareness
 │   ├── admin.ts                    # Admin/test-support orchestration (cleanup)
-│   ├── parse-records.ts            # Plain-text import format parser
 │   ├── job-stubs.ts                # Job stub creation + dedup (addStub)
 │   ├── url-cleanse.ts              # URL normalization for stub/role dedup matching
 │   ├── db/                         # Single-table CRUD modules

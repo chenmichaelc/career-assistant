@@ -91,6 +91,15 @@ const form = ref({
   jd: '',
 });
 
+function buildRolePayload(formValue: typeof form.value) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shared RoleInput type not yet accessible from client; tracked in CAR-4
+  const payload: any = { ...formValue };
+  if (!payload.notes) delete payload.notes;
+  if (!payload.salary_min) payload.salary_min = null;
+  if (!payload.salary_max) payload.salary_max = null;
+  return payload;
+}
+
 async function submit() {
   error.value = '';
 
@@ -102,12 +111,7 @@ async function submit() {
 
   submitting.value = true;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shared RoleInput type not yet accessible from client; tracked in CAR-4
-    const payload: any = { ...form.value };
-    if (!payload.notes) delete payload.notes;
-    if (!payload.salary_min) payload.salary_min = null;
-    if (!payload.salary_max) payload.salary_max = null;
-
+    const payload = buildRolePayload(form.value);
     const { id } = await apiFetch<{ id: number }>('/api/roles', {
       method: 'POST',
       body: JSON.stringify(payload),

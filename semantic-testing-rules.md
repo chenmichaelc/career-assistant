@@ -22,8 +22,6 @@ Name variables by what the request _does_, not what it _is_: `roleCreationRespon
 
 A failing `expect(response.statusCode).toBe(201)` tells you nothing; a failing `expect(roleCreationResponse.statusCode).toBe(201)` tells you which operation failed without reading surrounding code.
 
-Note: `tests/integration/routes/roles.test.ts` drifts from this (`fetchedRole` after `roleCreationResponse`) — worth a tightening pass, not urgent.
-
 ---
 
 ## Name a value once, reference it everywhere it's needed
@@ -47,6 +45,35 @@ expect(preview.role.company).toBe(baseRole.company);
 `deletes.test.ts`, `updates.test.ts`, and `roles.test.ts` already follow this — `baseRole`/`input` are named variables passed into the function under test, and assertions read `baseRole.company`, never a retyped `'Acme'`. It was violated in `admin.test.ts`'s `cleanupTestRoles` test (CAR-224): `company` was never set in the "matching" role's setup at all, and only passed because it happened to equal `makeRole()`'s unrelated default — caught in review with "none of the roles matching the pattern is created as part of this test." A companion bug in the same file passed a bare literal into `insertStub()` and retyped it in the assertion instead of naming it once.
 
 Not every literal needs this — a value used exactly once, with nothing else in the test depending on it, is fine written inline. The rule is about values whose reuse creates a relationship the test's correctness depends on.
+
+**When the shared value is one field of a larger object literal, extract the whole object — not just that one field.** Pulling out only the field that happens to repeat and leaving the rest of the literal inline is a half-measure: it fixes the immediate duplication but produces the same inconsistent shape the rule exists to avoid (a bare variable sitting next to an unnamed object).
+
+```typescript
+// Bad — half-measure: only the repeated field is named, the rest of the
+// object stays anonymous and disconnected from it
+const url = 'https://example.com/jobs/2';
+addRole(sqlite, {
+  company: 'Acme',
+  title: 'Eng',
+  url,
+  role_status: 'Pending Triage',
+  jd: 'A job.',
+});
+expect(() => addStub(sqlite, url)).toThrow(DuplicateRoleUrlError);
+
+// Good — the whole input is one named value; the repeated field is accessed off it
+const role: RoleInput = {
+  company: 'Acme',
+  title: 'Eng',
+  url: 'https://example.com/jobs/2',
+  role_status: 'Pending Triage',
+  jd: 'A job.',
+};
+addRole(sqlite, role);
+expect(() => addStub(sqlite, role.url)).toThrow(DuplicateRoleUrlError);
+```
+
+Caught in review in `tests/unit/job-stubs.test.ts` and `tests/integration/routes/job-stubs.test.ts` (CAR-256): fixing the literal-duplication violation by extracting only `url` out of the `addRole()` payload left the surrounding role object inline and anonymous, inconsistent with `deletes.test.ts`/`updates.test.ts`/`roles.test.ts`'s existing whole-object convention. Michael's framing: "It seems like the whole payload should be encapsulated in a variable, or none of it."
 
 ---
 
@@ -274,6 +301,18 @@ await expect(roleDetailPage.addSkipReasonSelect).toHaveValue('');
 
 These assertions pass when the feature is broken in user-visible ways, and fail when implementation changes in ways no user would notice.
 
+**Visual expectations are a potential exception. But in such cases, assert the rendered value, not the class name.**
+
+**Example**
+
+```typescript
+// Bad — breaks if the class is renamed, even though the rendered color is unchanged
+await expect(sqlQueryPage.writeModeToggle).toHaveClass(/bg-danger/);
+
+// Good — asserts what's actually rendered, independent of how it's achieved
+await expect(sqlQueryPage.writeModeToggle).toHaveCSS('background-color', 'rgb(248, 113, 113)');
+```
+
 ---
 
 ## SQL formatting in template literals
@@ -421,6 +460,42 @@ export function addRole(sqlite, role) {
 ```
 
 `lib/roles.ts`'s `addRole()` (CAR-224) is the concrete example — `insertRoleRow()` and `retireMatchingStub()` are named for what they accomplish, not how; the transaction body is readable top to bottom as "what addRole does" without needing every implementation detail inline.
+
+**This isn't scoped to `lib/` — it applies to any function that mixes a business step with its own mechanics, including Vue component methods.** The first audit pass under this rule (CAR-256) only re-checked `lib/` orchestration functions and missed this exact shape sitting in `client/src/views/AddRole.vue`'s `submit()`, which inlined payload-sanitization logic (deleting an empty `notes` field, coercing falsy salary values to `null`) directly between the API call and its error handling:
+
+```typescript
+// Bad — payload-shaping mechanics inlined inside the submit step
+async function submit() {
+  ...
+  const payload: any = { ...form.value };
+  if (!payload.notes) delete payload.notes;
+  if (!payload.salary_min) payload.salary_min = null;
+  if (!payload.salary_max) payload.salary_max = null;
+  const { id } = await apiFetch('/api/roles', { method: 'POST', body: JSON.stringify(payload) });
+  ...
+}
+
+// Good — submit() reads as validate -> build payload -> post -> navigate
+function buildRolePayload(formValue: typeof form.value) {
+  const payload: any = { ...formValue };
+  if (!payload.notes) delete payload.notes;
+  if (!payload.salary_min) payload.salary_min = null;
+  if (!payload.salary_max) payload.salary_max = null;
+  return payload;
+}
+```
+
+When auditing against this rule, check UI-layer event handlers and route handlers with the same eye as `lib/` orchestration functions — the failure shape (a step's mechanics inlined instead of named) isn't specific to the data layer.
+
+### When ESLint's `max-lines-per-function` warning is a false positive, not a decomposition opportunity
+
+The lint rule can only measure length; it can't tell whether a function is actually a sequence of steps with mechanics inlined (the real violation) or something else entirely that happens to be long. Three shapes read as long without being that violation — recognize them rather than decomposing on reflex to clear the warning:
+
+- **A single cohesive query or data-shape builder.** `lib/db/roles.db.ts`'s `getAll()` conditionally appends `WHERE`/`ORDER BY` clauses based on filter arguments — that's one concern ("build and run one parameterized query"), not several sequenced business steps. Splitting out a `buildWhereClause()` helper relocates the same conditional logic one frame away without clarifying anything.
+- **Already decomposed; the overage is string content, not logic.** `lib/deletes.ts`'s `deleteRole()` already has named helpers (`requireRole()`, `fetchDependents()`) and reads as require → fetch → check → transact. It crosses the threshold only because of a 3-line multi-line error message. Extracting further (tried and reverted during the CAR-256 audit — see git history) added more lines than it saved and didn't make the function easier to follow, since the transaction body was already at the same granularity as `addRole()`'s own "good" example.
+- **A flat list of independent validation checks.** `lib/updates.ts`'s `validateUpdateInput()` is ~7 self-contained checks pushing onto one `errors` array, the same shape as `lib/roles.ts`'s own `validate()` (never flagged only because it has fewer rules). A validation function's length scales with the number of business rules it enforces, not with hidden complexity — splitting it into per-field functions means passing or returning partial error arrays across calls, which is more indirection for the same total logic.
+
+The test for all three: would decomposing actually shorten the mental model, or just relocate the same lines behind an extra function call? If a reader would need to open a second function to understand something the first already stated plainly, decomposition made it worse, not better.
 
 ---
 

@@ -27,16 +27,17 @@ export class InvalidUrlError extends Error {
   }
 }
 
-export function cleanseUrl(rawUrl: string): string {
+// ─── cleanseUrl steps ─────────────────────────────────────────────────────────
+
+function parseUrlWithRetry(rawUrl: string): URL {
   const trimmed = rawUrl.trim();
 
-  let parsed: URL;
   try {
-    parsed = new URL(trimmed);
+    return new URL(trimmed);
   } catch {
     if (!trimmed.includes('://')) {
       try {
-        parsed = new URL(`https://${trimmed}`);
+        return new URL(`https://${trimmed}`);
       } catch {
         throw new InvalidUrlError(rawUrl);
       }
@@ -44,7 +45,9 @@ export function cleanseUrl(rawUrl: string): string {
       throw new InvalidUrlError(rawUrl);
     }
   }
+}
 
+function normalizeProtocol(parsed: URL, rawUrl: string): void {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new InvalidUrlError(rawUrl);
   }
@@ -52,16 +55,18 @@ export function cleanseUrl(rawUrl: string): string {
   if (parsed.protocol === 'http:') {
     parsed.protocol = 'https:';
   }
+}
 
-  parsed.hostname = parsed.hostname.toLowerCase();
-
+function stripDefaultPort(parsed: URL): void {
   if (
     (parsed.protocol === 'https:' && parsed.port === '443') ||
     (parsed.protocol === 'http:' && parsed.port === '80')
   ) {
     parsed.port = '';
   }
+}
 
+function stripTrackingParams(parsed: URL): void {
   const remainingParams: [string, string][] = [];
   for (const [key, value] of parsed.searchParams.entries()) {
     if (!TRACKING_PARAMS.has(key)) {
@@ -74,11 +79,25 @@ export function cleanseUrl(rawUrl: string): string {
   for (const [key, value] of remainingParams) {
     parsed.searchParams.append(key, value);
   }
+}
 
+function stripTrailingSlash(parsed: URL): void {
   // Strip a trailing slash from the path, except when the path is just "/".
   if (parsed.pathname.length > 1 && parsed.pathname.endsWith('/')) {
     parsed.pathname = parsed.pathname.slice(0, -1);
   }
+}
+
+// ─── cleanseUrl ───────────────────────────────────────────────────────────────
+
+export function cleanseUrl(rawUrl: string): string {
+  const parsed = parseUrlWithRetry(rawUrl);
+
+  normalizeProtocol(parsed, rawUrl);
+  parsed.hostname = parsed.hostname.toLowerCase();
+  stripDefaultPort(parsed);
+  stripTrackingParams(parsed);
+  stripTrailingSlash(parsed);
 
   // Fragments (#...) are client-side navigation hints, never meaningful for
   // identifying a distinct posting.

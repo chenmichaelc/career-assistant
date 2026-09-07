@@ -49,8 +49,7 @@ test('Verify Write Mode UI Restrictions and Behavior', async ({ page }) => {
 
   await test.step('Assert: Confirm UI when Write Mode is Read Only', async () => {
     await expect(sqlQueryPage.writeModeToggle).toBeVisible();
-    await expect(sqlQueryPage.writeModeToggle).toHaveClass(/(.)*bg-surface(.)*/);
-    await expect(sqlQueryPage.writeModeToggle).not.toHaveClass(/(.)*bg-danger(.)*/);
+    await expect(sqlQueryPage.writeModeToggle).toHaveCSS('background-color', 'rgb(15, 17, 23)');
     await expect(sqlQueryPage.writeModeLabel).toBeVisible();
     await expect(sqlQueryPage.writeModeLabel).toHaveText('read only');
     await expect(sqlQueryPage.writeModeWarning).toBeHidden();
@@ -61,8 +60,7 @@ test('Verify Write Mode UI Restrictions and Behavior', async ({ page }) => {
   });
 
   await test.step('Assert: Confirm UI when Write Mode is Read/Write', async () => {
-    await expect(sqlQueryPage.writeModeToggle).toHaveClass(/(.)*bg-danger(.)*/);
-    await expect(sqlQueryPage.writeModeToggle).not.toHaveClass(/(.)*bg-surface(.)*/);
+    await expect(sqlQueryPage.writeModeToggle).toHaveCSS('background-color', 'rgb(248, 113, 113)');
     await expect(sqlQueryPage.writeModeLabel).toHaveText('WRITE ENABLED');
     await expect(sqlQueryPage.writeModeWarning).toBeVisible();
     await expect(sqlQueryPage.writeModeWarning).toHaveText(
