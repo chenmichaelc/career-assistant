@@ -487,6 +487,16 @@ function buildRolePayload(formValue: typeof form.value) {
 
 When auditing against this rule, check UI-layer event handlers and route handlers with the same eye as `lib/` orchestration functions — the failure shape (a step's mechanics inlined instead of named) isn't specific to the data layer.
 
+### When ESLint's `max-lines-per-function` warning is a false positive, not a decomposition opportunity
+
+The lint rule can only measure length; it can't tell whether a function is actually a sequence of steps with mechanics inlined (the real violation) or something else entirely that happens to be long. Three shapes read as long without being that violation — recognize them rather than decomposing on reflex to clear the warning:
+
+- **A single cohesive query or data-shape builder.** `lib/db/roles.db.ts`'s `getAll()` conditionally appends `WHERE`/`ORDER BY` clauses based on filter arguments — that's one concern ("build and run one parameterized query"), not several sequenced business steps. Splitting out a `buildWhereClause()` helper relocates the same conditional logic one frame away without clarifying anything.
+- **Already decomposed; the overage is string content, not logic.** `lib/deletes.ts`'s `deleteRole()` already has named helpers (`requireRole()`, `fetchDependents()`) and reads as require → fetch → check → transact. It crosses the threshold only because of a 3-line multi-line error message. Extracting further (tried and reverted during the CAR-256 audit — see git history) added more lines than it saved and didn't make the function easier to follow, since the transaction body was already at the same granularity as `addRole()`'s own "good" example.
+- **A flat list of independent validation checks.** `lib/updates.ts`'s `validateUpdateInput()` is ~7 self-contained checks pushing onto one `errors` array, the same shape as `lib/roles.ts`'s own `validate()` (never flagged only because it has fewer rules). A validation function's length scales with the number of business rules it enforces, not with hidden complexity — splitting it into per-field functions means passing or returning partial error arrays across calls, which is more indirection for the same total logic.
+
+The test for all three: would decomposing actually shorten the mental model, or just relocate the same lines behind an extra function call? If a reader would need to open a second function to understand something the first already stated plainly, decomposition made it worse, not better.
+
 ---
 
 ## Before extracting duplicated logic into a new shared module, check whether an existing one should absorb it instead

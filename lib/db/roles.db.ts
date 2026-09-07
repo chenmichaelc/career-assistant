@@ -42,6 +42,7 @@ export function insertRole(sqlite: Database.Database, data: RoleInsertData): num
   return Number(result.lastInsertRowid);
 }
 
+// eslint-disable-next-line max-lines-per-function -- single query-builder, one concern; see semantic-testing-rules.md's "max-lines-per-function false positive" section
 export function getAll(
   sqlite: Database.Database,
   statuses: string[] = [],
@@ -57,12 +58,17 @@ export function getAll(
   `;
   const params: (string | number)[] = [];
 
+  // The Roles list filters by status as a multi-select (e.g. "show Applied
+  // and In Interview together"), so this is an IN clause, not equality.
   if (statuses.length > 0) {
     const placeholders = statuses.map(() => '?').join(', ');
     query += ` AND role_status IN (${placeholders})`;
     params.push(...statuses);
   }
 
+  // Company is a search-as-you-type field, not an exact filter — a partial,
+  // case-insensitive match lets "goog" find "Google" without the user typing
+  // the full name.
   if (company) {
     query += ` AND company LIKE ?`;
     params.push(`%${company}%`);

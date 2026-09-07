@@ -52,6 +52,7 @@ export function previewRoleDeletion(sqlite: Database.Database, id: number): Role
   return { role, ...dependents };
 }
 
+// eslint-disable-next-line max-lines-per-function -- already decomposed (requireRole/fetchDependents); overage is a multi-line error string, not logic; see semantic-testing-rules.md's "max-lines-per-function false positive" section
 export function deleteRole(
   sqlite: Database.Database,
   id: number,

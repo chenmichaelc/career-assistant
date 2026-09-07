@@ -39,6 +39,7 @@ function requireRole(sqlite: Database.Database, id: number): RoleRow {
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line max-lines-per-function -- flat list of independent checks; see semantic-testing-rules.md's "max-lines-per-function false positive" section
 export function validateUpdateInput(input: UpdateRoleInput): void {
   const errors: string[] = [];
 
