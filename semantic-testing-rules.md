@@ -461,6 +461,32 @@ export function addRole(sqlite, role) {
 
 `lib/roles.ts`'s `addRole()` (CAR-224) is the concrete example — `insertRoleRow()` and `retireMatchingStub()` are named for what they accomplish, not how; the transaction body is readable top to bottom as "what addRole does" without needing every implementation detail inline.
 
+**This isn't scoped to `lib/` — it applies to any function that mixes a business step with its own mechanics, including Vue component methods.** The first audit pass under this rule (CAR-256) only re-checked `lib/` orchestration functions and missed this exact shape sitting in `client/src/views/AddRole.vue`'s `submit()`, which inlined payload-sanitization logic (deleting an empty `notes` field, coercing falsy salary values to `null`) directly between the API call and its error handling:
+
+```typescript
+// Bad — payload-shaping mechanics inlined inside the submit step
+async function submit() {
+  ...
+  const payload: any = { ...form.value };
+  if (!payload.notes) delete payload.notes;
+  if (!payload.salary_min) payload.salary_min = null;
+  if (!payload.salary_max) payload.salary_max = null;
+  const { id } = await apiFetch('/api/roles', { method: 'POST', body: JSON.stringify(payload) });
+  ...
+}
+
+// Good — submit() reads as validate -> build payload -> post -> navigate
+function buildRolePayload(formValue: typeof form.value) {
+  const payload: any = { ...formValue };
+  if (!payload.notes) delete payload.notes;
+  if (!payload.salary_min) payload.salary_min = null;
+  if (!payload.salary_max) payload.salary_max = null;
+  return payload;
+}
+```
+
+When auditing against this rule, check UI-layer event handlers and route handlers with the same eye as `lib/` orchestration functions — the failure shape (a step's mechanics inlined instead of named) isn't specific to the data layer.
+
 ---
 
 ## Before extracting duplicated logic into a new shared module, check whether an existing one should absorb it instead

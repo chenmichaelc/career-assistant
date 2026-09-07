@@ -243,7 +243,6 @@ career-assistant/
 │   ├── roles.ts             # Role insertion with validation
 │   ├── updates.ts           # Status update validation + orchestration
 │   ├── deletes.ts           # Delete operations with FK awareness
-│   ├── parse-records.ts     # Plain-text import format parser
 │   ├── db/                  # Single-table CRUD modules
 │   │   ├── index.ts         # db namespace — aggregates all modules for callers
 │   │   ├── roles.db.ts
