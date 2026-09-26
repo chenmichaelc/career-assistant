@@ -75,12 +75,11 @@ export function checkTerminationReason(reason: string): string | null {
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
-// Returns the role row; throws a generic Error. Used by updateRole/deleteRole/previews.
 function requireRole(sqlite: Database.Database, id: number): RoleRow {
   const role = db.roles.getById(sqlite, id);
 
   if (!role) {
-    throw new Error(`No role found with ID ${id}.`);
+    throw new RoleNotFoundError(id);
   }
 
   return role;
@@ -96,9 +95,6 @@ function fetchDependents(sqlite: Database.Database, roleId: number): Omit<RoleDe
   const skip_reasons = db.skipReasons.getAllByRoleId(sqlite, roleId);
   const termination_reasons = db.terminationReasons.getAllByRoleId(sqlite, roleId);
 
-  // job_descriptions is modelled as an array here for interface consistency with RoleDependents,
-  // even though the schema enforces a one-to-one relationship between roles and job_descriptions.
-  // The singular/array inconsistency is tracked separately and not addressed in this refactor.
   const jd = db.jobDescriptions.getByRoleId(sqlite, roleId);
   const job_descriptions: JobDescriptionRow[] = jd ? [jd] : [];
 
@@ -385,7 +381,7 @@ export function previewSkipReasonDeletion(
   const reason = db.skipReasons.getById(sqlite, id);
 
   if (!reason) {
-    throw new Error(`No skip reason found with ID ${id}.`);
+    throw new SkipReasonNotFoundError(id);
   }
 
   const role = requireRole(sqlite, reason.role_id);
@@ -411,7 +407,7 @@ export function previewTerminationReasonDeletion(
   const reason = db.terminationReasons.getById(sqlite, id);
 
   if (!reason) {
-    throw new Error(`No termination reason found with ID ${id}.`);
+    throw new TerminationReasonNotFoundError(id);
   }
 
   const role = requireRole(sqlite, reason.role_id);
