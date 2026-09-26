@@ -814,7 +814,9 @@ describe('DELETE /api/skip-reasons/:id', () => {
 
     const getRoleResponse = await app.inject({ method: 'GET', url: `/api/roles/${roleId}` });
     const role = getRoleResponse.json();
-    expect(role.skip_reasons.find((r: { id: number }) => r.id === reasonId)).toBeUndefined();
+    expect(
+      role.skip_reasons.find((skipReason: { id: number }) => skipReason.id === reasonId)
+    ).toBeUndefined();
   });
 
   test('returns 404 for unknown skip reason ID', async () => {
@@ -852,7 +854,11 @@ describe('DELETE /api/termination-reasons/:id', () => {
 
     const roleExistenceCheck = await app.inject({ method: 'GET', url: `/api/roles/${roleId}` });
     const role = roleExistenceCheck.json();
-    expect(role.termination_reasons.find((r: { id: number }) => r.id === reasonId)).toBeUndefined();
+    expect(
+      role.termination_reasons.find(
+        (terminationReason: { id: number }) => terminationReason.id === reasonId
+      )
+    ).toBeUndefined();
   });
 
   test('returns 404 for unknown termination reason ID', async () => {
@@ -861,5 +867,189 @@ describe('DELETE /api/termination-reasons/:id', () => {
       url: '/api/roles/termination-reasons/99999',
     });
     expect(invalidTerminationReasonDeletionResponse.statusCode).toBe(404);
+  });
+});
+
+// ─── PATCH /api/skip-reasons/:id ─────────────────────────────────────────────
+
+describe('PATCH /api/skip-reasons/:id', () => {
+  test('updates an existing skip reason', async () => {
+    const roleCreationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: baseRole,
+    });
+    const roleId = roleCreationResponse.json().id;
+
+    const skipReasonCreationResponse = await app.inject({
+      method: 'POST',
+      url: `/api/roles/${roleId}/skip-reasons`,
+      payload: { reason: 'Compensation', note: 'Below floor' },
+    });
+    const reasonId = skipReasonCreationResponse.json().id;
+
+    const skipReasonEditResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/roles/skip-reasons/${reasonId}`,
+      payload: { reason: 'Location', note: 'Austin in-office' },
+    });
+    expect(skipReasonEditResponse.statusCode).toBe(200);
+    expect(skipReasonEditResponse.json().reason).toBe('Location');
+    expect(skipReasonEditResponse.json().note).toBe('Austin in-office');
+
+    const getRoleResponse = await app.inject({ method: 'GET', url: `/api/roles/${roleId}` });
+    const role = getRoleResponse.json();
+    const editedReason = role.skip_reasons.find(
+      (skipReason: { id: number }) => skipReason.id === reasonId
+    );
+    expect(editedReason.reason).toBe('Location');
+    expect(editedReason.note).toBe('Austin in-office');
+  });
+
+  test('returns 400 when reason is missing', async () => {
+    const roleCreationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: baseRole,
+    });
+    const roleId = roleCreationResponse.json().id;
+
+    const skipReasonCreationResponse = await app.inject({
+      method: 'POST',
+      url: `/api/roles/${roleId}/skip-reasons`,
+      payload: { reason: 'Compensation' },
+    });
+    const reasonId = skipReasonCreationResponse.json().id;
+
+    const missingReasonEditResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/roles/skip-reasons/${reasonId}`,
+      payload: {},
+    });
+    expect(missingReasonEditResponse.statusCode).toBe(400);
+  });
+
+  test('returns 400 for invalid reason value', async () => {
+    const roleCreationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: baseRole,
+    });
+    const roleId = roleCreationResponse.json().id;
+
+    const skipReasonCreationResponse = await app.inject({
+      method: 'POST',
+      url: `/api/roles/${roleId}/skip-reasons`,
+      payload: { reason: 'Compensation' },
+    });
+    const reasonId = skipReasonCreationResponse.json().id;
+
+    const invalidReasonEditResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/roles/skip-reasons/${reasonId}`,
+      payload: { reason: 'Not A Valid Reason' },
+    });
+    expect(invalidReasonEditResponse.statusCode).toBe(400);
+  });
+
+  test('returns 404 for unknown skip reason ID', async () => {
+    const invalidSkipReasonEditResponse = await app.inject({
+      method: 'PATCH',
+      url: '/api/roles/skip-reasons/99999',
+      payload: { reason: 'Compensation' },
+    });
+    expect(invalidSkipReasonEditResponse.statusCode).toBe(404);
+  });
+});
+
+// ─── PATCH /api/termination-reasons/:id ──────────────────────────────────────
+
+describe('PATCH /api/termination-reasons/:id', () => {
+  test('updates an existing termination reason', async () => {
+    const roleCreationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: baseRole,
+    });
+    const roleId = roleCreationResponse.json().id;
+
+    const terminationReasonCreationResponse = await app.inject({
+      method: 'POST',
+      url: `/api/roles/${roleId}/termination-reasons`,
+      payload: { reason: 'Filled' },
+    });
+    const reasonId = terminationReasonCreationResponse.json().id;
+
+    const terminationReasonEditResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/roles/termination-reasons/${reasonId}`,
+      payload: { reason: 'Screened Out', note: 'Recruiter feedback' },
+    });
+    expect(terminationReasonEditResponse.statusCode).toBe(200);
+    expect(terminationReasonEditResponse.json().reason).toBe('Screened Out');
+    expect(terminationReasonEditResponse.json().note).toBe('Recruiter feedback');
+
+    const getRoleResponse = await app.inject({ method: 'GET', url: `/api/roles/${roleId}` });
+    const role = getRoleResponse.json();
+    const editedReason = role.termination_reasons.find(
+      (terminationReason: { id: number }) => terminationReason.id === reasonId
+    );
+    expect(editedReason.reason).toBe('Screened Out');
+    expect(editedReason.note).toBe('Recruiter feedback');
+  });
+
+  test('returns 400 when reason is missing', async () => {
+    const roleCreationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: baseRole,
+    });
+    const roleId = roleCreationResponse.json().id;
+
+    const terminationReasonCreationResponse = await app.inject({
+      method: 'POST',
+      url: `/api/roles/${roleId}/termination-reasons`,
+      payload: { reason: 'Filled' },
+    });
+    const reasonId = terminationReasonCreationResponse.json().id;
+
+    const missingReasonEditResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/roles/termination-reasons/${reasonId}`,
+      payload: {},
+    });
+    expect(missingReasonEditResponse.statusCode).toBe(400);
+  });
+
+  test('returns 400 for invalid reason value', async () => {
+    const roleCreationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: baseRole,
+    });
+    const roleId = roleCreationResponse.json().id;
+
+    const terminationReasonCreationResponse = await app.inject({
+      method: 'POST',
+      url: `/api/roles/${roleId}/termination-reasons`,
+      payload: { reason: 'Filled' },
+    });
+    const reasonId = terminationReasonCreationResponse.json().id;
+
+    const invalidReasonEditResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/roles/termination-reasons/${reasonId}`,
+      payload: { reason: 'Not A Valid Reason' },
+    });
+    expect(invalidReasonEditResponse.statusCode).toBe(400);
+  });
+
+  test('returns 404 for unknown termination reason ID', async () => {
+    const invalidTerminationReasonEditResponse = await app.inject({
+      method: 'PATCH',
+      url: '/api/roles/termination-reasons/99999',
+      payload: { reason: 'Filled' },
+    });
+    expect(invalidTerminationReasonEditResponse.statusCode).toBe(404);
   });
 });

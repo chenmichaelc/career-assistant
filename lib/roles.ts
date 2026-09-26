@@ -24,6 +24,20 @@ export class RoleNotFoundError extends Error {
   }
 }
 
+export class SkipReasonNotFoundError extends Error {
+  constructor(id: number) {
+    super(`No skip reason found with ID ${id}.`);
+    this.name = 'SkipReasonNotFoundError';
+  }
+}
+
+export class TerminationReasonNotFoundError extends Error {
+  constructor(id: number) {
+    super(`No termination reason found with ID ${id}.`);
+    this.name = 'TerminationReasonNotFoundError';
+  }
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface UpdateRoleInput {
@@ -412,4 +426,46 @@ export function deleteTerminationReason(
   const { reason, role } = previewTerminationReasonDeletion(sqlite, id);
   db.terminationReasons.deleteById(sqlite, id);
   return { reason, role };
+}
+
+// ─── Skip reason edit ─────────────────────────────────────────────────────────
+
+export function editSkipReason(
+  sqlite: Database.Database,
+  id: number,
+  reason: string,
+  note: string | null
+): SkipReasonRow {
+  const error = checkSkipReason(reason);
+  if (error) {
+    throw new Error(error);
+  }
+
+  if (!db.skipReasons.getById(sqlite, id)) {
+    throw new SkipReasonNotFoundError(id);
+  }
+
+  db.skipReasons.update(sqlite, id, reason.trim(), note);
+  return db.skipReasons.getById(sqlite, id)!;
+}
+
+// ─── Termination reason edit ──────────────────────────────────────────────────
+
+export function editTerminationReason(
+  sqlite: Database.Database,
+  id: number,
+  reason: string,
+  note: string | null
+): TerminationReasonRow {
+  const error = checkTerminationReason(reason);
+  if (error) {
+    throw new Error(error);
+  }
+
+  if (!db.terminationReasons.getById(sqlite, id)) {
+    throw new TerminationReasonNotFoundError(id);
+  }
+
+  db.terminationReasons.update(sqlite, id, reason.trim(), note);
+  return db.terminationReasons.getById(sqlite, id)!;
 }

@@ -39,9 +39,7 @@ career-assistant/
 │   └── setup.ts                    # Exports applySchema() for server and test use
 ├── lib/                            # Business logic — no I/O, independently testable
 │   ├── types.ts                    # Domain vocabulary types and runtime arrays
-│   ├── roles.ts                    # Role insertion with validation; retires a matching job_stubs row
-│   ├── updates.ts                  # Status update validation + orchestration
-│   ├── deletes.ts                  # Delete operations with FK awareness
+│   ├── roles.ts                    # Role aggregate: create/update/delete for roles and their skip/termination reasons
 │   ├── admin.ts                    # Admin/test-support orchestration (cleanup)
 │   ├── job-stubs.ts                # Job stub creation + dedup (addStub)
 │   ├── url-cleanse.ts              # URL normalization for stub/role dedup matching
@@ -286,7 +284,7 @@ Validation is split across three layers with different concerns:
 
 Structural validity: is the wire input well-formed? Are required fields present? Are values non-empty? Are vocabulary values in the allowed set?
 
-The last point — vocabulary validation — currently lives in the HTTP layer for the reason management endpoints (skip reasons, termination reasons). This is a known mis-placement: vocabulary validity is a domain rule, not a structural concern, and belongs in the orchestration layer. Tracked for cleanup in CAR-178.
+The last point — vocabulary validation — used to live in the HTTP layer for the reason management endpoints (skip reasons, termination reasons), which was a mis-placement: vocabulary validity is a domain rule, not a structural concern. It now lives in the orchestration layer (`checkSkipReason()`/`checkTerminationReason()` in `lib/roles.ts`), reused by role creation, standalone reason creation, reason editing, and status-transition validation.
 
 ### Layer 2 — Orchestration layer (`lib/`)
 

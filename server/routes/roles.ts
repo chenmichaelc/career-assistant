@@ -14,6 +14,10 @@ import {
   deleteSkipReason,
   deleteTerminationReason,
   previewRoleDeletion,
+  editSkipReason,
+  editTerminationReason,
+  SkipReasonNotFoundError,
+  TerminationReasonNotFoundError,
 } from '../../lib/roles';
 import { exportRole, ExportFormat } from '../../lib/exporters';
 import { RoleRow } from '../../lib/types';
@@ -266,6 +270,48 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return deleteTerminationReason(sqlite, parseInt(id, 10));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── PATCH /api/skip-reasons/:id ─────────────────────────────────────────────
+
+  fastify.patch('/skip-reasons/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { reason, note } = request.body as { reason: string; note?: string };
+
+    if (!reason || reason.trim() === '') {
+      return reply.status(400).send({ error: 'reason is required.' });
+    }
+
+    try {
+      const updated = editSkipReason(sqlite, parseInt(id, 10), reason, note?.trim() ?? null);
+      return updated;
+    } catch (err) {
+      if (err instanceof SkipReasonNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── PATCH /api/termination-reasons/:id ──────────────────────────────────────
+
+  fastify.patch('/termination-reasons/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { reason, note } = request.body as { reason: string; note?: string };
+
+    if (!reason || reason.trim() === '') {
+      return reply.status(400).send({ error: 'reason is required.' });
+    }
+
+    try {
+      const updated = editTerminationReason(sqlite, parseInt(id, 10), reason, note?.trim() ?? null);
+      return updated;
+    } catch (err) {
+      if (err instanceof TerminationReasonNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
     }
   });
 }

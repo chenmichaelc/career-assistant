@@ -18,6 +18,10 @@ import {
   deleteSkipReason,
   previewTerminationReasonDeletion,
   deleteTerminationReason,
+  editSkipReason,
+  editTerminationReason,
+  SkipReasonNotFoundError,
+  TerminationReasonNotFoundError,
 } from '../../lib/roles';
 import { addStub } from '../../lib/job-stubs';
 import { db } from '../../lib/db';
@@ -1107,6 +1111,116 @@ describe('deleteTerminationReason', () => {
   test('throws when termination reason not found', () => {
     expect(() => deleteTerminationReason(sqlite, 999)).toThrow(
       'No termination reason found with ID 999'
+    );
+  });
+});
+
+// ─── editSkipReason ───────────────────────────────────────────────────────────
+
+describe('editSkipReason', () => {
+  const baseRole: RoleInput = {
+    company: 'Acme',
+    title: 'QA Engineer',
+    url: 'https://example.com/job/1',
+    role_status: 'Skipped',
+    jd: 'This is a job description.',
+    skip_reasons: [{ reason: 'Location', note: 'Austin in-office' }],
+  };
+
+  test('updates the reason and note, and returns the updated row', () => {
+    const roleId = addRole(sqlite, baseRole);
+    const [skipReasonRow] = db.skipReasons.getAllByRoleId(sqlite, roleId);
+
+    const updatedSkipReason = editSkipReason(
+      sqlite,
+      skipReasonRow.id,
+      'Compensation',
+      'Below floor'
+    );
+
+    expect(updatedSkipReason.reason).toBe('Compensation');
+    expect(updatedSkipReason.note).toBe('Below floor');
+
+    const storedSkipReason = db.skipReasons.getById(sqlite, skipReasonRow.id);
+    expect(storedSkipReason?.reason).toBe('Compensation');
+    expect(storedSkipReason?.note).toBe('Below floor');
+  });
+
+  test('rejects a reason not in the vocabulary, without updating anything', () => {
+    const roleId = addRole(sqlite, baseRole);
+    const [skipReasonRow] = db.skipReasons.getAllByRoleId(sqlite, roleId);
+
+    expect(() => editSkipReason(sqlite, skipReasonRow.id, 'Not A Real Reason', null)).toThrow(
+      'Invalid skip reason'
+    );
+
+    const storedSkipReason = db.skipReasons.getById(sqlite, skipReasonRow.id);
+    expect(storedSkipReason?.reason).toBe('Location');
+  });
+
+  test('throws SkipReasonNotFoundError for a nonexistent skip reason, without updating anything', () => {
+    expect(() => editSkipReason(sqlite, 999, 'Location', null)).toThrow(SkipReasonNotFoundError);
+  });
+
+  test('checks vocabulary before existence', () => {
+    expect(() => editSkipReason(sqlite, 999, 'Not A Real Reason', null)).not.toThrow(
+      SkipReasonNotFoundError
+    );
+  });
+});
+
+// ─── editTerminationReason ────────────────────────────────────────────────────
+
+describe('editTerminationReason', () => {
+  const baseRole: RoleInput = {
+    company: 'Acme',
+    title: 'QA Engineer',
+    url: 'https://example.com/job/1',
+    role_status: 'Closed',
+    jd: 'This is a job description.',
+    termination_reasons: [{ reason: 'Filled', note: null }],
+  };
+
+  test('updates the reason and note, and returns the updated row', () => {
+    const roleId = addRole(sqlite, baseRole);
+    const [terminationReasonRow] = db.terminationReasons.getAllByRoleId(sqlite, roleId);
+
+    const updatedTerminationReason = editTerminationReason(
+      sqlite,
+      terminationReasonRow.id,
+      'Screened Out',
+      'Recruiter feedback'
+    );
+
+    expect(updatedTerminationReason.reason).toBe('Screened Out');
+    expect(updatedTerminationReason.note).toBe('Recruiter feedback');
+
+    const storedTerminationReason = db.terminationReasons.getById(sqlite, terminationReasonRow.id);
+    expect(storedTerminationReason?.reason).toBe('Screened Out');
+    expect(storedTerminationReason?.note).toBe('Recruiter feedback');
+  });
+
+  test('rejects a reason not in the vocabulary, without updating anything', () => {
+    const roleId = addRole(sqlite, baseRole);
+    const [terminationReasonRow] = db.terminationReasons.getAllByRoleId(sqlite, roleId);
+
+    expect(() =>
+      editTerminationReason(sqlite, terminationReasonRow.id, 'Not A Real Reason', null)
+    ).toThrow('Invalid termination reason');
+
+    const storedTerminationReason = db.terminationReasons.getById(sqlite, terminationReasonRow.id);
+    expect(storedTerminationReason?.reason).toBe('Filled');
+  });
+
+  test('throws TerminationReasonNotFoundError for a nonexistent termination reason, without updating anything', () => {
+    expect(() => editTerminationReason(sqlite, 999, 'Filled', null)).toThrow(
+      TerminationReasonNotFoundError
+    );
+  });
+
+  test('checks vocabulary before existence', () => {
+    expect(() => editTerminationReason(sqlite, 999, 'Not A Real Reason', null)).not.toThrow(
+      TerminationReasonNotFoundError
     );
   });
 });

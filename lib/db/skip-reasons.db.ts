@@ -91,6 +91,23 @@ export function getById(sqlite: Database.Database, id: number): SkipReasonRow | 
     .get(id) as SkipReasonRow | undefined;
 }
 
+export function update(
+  sqlite: Database.Database,
+  id: number,
+  reason: string,
+  note: string | null
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE skip_reasons
+                SET reason = @reason, note = @note
+                WHERE id = @id
+            `
+    )
+    .run({ id, reason, note });
+}
+
 export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {
   return sqlite.prepare(`DELETE FROM skip_reasons WHERE id = ?`).run(id);
 }

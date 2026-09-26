@@ -48,6 +48,7 @@ This is a test-heavy project by design — five layers exist, each catching a di
 
 ## Jira / ticket hygiene
 
+- Read `jira-update-conventions.md` before any `createJiraIssue`/`editJiraIssue` call with more than a single plain sentence of description — `createJiraIssue`'s markdown formatting has a confirmed, silent corruption bug (see that file for the working alternative and how to verify a write actually rendered).
 - When work is abandoned, blocked, or reopened, update the ticket's actual status (not just its description) — a ticket marked Done that isn't Done is worse than no ticket.
 - Tickets should carry enough standalone context (exact code snippets, what was tried, what's still unknown) that they're useful months later without the original conversation. Assume the reader has forgotten everything discussed here.
 - Don't guess at ticket status transitions (In Progress vs. To Do vs. Backlog) when it's ambiguous — ask, or leave it alone and say why.
