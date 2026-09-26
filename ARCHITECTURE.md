@@ -39,9 +39,7 @@ career-assistant/
 │   └── setup.ts                    # Exports applySchema() for server and test use
 ├── lib/                            # Business logic — no I/O, independently testable
 │   ├── types.ts                    # Domain vocabulary types and runtime arrays
-│   ├── roles.ts                    # Role insertion with validation; retires a matching job_stubs row
-│   ├── updates.ts                  # Status update validation + orchestration
-│   ├── deletes.ts                  # Delete operations with FK awareness
+│   ├── roles.ts                    # Role aggregate: create/update/delete for roles and their skip/termination reasons
 │   ├── admin.ts                    # Admin/test-support orchestration (cleanup)
 │   ├── job-stubs.ts                # Job stub creation + dedup (addStub)
 │   ├── url-cleanse.ts              # URL normalization for stub/role dedup matching
@@ -227,9 +225,15 @@ This mirrors the call pattern of ORM clients (Drizzle, Prisma) and makes the dat
 
 `lib/db/` functions are neutral primitives. They return `undefined` for missing records — they never throw on missing data, and they never enforce domain rules. The decision of whether a missing record is an error belongs to the orchestration layer.
 
-**Orchestration functions compose across tables when the domain rule requires it** (pending CAR-224)
+**Orchestration functions compose across tables when the domain rule requires it**
 
-`lib/roles.ts`'s `addRole()` retires any `job_stubs` row queued for the same (cleansed) URL as part of creating a role — reaching into `db.jobStubs.getByUrl`/`deleteById` directly, the same way `lib/deletes.ts`'s `deleteRole()` already reaches into `db.jobDescriptions`, `db.skipReasons`, and `db.terminationReasons`. This is the established pattern for a domain rule that spans tables: the orchestration function composes multiple `lib/db/` modules inside one transaction, rather than the rule being scattered across whichever HTTP route happens to trigger it. `lib/roles.ts` never imports `lib/job-stubs.ts` (or vice versa) to do this — both reach the shared `db` namespace independently, so the two orchestration modules stay decoupled from each other.
+`lib/roles.ts`'s `addRole()` retires any `job_stubs` row queued for the same (cleansed) URL as part of creating a role — reaching into `db.jobStubs.getByUrl`/`deleteById` directly, the same way that file's own `deleteRole()` already reaches into `db.jobDescriptions`, `db.skipReasons`, and `db.terminationReasons`. This is the established pattern for a domain rule that spans tables: the orchestration function composes multiple `lib/db/` modules inside one transaction, rather than the rule being scattered across whichever HTTP route happens to trigger it. `lib/roles.ts` never imports `lib/job-stubs.ts` (or vice versa) to do this — both reach the shared `db` namespace independently, so the two orchestration modules stay decoupled from each other.
+
+**Orchestration modules are organized by aggregate, not by verb or by table**
+
+`lib/roles.ts` is the entire Role aggregate: every use case that touches a role or its dependents (skip reasons, termination reasons, job description) — `addRole`, `addSkipReason`, `addTerminationReason`, `updateRole`, `deleteRole`, `deleteSkipReason`, `deleteTerminationReason`, plus their preview and validation helpers — lives in this one file as a named function. `lib/job-stubs.ts` is the entire Job Stub aggregate the same way. There is no `lib/updates.ts`, `lib/deletes.ts`, or per-resource file splitting create/update/delete apart from each other; a verb never gets its own file. The organizing unit is the aggregate — everything with a shared identity and shared invariants (a role and the reasons attached to it) stays in one file — and a verb is just a function name inside it, at the same granularity CAR-264 established for use cases generally (one function per business operation, not one class or file per operation).
+
+A genuinely separate aggregate — one with its own lifecycle and no shared invariants with Role — gets its own file (`lib/job-stubs.ts`), not a shared cross-aggregate one. Two aggregate modules may both reach into the same `lib/db/` table modules or a shared cross-cutting helper (e.g. both `lib/roles.ts` and `lib/job-stubs.ts` call `cleanseUrl()` from `lib/url-cleanse.ts`), but never import directly from each other.
 
 **Type ownership**
 
@@ -280,7 +284,7 @@ Validation is split across three layers with different concerns:
 
 Structural validity: is the wire input well-formed? Are required fields present? Are values non-empty? Are vocabulary values in the allowed set?
 
-The last point — vocabulary validation — currently lives in the HTTP layer for the reason management endpoints (skip reasons, termination reasons). This is a known mis-placement: vocabulary validity is a domain rule, not a structural concern, and belongs in the orchestration layer. Tracked for cleanup in CAR-178.
+The last point — vocabulary validation — used to live in the HTTP layer for the reason management endpoints (skip reasons, termination reasons), which was a mis-placement: vocabulary validity is a domain rule, not a structural concern. It now lives in the orchestration layer (`checkSkipReason()`/`checkTerminationReason()` in `lib/roles.ts`), reused by role creation, standalone reason creation, reason editing, and status-transition validation.
 
 ### Layer 2 — Orchestration layer (`lib/`)
 
@@ -614,7 +618,7 @@ CAR-4 includes an explicit prerequisite decision (CAR-170): evaluate and select 
 
 Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**). The `lib/` orchestration layer has been refactored to compose from these modules (CAR-21, **complete**):
 
-- `lib/deletes.ts`, `lib/roles.ts`, `lib/updates.ts` — refactored (CAR-162, CAR-163)
+- `lib/roles.ts` — refactored (CAR-162, CAR-163)
 - `server/routes/roles.ts` — refactored, N+1 eliminated (CAR-164)
 - CLI scripts layer retired (CAR-165, CAR-166)
 - Fastify `inject()` integration tests complete (CAR-167). The backup test is intentionally limited to HTTP contract verification pending CAR-104 and CAR-179.

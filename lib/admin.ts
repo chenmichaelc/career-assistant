@@ -4,7 +4,7 @@
 
 import Database from 'better-sqlite3';
 import { db } from './db';
-import { deleteRole } from './deletes';
+import { deleteRole } from './roles';
 
 export interface CleanupResult {
   deleted: number[];

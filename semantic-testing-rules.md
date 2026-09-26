@@ -352,8 +352,6 @@ export function isRoleStatus(value: string): value is RoleStatus {
 
 The guard's parameter type should match the value's real type at the call site — usually `string`, not `string | undefined`. Handle optionality at the call site (`format != null && isExportFormat(format)`), not by widening the guard; a guard checking two different things (is it present, is it valid) is doing two jobs.
 
-**Fixed on this branch as part of the same work that added this rule** (CAR-208): `lib/updates.ts` (three instances — `input.status`, skip reasons, termination reasons) and `server/routes/roles.ts` (four instances — sort key, skip reasons, termination reasons, export format). ESLint can catch the mechanical shape of this (see CAR-207 for a drafted-but-unverified rule), but can't judge whether a given cast is actually safe — that's why this is documented here too, independent of whether the lint rule ships.
-
 ---
 
 ## Not all `as` casts are the same risk
@@ -393,6 +391,8 @@ const valid = raw.filter((r) => r.status === 'active');
 const parsedRoles = response.json();
 const activeRoles = parsedRoles.filter((role) => role.status === 'active');
 ```
+
+**A neighboring violation is not precedent.** Written into `lib/roles.ts` during CAR-178, in the same session this rule itself was added: new loop variables `sr`/`tr` in `validate()`, copied directly from a pre-existing `role.skip_reasons.map((sr) => ...)`/`role.termination_reasons.map((tr) => ...)` a few lines below in the same file's `addRole()`. Neither was checked against this rule before being written — the existing abbreviation was taken as the file's established convention rather than as an existing violation. When adding code next to something that looks like a convention, check it against the written rules before matching its shape; matching a neighbor's bad name propagates the violation instead of catching it.
 
 ---
 
@@ -492,8 +492,8 @@ When auditing against this rule, check UI-layer event handlers and route handler
 The lint rule can only measure length; it can't tell whether a function is actually a sequence of steps with mechanics inlined (the real violation) or something else entirely that happens to be long. Three shapes read as long without being that violation — recognize them rather than decomposing on reflex to clear the warning:
 
 - **A single cohesive query or data-shape builder.** `lib/db/roles.db.ts`'s `getAll()` conditionally appends `WHERE`/`ORDER BY` clauses based on filter arguments — that's one concern ("build and run one parameterized query"), not several sequenced business steps. Splitting out a `buildWhereClause()` helper relocates the same conditional logic one frame away without clarifying anything.
-- **Already decomposed; the overage is string content, not logic.** `lib/deletes.ts`'s `deleteRole()` already has named helpers (`requireRole()`, `fetchDependents()`) and reads as require → fetch → check → transact. It crosses the threshold only because of a 3-line multi-line error message. Extracting further (tried and reverted during the CAR-256 audit — see git history) added more lines than it saved and didn't make the function easier to follow, since the transaction body was already at the same granularity as `addRole()`'s own "good" example.
-- **A flat list of independent validation checks.** `lib/updates.ts`'s `validateUpdateInput()` is ~7 self-contained checks pushing onto one `errors` array, the same shape as `lib/roles.ts`'s own `validate()` (never flagged only because it has fewer rules). A validation function's length scales with the number of business rules it enforces, not with hidden complexity — splitting it into per-field functions means passing or returning partial error arrays across calls, which is more indirection for the same total logic.
+- **Already decomposed; the overage is string content, not logic.** `lib/roles.ts`'s `deleteRole()` already has named helpers (`requireRole()`, `fetchDependents()`) and reads as require → fetch → check → transact. It crosses the threshold only because of a 3-line multi-line error message. Extracting further (tried and reverted during the CAR-256 audit — see git history) added more lines than it saved and didn't make the function easier to follow, since the transaction body was already at the same granularity as `addRole()`'s own "good" example.
+- **A flat list of independent validation checks.** `lib/roles.ts`'s `validateUpdateInput()` is ~7 self-contained checks pushing onto one `errors` array, the same shape as that file's own `validate()` (never flagged only because it has fewer rules). A validation function's length scales with the number of business rules it enforces, not with hidden complexity — splitting it into per-field functions means passing or returning partial error arrays across calls, which is more indirection for the same total logic.
 
 The test for all three: would decomposing actually shorten the mental model, or just relocate the same lines behind an extra function call? If a reader would need to open a second function to understand something the first already stated plainly, decomposition made it worse, not better.
 
@@ -516,7 +516,7 @@ The check, before reaching for a new file: does this codebase already have an es
 
 If two orchestration modules need the same logic, the function goes in the module for the table/resource it actually operates on; the other module imports it from there.
 
-Concretely: if `updateRole()` (`lib/updates.ts`) ever needed the same stub-cleanup logic `addRole()` (`lib/roles.ts`) has, that function belongs in `lib/job-stubs.ts` — the module that owns `job_stubs` — imported one-directionally by both `roles.ts` and `updates.ts`. Not copy-pasted into `updates.ts` (recreates the two-copies-that-can-drift risk this codebase already hit once — the `Applied`-without-`applied_date` bug), and not imported by `updates.ts` directly from `roles.ts` (that's not where the logic belongs, it's just where it happened to be written first).
+Concretely: `lib/roles.ts`'s `addRole()` and `lib/job-stubs.ts`'s `addStub()` both need the same URL-normalization logic (`cleanseUrl()`). That function lives in neither — it belongs to `lib/url-cleanse.ts`, imported one-directionally by both, since URL-cleansing isn't specific to either the Role or JobStub aggregate. Not copy-pasted into one of them (recreates the two-copies-that-can-drift risk this codebase already hit once — the `Applied`-without-`applied_date` bug), and not imported by one aggregate's module directly from the other's (that would wrongly couple two aggregates that should stay decoupled — see `ARCHITECTURE.md`'s note on `lib/roles.ts` and `lib/job-stubs.ts` each reaching `db` independently).
 
 ---
 

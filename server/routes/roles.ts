@@ -3,22 +3,24 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
-import { addRole } from '../../lib/roles';
-import { updateRole, UpdateRoleInput } from '../../lib/updates';
 import {
+  addRole,
+  addSkipReason,
+  addTerminationReason,
+  RoleNotFoundError,
+  updateRole,
+  UpdateRoleInput,
   deleteRole,
   deleteSkipReason,
   deleteTerminationReason,
   previewRoleDeletion,
-} from '../../lib/deletes';
+  editSkipReason,
+  editTerminationReason,
+  SkipReasonNotFoundError,
+  TerminationReasonNotFoundError,
+} from '../../lib/roles';
 import { exportRole, ExportFormat } from '../../lib/exporters';
-import {
-  RoleRow,
-  VALID_SKIP_REASONS,
-  VALID_TERMINATION_REASONS,
-  isSkipReasonType,
-  isTerminationReasonType,
-} from '../../lib/types';
+import { RoleRow } from '../../lib/types';
 import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
 import { RoleSortKey } from '../../lib/types';
 
@@ -165,18 +167,15 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(400).send({ error: 'reason is required.' });
     }
 
-    if (!isSkipReasonType(reason.trim())) {
-      return reply.status(400).send({
-        error: `Invalid skip reason: "${reason}". Valid values: ${VALID_SKIP_REASONS.join(', ')}.`,
-      });
+    try {
+      const newId = addSkipReason(sqlite, Number(id), reason, note?.trim() ?? null);
+      return reply.status(201).send({ id: newId });
+    } catch (err) {
+      if (err instanceof RoleNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
     }
-
-    if (!db.roles.getById(sqlite, Number(id))) {
-      return reply.status(404).send({ error: `No role found with ID ${id}.` });
-    }
-
-    const newId = db.skipReasons.insert(sqlite, Number(id), reason.trim(), note?.trim() ?? null);
-    return reply.status(201).send({ id: newId });
   });
 
   // ─── POST /api/roles/:id/termination-reasons ────────────────────────────────
@@ -189,23 +188,15 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return reply.status(400).send({ error: 'reason is required.' });
     }
 
-    if (!isTerminationReasonType(reason.trim())) {
-      return reply.status(400).send({
-        error: `Invalid termination reason: "${reason}". Valid values: ${VALID_TERMINATION_REASONS.join(', ')}.`,
-      });
+    try {
+      const newId = addTerminationReason(sqlite, Number(id), reason, note?.trim() ?? null);
+      return reply.status(201).send({ id: newId });
+    } catch (err) {
+      if (err instanceof RoleNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
     }
-
-    if (!db.roles.getById(sqlite, Number(id))) {
-      return reply.status(404).send({ error: `No role found with ID ${id}.` });
-    }
-
-    const newId = db.terminationReasons.insert(
-      sqlite,
-      Number(id),
-      reason.trim(),
-      note?.trim() ?? null
-    );
-    return reply.status(201).send({ id: newId });
   });
 
   // ─── DELETE /api/roles/:id ───────────────────────────────────────────────────
@@ -279,6 +270,48 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return deleteTerminationReason(sqlite, parseInt(id, 10));
     } catch (err) {
       return reply.status(404).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── PATCH /api/skip-reasons/:id ─────────────────────────────────────────────
+
+  fastify.patch('/skip-reasons/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { reason, note } = request.body as { reason: string; note?: string };
+
+    if (!reason || reason.trim() === '') {
+      return reply.status(400).send({ error: 'reason is required.' });
+    }
+
+    try {
+      const updated = editSkipReason(sqlite, parseInt(id, 10), reason, note?.trim() ?? null);
+      return updated;
+    } catch (err) {
+      if (err instanceof SkipReasonNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── PATCH /api/termination-reasons/:id ──────────────────────────────────────
+
+  fastify.patch('/termination-reasons/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { reason, note } = request.body as { reason: string; note?: string };
+
+    if (!reason || reason.trim() === '') {
+      return reply.status(400).send({ error: 'reason is required.' });
+    }
+
+    try {
+      const updated = editTerminationReason(sqlite, parseInt(id, 10), reason, note?.trim() ?? null);
+      return updated;
+    } catch (err) {
+      if (err instanceof TerminationReasonNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
     }
   });
 }
