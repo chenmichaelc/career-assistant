@@ -5,6 +5,7 @@ import Database from 'better-sqlite3';
 import { RoleInput } from './types';
 import { db } from './db';
 import { cleanseUrl, InvalidUrlError } from './url-cleanse';
+import { checkSkipReason, checkTerminationReason } from './reasons';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -51,6 +52,16 @@ function validate(role: RoleInput): string[] {
     }
   }
 
+  for (const skipReason of role.skip_reasons ?? []) {
+    const error = checkSkipReason(skipReason.reason);
+    if (error) errors.push(error);
+  }
+
+  for (const terminationReason of role.termination_reasons ?? []) {
+    const error = checkTerminationReason(terminationReason.reason);
+    if (error) errors.push(error);
+  }
+
   return errors;
 }
 
@@ -87,11 +98,12 @@ function retireMatchingStub(sqlite: Database.Database, url: string): void {
 
 // ─── addRole ──────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line max-lines-per-function -- already decomposed (insertRoleRow/retireMatchingStub); overage is multi-line map() formatting, not logic; see semantic-testing-rules.md's "max-lines-per-function false positive" section
 export function addRole(sqlite: Database.Database, role: RoleInput): number {
   const errors = validate(role);
 
   if (errors.length > 0) {
-    const errorList = errors.map((e) => `  - ${e}`).join('\n');
+    const errorList = errors.map((errorMessage) => `  - ${errorMessage}`).join('\n');
     throw new Error(`Validation failed:\n${errorList}`);
   }
 
@@ -103,12 +115,18 @@ export function addRole(sqlite: Database.Database, role: RoleInput): number {
     db.skipReasons.insertMany(
       sqlite,
       roleId,
-      (role.skip_reasons ?? []).map((sr) => ({ reason: sr.reason, note: sr.note ?? null }))
+      (role.skip_reasons ?? []).map((skipReason) => ({
+        reason: skipReason.reason,
+        note: skipReason.note ?? null,
+      }))
     );
     db.terminationReasons.insertMany(
       sqlite,
       roleId,
-      (role.termination_reasons ?? []).map((tr) => ({ reason: tr.reason, note: tr.note ?? null }))
+      (role.termination_reasons ?? []).map((terminationReason) => ({
+        reason: terminationReason.reason,
+        note: terminationReason.note ?? null,
+      }))
     );
     retireMatchingStub(sqlite, role.url);
   });

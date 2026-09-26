@@ -339,6 +339,80 @@ describe('addRole — contextual validation', () => {
   });
 });
 
+// ─── Reason vocabulary validation ─────────────────────────────────────────────
+
+describe('addRole — reason vocabulary validation', () => {
+  const baseRole: RoleInput = {
+    company: 'Acme',
+    title: 'QA Engineer',
+    url: 'https://example.com/job/1',
+    role_status: 'Skipped',
+    jd: 'This is a job description.',
+  };
+
+  test('rejects a skip_reasons entry not in the vocabulary, without adding anything', () => {
+    const role = {
+      ...baseRole,
+      skip_reasons: [{ reason: 'Not A Real Reason', note: null }],
+    } as unknown as RoleInput;
+
+    expect(() => addRole(sqlite, role)).toThrow('Invalid skip reason: "Not A Real Reason"');
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.skipReasons.getAll(sqlite)).toHaveLength(0);
+  });
+
+  test('rejects a termination_reasons entry not in the vocabulary, without adding anything', () => {
+    const role = {
+      ...baseRole,
+      role_status: 'Closed',
+      termination_reasons: [{ reason: 'Not A Real Reason', note: null }],
+    } as unknown as RoleInput;
+
+    expect(() => addRole(sqlite, role)).toThrow('Invalid termination reason: "Not A Real Reason"');
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.terminationReasons.getAll(sqlite)).toHaveLength(0);
+  });
+
+  test('accepts valid skip_reasons entries', () => {
+    const role = {
+      ...baseRole,
+      skip_reasons: [{ reason: 'Location', note: null }],
+    } as RoleInput;
+
+    const id = addRole(sqlite, role);
+    expect(db.skipReasons.getAllByRoleId(sqlite, id)).toHaveLength(1);
+  });
+
+  test('rejects an invalid skip_reasons entry even when it is not the only one', () => {
+    const role = {
+      ...baseRole,
+      skip_reasons: [
+        { reason: 'Location', note: null },
+        { reason: 'Not A Real Reason', note: null },
+      ],
+    } as unknown as RoleInput;
+
+    expect(() => addRole(sqlite, role)).toThrow('Invalid skip reason: "Not A Real Reason"');
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.skipReasons.getAll(sqlite)).toHaveLength(0);
+  });
+
+  test('rejects an invalid termination_reasons entry even when it is not the only one', () => {
+    const role = {
+      ...baseRole,
+      role_status: 'Closed',
+      termination_reasons: [
+        { reason: 'Filled', note: null },
+        { reason: 'Not A Real Reason', note: null },
+      ],
+    } as unknown as RoleInput;
+
+    expect(() => addRole(sqlite, role)).toThrow('Invalid termination reason: "Not A Real Reason"');
+    expect(db.roles.getAll(sqlite)).toHaveLength(0);
+    expect(db.terminationReasons.getAll(sqlite)).toHaveLength(0);
+  });
+});
+
 // ─── SQLite constraint violations ─────────────────────────────────────────────
 
 describe('addRole — SQLite constraint violations', () => {

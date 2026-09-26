@@ -394,6 +394,8 @@ const parsedRoles = response.json();
 const activeRoles = parsedRoles.filter((role) => role.status === 'active');
 ```
 
+**A neighboring violation is not precedent.** Written into `lib/roles.ts` during CAR-178, in the same session this rule itself was added: new loop variables `sr`/`tr` in `validate()`, copied directly from a pre-existing `role.skip_reasons.map((sr) => ...)`/`role.termination_reasons.map((tr) => ...)` a few lines below in the same file's `addRole()`. Neither was checked against this rule before being written — the existing abbreviation was taken as the file's established convention rather than as an existing violation. When adding code next to something that looks like a convention, check it against the written rules before matching its shape; matching a neighbor's bad name propagates the violation instead of catching it.
+
 ---
 
 At current scale (~6,000 lines, one cohesive module), a single document is right. As the project splits into genuine subsystems, subsystem-specific conventions should move to docs co-located with them — the same way ESLint rules are already scoped by glob. The right unit of modularization is the subsystem boundary, not line count.
