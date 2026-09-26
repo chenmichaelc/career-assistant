@@ -51,6 +51,7 @@ This is a test-heavy project by design — five layers exist, each catching a di
 - When work is abandoned, blocked, or reopened, update the ticket's actual status (not just its description) — a ticket marked Done that isn't Done is worse than no ticket.
 - Tickets should carry enough standalone context (exact code snippets, what was tried, what's still unknown) that they're useful months later without the original conversation. Assume the reader has forgotten everything discussed here.
 - Don't guess at ticket status transitions (In Progress vs. To Do vs. Backlog) when it's ambiguous — ask, or leave it alone and say why.
+- **Never transition a ticket to Done/Closed as part of implementing it.** The author runs a full code review of every change before merging — "implemented and verified" (tests/typecheck/lint passing) is not the same claim as "reviewed and accepted." Leave the ticket at its current status, or ask what interim status fits, and let the human close it once they've actually reviewed and merged the work.
 
 ## Documentation audience
 

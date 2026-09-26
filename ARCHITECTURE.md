@@ -227,9 +227,15 @@ This mirrors the call pattern of ORM clients (Drizzle, Prisma) and makes the dat
 
 `lib/db/` functions are neutral primitives. They return `undefined` for missing records — they never throw on missing data, and they never enforce domain rules. The decision of whether a missing record is an error belongs to the orchestration layer.
 
-**Orchestration functions compose across tables when the domain rule requires it** (pending CAR-224)
+**Orchestration functions compose across tables when the domain rule requires it**
 
 `lib/roles.ts`'s `addRole()` retires any `job_stubs` row queued for the same (cleansed) URL as part of creating a role — reaching into `db.jobStubs.getByUrl`/`deleteById` directly, the same way that file's own `deleteRole()` already reaches into `db.jobDescriptions`, `db.skipReasons`, and `db.terminationReasons`. This is the established pattern for a domain rule that spans tables: the orchestration function composes multiple `lib/db/` modules inside one transaction, rather than the rule being scattered across whichever HTTP route happens to trigger it. `lib/roles.ts` never imports `lib/job-stubs.ts` (or vice versa) to do this — both reach the shared `db` namespace independently, so the two orchestration modules stay decoupled from each other.
+
+**Orchestration modules are organized by aggregate, not by verb or by table**
+
+`lib/roles.ts` is the entire Role aggregate: every use case that touches a role or its dependents (skip reasons, termination reasons, job description) — `addRole`, `addSkipReason`, `addTerminationReason`, `updateRole`, `deleteRole`, `deleteSkipReason`, `deleteTerminationReason`, plus their preview and validation helpers — lives in this one file as a named function. `lib/job-stubs.ts` is the entire Job Stub aggregate the same way. There is no `lib/updates.ts`, `lib/deletes.ts`, or per-resource file splitting create/update/delete apart from each other; a verb never gets its own file. The organizing unit is the aggregate — everything with a shared identity and shared invariants (a role and the reasons attached to it) stays in one file — and a verb is just a function name inside it, at the same granularity CAR-264 established for use cases generally (one function per business operation, not one class or file per operation).
+
+A genuinely separate aggregate — one with its own lifecycle and no shared invariants with Role — gets its own file (`lib/job-stubs.ts`), not a shared cross-aggregate one. Two aggregate modules may both reach into the same `lib/db/` table modules or a shared cross-cutting helper (e.g. both `lib/roles.ts` and `lib/job-stubs.ts` call `cleanseUrl()` from `lib/url-cleanse.ts`), but never import directly from each other.
 
 **Type ownership**
 
