@@ -270,19 +270,13 @@ export function validateUpdateInput(input: UpdateRoleInput): void {
   }
 
   for (const reason of input.reasons) {
-    if (!isSkipReasonType(reason.trim())) {
-      errors.push(
-        `Invalid skip reason: "${reason}". Valid values: ${VALID_SKIP_REASONS.join(', ')}.`
-      );
-    }
+    const error = checkSkipReason(reason);
+    if (error) errors.push(error);
   }
 
   for (const reason of input.termination) {
-    if (!isTerminationReasonType(reason.trim())) {
-      errors.push(
-        `Invalid termination reason: "${reason}". Valid values: ${VALID_TERMINATION_REASONS.join(', ')}.`
-      );
-    }
+    const error = checkTerminationReason(reason);
+    if (error) errors.push(error);
   }
 
   if (input.status?.trim() === 'Skipped' && input.reasons.length === 0) {
