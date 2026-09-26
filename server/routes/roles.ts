@@ -3,16 +3,19 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
-import { addRole } from '../../lib/roles';
-import { updateRole, UpdateRoleInput } from '../../lib/updates';
 import {
+  addRole,
+  addSkipReason,
+  addTerminationReason,
+  RoleNotFoundError,
+  updateRole,
+  UpdateRoleInput,
   deleteRole,
   deleteSkipReason,
   deleteTerminationReason,
   previewRoleDeletion,
-} from '../../lib/deletes';
+} from '../../lib/roles';
 import { exportRole, ExportFormat } from '../../lib/exporters';
-import { addSkipReason, addTerminationReason, RoleNotFoundError } from '../../lib/reasons';
 import { RoleRow } from '../../lib/types';
 import { db, SkipReasonRow, TerminationReasonRow } from '../../lib/db';
 import { RoleSortKey } from '../../lib/types';

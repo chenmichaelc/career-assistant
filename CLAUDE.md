@@ -26,6 +26,7 @@ This is a test-heavy project by design — five layers exist, each catching a di
 - **Live verification should not occur when running as a remote/cloud-hosted session** — explicit signal: launched via a remote agent, `isolation: "remote"`, a scheduled cloud task, or other explicit cloud-session framing. In this case, in the output, recommend running the algorithmic checks on the updated codebase.
 - **When genuinely uncertain which mode applies, or a live check isn't available, assume that you're on cloud.**
 - If asked "is this sufficient?" after a green check, answer honestly about what that check does and doesn't prove. A passing lint run doesn't prove a new rule fires; it proves nothing currently in the repo trips it.
+- **This applies beyond tests/builds: verify claims about code, docs, or history the same way.** A sentence like "X already does Y," "the doc says Z," "N call sites share this," or "W is precedent" is a factual claim, not a summary of reasoning already done. Before stating it, check it with a Read/Grep in the same turn and be able to point to what backed it (file:line). If you haven't checked, say "I believe X — let me check" and then check, rather than stating it flat. This has caused repeated, real errors in this project — an "already consolidated" claim that was false, an "always organized by verb" claim falsified on the spot, an unsourced architecture rule stated as documented fact, a "precedent" cited from a file never actually opened.
 
 ## When something is reported broken
 

@@ -229,7 +229,7 @@ This mirrors the call pattern of ORM clients (Drizzle, Prisma) and makes the dat
 
 **Orchestration functions compose across tables when the domain rule requires it** (pending CAR-224)
 
-`lib/roles.ts`'s `addRole()` retires any `job_stubs` row queued for the same (cleansed) URL as part of creating a role — reaching into `db.jobStubs.getByUrl`/`deleteById` directly, the same way `lib/deletes.ts`'s `deleteRole()` already reaches into `db.jobDescriptions`, `db.skipReasons`, and `db.terminationReasons`. This is the established pattern for a domain rule that spans tables: the orchestration function composes multiple `lib/db/` modules inside one transaction, rather than the rule being scattered across whichever HTTP route happens to trigger it. `lib/roles.ts` never imports `lib/job-stubs.ts` (or vice versa) to do this — both reach the shared `db` namespace independently, so the two orchestration modules stay decoupled from each other.
+`lib/roles.ts`'s `addRole()` retires any `job_stubs` row queued for the same (cleansed) URL as part of creating a role — reaching into `db.jobStubs.getByUrl`/`deleteById` directly, the same way that file's own `deleteRole()` already reaches into `db.jobDescriptions`, `db.skipReasons`, and `db.terminationReasons`. This is the established pattern for a domain rule that spans tables: the orchestration function composes multiple `lib/db/` modules inside one transaction, rather than the rule being scattered across whichever HTTP route happens to trigger it. `lib/roles.ts` never imports `lib/job-stubs.ts` (or vice versa) to do this — both reach the shared `db` namespace independently, so the two orchestration modules stay decoupled from each other.
 
 **Type ownership**
 
@@ -614,7 +614,7 @@ CAR-4 includes an explicit prerequisite decision (CAR-170): evaluate and select 
 
 Single-table CRUD operations have been extracted into dedicated modules under `lib/db/` (CAR-20, **complete**). The `lib/` orchestration layer has been refactored to compose from these modules (CAR-21, **complete**):
 
-- `lib/deletes.ts`, `lib/roles.ts`, `lib/updates.ts` — refactored (CAR-162, CAR-163)
+- `lib/roles.ts` — refactored (CAR-162, CAR-163)
 - `server/routes/roles.ts` — refactored, N+1 eliminated (CAR-164)
 - CLI scripts layer retired (CAR-165, CAR-166)
 - Fastify `inject()` integration tests complete (CAR-167). The backup test is intentionally limited to HTTP contract verification pending CAR-104 and CAR-179.
