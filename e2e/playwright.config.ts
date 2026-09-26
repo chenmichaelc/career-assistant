@@ -1,5 +1,38 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const allProjects = [
+  {
+    name: 'chromium',
+    use: { ...devices['Desktop Chrome'] },
+  },
+
+  {
+    name: 'firefox',
+    use: { ...devices['Desktop Firefox'] },
+  },
+
+  {
+    name: 'webkit',
+    use: { ...devices['Desktop Safari'] },
+  },
+  {
+    name: 'Mobile Chrome',
+    use: { ...devices['Pixel 6'] },
+  },
+  {
+    name: 'Mobile Safari',
+    use: { ...devices['iPhone 12'] },
+  },
+  {
+    name: 'Google Chrome',
+    use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+  },
+];
+
+// WebKit hangs on exit on native Windows (CAR-282). Excluded from local runs only.
+// Removable once e2e runs inside Docker/Linux instead of native Windows (CAR-150).
+const WEBKIT_ENGINE_PROJECTS = new Set(['webkit', 'Mobile Safari']);
+
 export default defineConfig({
   testDir: './tests',
   outputDir: './test-results',
@@ -10,7 +43,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 2 : 3,
+  workers: process.env.CI ? 2 : 6,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [['html', { outputFolder: './playwright-report' }]],
   use: {
@@ -18,34 +51,9 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 6'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    },
-  ],
+  projects: process.env.CI
+    ? allProjects
+    : allProjects.filter((project) => !WEBKIT_ENGINE_PROJECTS.has(project.name)),
   webServer: [
     {
       command: 'npm run server',
