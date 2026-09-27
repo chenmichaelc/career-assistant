@@ -163,12 +163,34 @@ export type { RoleSortKey } from './db/roles.db';
 
 // ─── Job stubs ──────────────────────────────────────────────────────────────
 
-export type JobStubStatus = 'unscraped' | 'content_added';
+export type JobStubStatus = 'Stubbed' | 'Scraped' | 'Parsed' | 'Ready to Promote';
+
+export const VALID_JOB_STUB_STATUSES: JobStubStatus[] = [
+  'Stubbed',
+  'Scraped',
+  'Parsed',
+  'Ready to Promote',
+];
+
+const VALID_JOB_STUB_STATUS_SET = new Set<string>(VALID_JOB_STUB_STATUSES);
+
+export function isJobStubStatus(value: string): value is JobStubStatus {
+  return VALID_JOB_STUB_STATUS_SET.has(value);
+}
 
 export interface JobStubRow {
   id: number;
   url: string;
   status: JobStubStatus;
   raw_content: string | null;
+  parsed_company: string | null;
+  parsed_title: string | null;
+  parsed_description: string | null;
+  parsed_salary_min: number | null;
+  parsed_salary_max: number | null;
+  parsed_candidacy: Candidacy | null;
+  parsed_role_status: RoleStatus | null;
+  parsed_skip_reasons: string | null;
+  parsed_termination_reasons: string | null;
   created_at: string;
 }
