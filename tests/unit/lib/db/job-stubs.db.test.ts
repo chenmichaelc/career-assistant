@@ -3,7 +3,7 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../../../helpers/db';
 import { db } from '../../../../lib/db';
-import { VALID_STATUSES } from '../../../../lib/types';
+import { VALID_STATUSES, VALID_CANDIDACIES, VALID_JOB_STUB_STATUSES } from '../../../../lib/types';
 
 let sqlite: Database.Database;
 
@@ -166,18 +166,14 @@ describe('setRawContent', () => {
 describe('status CHECK constraint', () => {
   test('accepts every value in the status vocabulary', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
-    for (const status of ['Stubbed', 'Scraped', 'Parsed', 'Ready to Promote']) {
-      expect(() =>
-        sqlite.prepare(`UPDATE job_stubs SET status = ? WHERE id = ?`).run(status, id)
-      ).not.toThrow();
+    for (const status of VALID_JOB_STUB_STATUSES) {
+      expect(() => db.jobStubs.updateStatus(sqlite, id, status)).not.toThrow();
     }
   });
 
   test('rejects a value outside the status vocabulary', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
-    expect(() =>
-      sqlite.prepare(`UPDATE job_stubs SET status = 'unscraped' WHERE id = ?`).run(id)
-    ).toThrow();
+    expect(() => db.jobStubs.updateStatus(sqlite, id, 'unscraped')).toThrow();
   });
 });
 
@@ -186,20 +182,14 @@ describe('status CHECK constraint', () => {
 describe('parsed_candidacy CHECK constraint', () => {
   test('accepts every value in the candidacy vocabulary', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
-    for (const candidacy of ['Slam Dunk', 'Competitive', 'Reach', 'Skip']) {
-      expect(() =>
-        sqlite.prepare(`UPDATE job_stubs SET parsed_candidacy = ? WHERE id = ?`).run(candidacy, id)
-      ).not.toThrow();
+    for (const candidacy of VALID_CANDIDACIES) {
+      expect(() => db.jobStubs.setParsedCandidacy(sqlite, id, candidacy)).not.toThrow();
     }
   });
 
   test('rejects a value outside the candidacy vocabulary', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
-    expect(() =>
-      sqlite
-        .prepare(`UPDATE job_stubs SET parsed_candidacy = 'Not A Real Value' WHERE id = ?`)
-        .run(id)
-    ).toThrow();
+    expect(() => db.jobStubs.setParsedCandidacy(sqlite, id, 'Not A Real Value')).toThrow();
   });
 });
 
@@ -207,19 +197,13 @@ describe('parsed_role_status CHECK constraint', () => {
   test('accepts every value in the role_status vocabulary', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
     for (const status of VALID_STATUSES) {
-      expect(() =>
-        sqlite.prepare(`UPDATE job_stubs SET parsed_role_status = ? WHERE id = ?`).run(status, id)
-      ).not.toThrow();
+      expect(() => db.jobStubs.setParsedRoleStatus(sqlite, id, status)).not.toThrow();
     }
   });
 
   test('rejects a value outside the role_status vocabulary', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
-    expect(() =>
-      sqlite
-        .prepare(`UPDATE job_stubs SET parsed_role_status = 'Not A Real Value' WHERE id = ?`)
-        .run(id)
-    ).toThrow();
+    expect(() => db.jobStubs.setParsedRoleStatus(sqlite, id, 'Not A Real Value')).toThrow();
   });
 });
 

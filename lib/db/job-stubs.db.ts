@@ -91,6 +91,54 @@ export function setRawContent(
     .run({ id, raw_content: rawContent });
 }
 
+export function updateStatus(
+  sqlite: Database.Database,
+  id: number,
+  status: string
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET status = @status
+                WHERE id = @id
+            `
+    )
+    .run({ id, status });
+}
+
+export function setParsedCandidacy(
+  sqlite: Database.Database,
+  id: number,
+  candidacy: string
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET parsed_candidacy = @candidacy
+                WHERE id = @id
+            `
+    )
+    .run({ id, candidacy });
+}
+
+export function setParsedRoleStatus(
+  sqlite: Database.Database,
+  id: number,
+  roleStatus: string
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET parsed_role_status = @role_status
+                WHERE id = @id
+            `
+    )
+    .run({ id, role_status: roleStatus });
+}
+
 export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {
   return sqlite.prepare(`DELETE FROM job_stubs WHERE id = ?`).run(id);
 }
