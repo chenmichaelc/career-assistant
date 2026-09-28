@@ -70,7 +70,7 @@ describe('POST /api/job-stubs', () => {
     const { id } = createResponse.json();
 
     const listResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
-    const stub = listResponse.json().find((s: { id: number }) => s.id === id);
+    const stub = listResponse.json().find((jobStub: { id: number }) => jobStub.id === id);
     expect(stub.url).toBe('https://example.com/jobs/1');
   });
 

@@ -87,12 +87,18 @@ export async function rolesRouter(fastify: FastifyInstance, options: PluginOptio
       return [];
     }
 
-    const roleIds = roles.map((r) => r.id);
+    const roleIds = roles.map((role) => role.id);
     const allSkipReasons = db.skipReasons.getAllByRoleIds(sqlite, roleIds);
     const allTerminationReasons = db.terminationReasons.getAllByRoleIds(sqlite, roleIds);
 
-    const skipByRoleId = Map.groupBy(allSkipReasons, (r: SkipReasonRow) => r.role_id);
-    const termByRoleId = Map.groupBy(allTerminationReasons, (r: TerminationReasonRow) => r.role_id);
+    const skipByRoleId = Map.groupBy(
+      allSkipReasons,
+      (skipReason: SkipReasonRow) => skipReason.role_id
+    );
+    const termByRoleId = Map.groupBy(
+      allTerminationReasons,
+      (terminationReason: TerminationReasonRow) => terminationReason.role_id
+    );
 
     return roles.map((role) => ({
       ...role,

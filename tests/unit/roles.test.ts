@@ -729,11 +729,8 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
 
     updateRole(sqlite, input);
 
-    const role = sqlite.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
-      string,
-      unknown
-    >;
-    expect(role.applied_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const role = db.roles.getById(sqlite, id);
+    expect(role?.applied_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   test('preserves existing applied_date when transitioning to Applied', () => {
@@ -743,11 +740,8 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
 
     updateRole(sqlite, input);
 
-    const role = sqlite.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
-      string,
-      unknown
-    >;
-    expect(role.applied_date).toBe('2024-01-15');
+    const role = db.roles.getById(sqlite, id);
+    expect(role?.applied_date).toBe('2024-01-15');
   });
 
   test('does not set applied_date when transitioning to a non-Applied status', () => {
@@ -756,11 +750,8 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
 
     updateRole(sqlite, input);
 
-    const role = sqlite.prepare('SELECT applied_date FROM roles WHERE id = ?').get(id) as Record<
-      string,
-      unknown
-    >;
-    expect(role.applied_date).toBeNull();
+    const role = db.roles.getById(sqlite, id);
+    expect(role?.applied_date).toBeNull();
   });
 
   test('inserts skip reasons correctly', () => {
@@ -775,9 +766,7 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
 
     updateRole(sqlite, input);
 
-    const reasons = sqlite
-      .prepare('SELECT * FROM skip_reasons WHERE role_id = ?')
-      .all(id) as Record<string, unknown>[];
+    const reasons = db.skipReasons.getAllByRoleId(sqlite, id);
     expect(reasons).toHaveLength(2);
     expect(reasons[0].reason).toBe('Location');
     expect(reasons[0].note).toBe('Austin in-office; below floor');
@@ -795,9 +784,7 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
 
     updateRole(sqlite, input);
 
-    const reasons = sqlite
-      .prepare('SELECT * FROM termination_reasons WHERE role_id = ?')
-      .all(id) as Record<string, unknown>[];
+    const reasons = db.terminationReasons.getAllByRoleId(sqlite, id);
     expect(reasons).toHaveLength(1);
     expect(reasons[0].reason).toBe('Screened Out');
   });
@@ -813,11 +800,8 @@ And a URL: https://example.com/job/1?i=2&ref=test.`,
 
     expect(() => updateRole(sqlite, input)).toThrow();
 
-    const role = sqlite.prepare('SELECT role_status FROM roles WHERE id = ?').get(id) as Record<
-      string,
-      unknown
-    >;
-    expect(role.role_status).toBe('Pending Triage');
+    const role = db.roles.getById(sqlite, id);
+    expect(role?.role_status).toBe('Pending Triage');
   });
 });
 
@@ -903,10 +887,10 @@ describe('deleteRole', () => {
     const id = addRole(sqlite, baseRole);
 
     // Delete JD first so role has no dependents
-    sqlite.prepare('DELETE FROM job_descriptions WHERE role_id = ?').run(id);
+    db.jobDescriptions.deleteByRoleId(sqlite, id);
     deleteRole(sqlite, id, false);
 
-    const role = sqlite.prepare('SELECT * FROM roles WHERE id = ?').get(id);
+    const role = db.roles.getById(sqlite, id);
     expect(role).toBeUndefined();
   });
 
@@ -924,13 +908,13 @@ describe('deleteRole', () => {
     const id = addRole(sqlite, skippedRole);
     deleteRole(sqlite, id, true);
 
-    const role = sqlite.prepare('SELECT * FROM roles WHERE id = ?').get(id);
-    const skipReasons = sqlite.prepare('SELECT * FROM skip_reasons WHERE role_id = ?').all(id);
-    const jds = sqlite.prepare('SELECT * FROM job_descriptions WHERE role_id = ?').all(id);
+    const role = db.roles.getById(sqlite, id);
+    const skipReasons = db.skipReasons.getAllByRoleId(sqlite, id);
+    const jd = db.jobDescriptions.getByRoleId(sqlite, id);
 
     expect(role).toBeUndefined();
     expect(skipReasons).toHaveLength(0);
-    expect(jds).toHaveLength(0);
+    expect(jd).toBeUndefined();
   });
 
   test('throws when role not found', () => {
@@ -939,7 +923,7 @@ describe('deleteRole', () => {
 
   test('returns pre-deletion role details', () => {
     const id = addRole(sqlite, baseRole);
-    sqlite.prepare('DELETE FROM job_descriptions WHERE role_id = ?').run(id);
+    db.jobDescriptions.deleteByRoleId(sqlite, id);
 
     const result = deleteRole(sqlite, id, false);
     expect(result.role.company).toBe(baseRole.company);
@@ -965,9 +949,7 @@ describe('previewSkipReasonDeletion', () => {
 
   test('returns skip reason and parent role', () => {
     const roleId = addRole(sqlite, skippedRole);
-    const skipReasonRow = sqlite
-      .prepare('SELECT * FROM skip_reasons WHERE role_id = ?')
-      .get(roleId) as { id: number };
+    const [skipReasonRow] = db.skipReasons.getAllByRoleId(sqlite, roleId);
 
     const preview = previewSkipReasonDeletion(sqlite, skipReasonRow.id);
 
@@ -1002,21 +984,17 @@ describe('deleteSkipReason', () => {
 
   test('deletes skip reason by id', () => {
     const roleId = addRole(sqlite, skippedRole);
-    const skipReasonRow = sqlite
-      .prepare('SELECT * FROM skip_reasons WHERE role_id = ?')
-      .get(roleId) as { id: number };
+    const [skipReasonRow] = db.skipReasons.getAllByRoleId(sqlite, roleId);
 
     deleteSkipReason(sqlite, skipReasonRow.id);
 
-    const result = sqlite.prepare('SELECT * FROM skip_reasons WHERE id = ?').get(skipReasonRow.id);
+    const result = db.skipReasons.getById(sqlite, skipReasonRow.id);
     expect(result).toBeUndefined();
   });
 
   test('returns deleted reason and parent role', () => {
     const roleId = addRole(sqlite, skippedRole);
-    const skipReasonRow = sqlite
-      .prepare('SELECT * FROM skip_reasons WHERE role_id = ?')
-      .get(roleId) as { id: number };
+    const [skipReasonRow] = db.skipReasons.getAllByRoleId(sqlite, roleId);
 
     const result = deleteSkipReason(sqlite, skipReasonRow.id);
 
@@ -1048,9 +1026,7 @@ describe('previewTerminationReasonDeletion', () => {
 
   test('returns termination reason and parent role', () => {
     const roleId = addRole(sqlite, closedRole);
-    const terminationReasonRow = sqlite
-      .prepare('SELECT * FROM termination_reasons WHERE role_id = ?')
-      .get(roleId) as { id: number };
+    const [terminationReasonRow] = db.terminationReasons.getAllByRoleId(sqlite, roleId);
 
     const preview = previewTerminationReasonDeletion(sqlite, terminationReasonRow.id);
 
@@ -1084,23 +1060,17 @@ describe('deleteTerminationReason', () => {
 
   test('deletes termination reason by id', () => {
     const roleId = addRole(sqlite, closedRole);
-    const terminationReasonRow = sqlite
-      .prepare('SELECT * FROM termination_reasons WHERE role_id = ?')
-      .get(roleId) as { id: number };
+    const [terminationReasonRow] = db.terminationReasons.getAllByRoleId(sqlite, roleId);
 
     deleteTerminationReason(sqlite, terminationReasonRow.id);
 
-    const result = sqlite
-      .prepare('SELECT * FROM termination_reasons WHERE id = ?')
-      .get(terminationReasonRow.id);
+    const result = db.terminationReasons.getById(sqlite, terminationReasonRow.id);
     expect(result).toBeUndefined();
   });
 
   test('returns deleted reason and parent role', () => {
     const roleId = addRole(sqlite, closedRole);
-    const terminationReasonRow = sqlite
-      .prepare('SELECT * FROM termination_reasons WHERE role_id = ?')
-      .get(roleId) as { id: number };
+    const [terminationReasonRow] = db.terminationReasons.getAllByRoleId(sqlite, roleId);
 
     const result = deleteTerminationReason(sqlite, terminationReasonRow.id);
 

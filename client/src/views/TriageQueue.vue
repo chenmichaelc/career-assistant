@@ -144,7 +144,7 @@ async function requestDelete(stub: Stub) {
 
   try {
     await apiFetch(`/api/job-stubs/${stub.id}`, { method: 'DELETE' });
-    stubs.value = stubs.value.filter((s) => s.id !== stub.id);
+    stubs.value = stubs.value.filter((existingStub) => existingStub.id !== stub.id);
   } catch (err) {
     error.value = (err as Error).message;
   }

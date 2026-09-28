@@ -66,7 +66,7 @@ describe('getAll', () => {
     const firstId = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
     const secondId = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/2');
     const all = db.jobStubs.getAll(sqlite);
-    expect(all.map((s) => s.id)).toEqual([secondId, firstId]);
+    expect(all.map((stub) => stub.id)).toEqual([secondId, firstId]);
   });
 });
 
@@ -112,7 +112,7 @@ describe('getAllByUrlPrefix', () => {
     const matches = db.jobStubs.getAllByUrlPrefix(sqlite, urlPrefix);
 
     expect(matches).toHaveLength(2);
-    expect(matches.map((s) => s.url).sort()).toEqual([chromiumUrl, firefoxUrl].sort());
+    expect(matches.map((stub) => stub.url).sort()).toEqual([chromiumUrl, firefoxUrl].sort());
   });
 
   test('returns an empty array when nothing matches', () => {
