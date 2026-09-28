@@ -249,11 +249,17 @@ UI-based setup couples unrelated tests to the setup page's correctness — a bro
 
 ## Arrange via the domain's own functions, not another router's HTTP surface
 
-The integration-test-layer version of the rule above. When a test needs data belonging to a domain other than the one under test — `tests/integration/routes/job-stubs.test.ts` needing a pre-existing role to test dedup against — call that domain's own orchestration function directly (`addRole()`), not raw SQL, and not registering its whole router to hit it over `app.inject`.
+The integration-test-layer version of "Arrange via API, not UI" above. When a test needs data belonging to a domain other than the one under test — `tests/integration/routes/job-stubs.test.ts` needing a pre-existing role to test dedup against — call that domain's own orchestration function directly (`addRole()`), not registering its whole router to hit it over `app.inject`.
+
+**Bright-line test:** does this test's own assertions check the _other_ domain's response — its status code, validation errors, or response shape?
+
+- **No** (the other domain is purely a data precondition) → call its orchestration function directly. Never register its router.
+- **Yes** (you're asserting on what that router itself returns, as part of what this test protects) → a genuine cross-system journey test; hitting both routers via HTTP is correct here.
 
 ```typescript
 // Bad — pulls in rolesRouter's entire route/validation surface as an
-// incidental dependency of a job-stubs test
+// incidental dependency of a job-stubs test; nothing in this test asserts
+// on the roles response itself
 await app.register(rolesRouter, { prefix: '/api/roles', db: sqlite });
 await app.inject({
   method: 'POST',
@@ -265,12 +271,9 @@ await app.inject({
 addRole(sqlite, { ...role, role_status: 'Applied' });
 ```
 
-Two separate reasons, not one:
+Why this matters even though the second router is "real code, not a mock": `roles.ts` can grow a new contextual validation rule next year for reasons that have nothing to do with job stubs, and this file breaks anyway — coupling that provides no signal about what it's actually supposed to protect. Full HTTP through multiple routers is for genuine cross-system journey tests (the bright-line test's "yes" branch), not incidental arrangement — `job-stubs.test.ts` isn't that.
 
-- **Raw SQL bypasses real validation and can mask a broken test.** This happened: a setup fixture used `role_status: 'Applied'` without `applied_date`, invisible while inserted via raw SQL, silently wrong for months. Switching to `addRole()` surfaced it immediately with a clear error, because it's the same validation the real feature runs.
-- **A second router is not "using real code," it's importing an unrelated subsystem's entire surface.** `roles.ts` can grow a new contextual validation rule next year for reasons that have nothing to do with job stubs, and this file breaks anyway — coupling that provides no signal about what it's actually supposed to protect. Full HTTP through multiple routers is for genuine cross-system journey tests, not incidental arrangement — `job-stubs.test.ts` isn't that.
-
-Before citing an existing integration test file as precedent for this kind of call, check whether its situation actually matches structurally — does it use HTTP for setup because the setup data _is_ what's under test (`query.test.ts` running `INSERT`/`SELECT` through the SQL Query tool — that's the feature), or is it just the most recent similar-looking file? `roles.test.ts` uses `app.inject` exclusively because it's testing roles against itself — that doesn't transfer to a different router needing roles data as a precondition.
+Applying the bright-line test to `query.test.ts`'s `INSERT`/`SELECT` through the SQL Query tool: that file asserts on the SQL Query router's own execution behavior — the query _is_ the feature under test — so it passes the "yes" branch and isn't precedent for treating another router's data as free setup. Before citing an existing integration test file as precedent, run its situation through the bright-line test rather than matching on "it's the most recent similar-looking file."
 
 ---
 
@@ -523,6 +526,14 @@ Concretely: `lib/roles.ts`'s `addRole()` and `lib/job-stubs.ts`'s `addStub()` bo
 ## Audit cadence
 
 Read this: at the start of a session with significant new code, before closing a major epic, and when back-applying a new convention to existing code.
+
+**Mechanical grep step (CAR-252), kept as defense in depth:** the `no-restricted-syntax` lint ban should make the specific bug class below structurally impossible, but as a cheap secondary check, grep for `INSERT`/`UPDATE` statements on `roles` that set `role_status` to `Applied`, `Skipped`, or `Closed` without also setting the corresponding required companion field (`applied_date`, `skip_reasons`, `termination_reasons`):
+
+```bash
+grep -rnE "role_status['\"]?\s*[:=]\s*['\"](Applied|Skipped|Closed)" --include='*.ts' .
+```
+
+Then check each hit by hand for the missing companion field. Lower priority than the lint rule — only worth running if raw SQL is suspected to have crept back in somewhere the lint rule doesn't cover.
 
 ## Related
 
