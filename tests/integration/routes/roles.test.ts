@@ -320,9 +320,9 @@ describe('GET /api/roles', () => {
     });
     const roles = roleList.json();
     expect(roles).toHaveLength(2);
-    expect(roles.map((r: { role_status: string }) => r.role_status)).toContain('Applied');
-    expect(roles.map((r: { role_status: string }) => r.role_status)).toContain('Skipped');
-    expect(roles.map((r: { role_status: string }) => r.role_status)).not.toContain(
+    expect(roles.map((role: { role_status: string }) => role.role_status)).toContain('Applied');
+    expect(roles.map((role: { role_status: string }) => role.role_status)).toContain('Skipped');
+    expect(roles.map((role: { role_status: string }) => role.role_status)).not.toContain(
       'Pending Triage'
     );
   });
