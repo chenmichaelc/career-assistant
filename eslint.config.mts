@@ -235,6 +235,18 @@ export default defineConfig([
   //   },
   // },
 
+  // ─── No single-character identifiers ───────────────────────────────────────
+  //
+  // Checking for the anti-pattern for variables and objects which are not
+  // semantically named.
+
+  {
+    files: ['lib/**/*.ts', 'server/**/*.ts', 'client/**/*.{ts,vue}', 'tests/**/*.ts'],
+    rules: {
+      'id-length': ['error', { min: 2, exceptions: ['i'] }],
+    },
+  },
+
   // ─── Vue client ───────────────────────────────────────────────────────────
 
   ...pluginVue.configs['flat/essential'],

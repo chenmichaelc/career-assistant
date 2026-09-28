@@ -82,9 +82,9 @@ describe('cleanseUrl — whitespace', () => {
 
 describe('cleanseUrl — the actual dedup scenario', () => {
   test('two differently-decorated URLs to the same posting normalize identically', () => {
-    const a = cleanseUrl('http://EXAMPLE.com/jobs/123/?utm_source=linkedin&b=2&a=1');
-    const b = cleanseUrl('https://example.com/jobs/123?a=1&utm_campaign=x&b=2');
-    expect(a).toBe(b);
+    const firstCleansedUrl = cleanseUrl('http://EXAMPLE.com/jobs/123/?utm_source=linkedin&b=2&a=1');
+    const secondCleansedUrl = cleanseUrl('https://example.com/jobs/123?a=1&utm_campaign=x&b=2');
+    expect(firstCleansedUrl).toBe(secondCleansedUrl);
   });
 });
 
