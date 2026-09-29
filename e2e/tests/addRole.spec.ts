@@ -29,6 +29,8 @@ test('Static smoke test of Add Role page', async ({ page }) => {
     // Expect optional form fields to be present
     await expect(addRolePage.salaryMinimumField).toBeVisible();
     await expect(addRolePage.salaryMaximumField).toBeVisible();
+    await expect(addRolePage.locationField).toBeVisible();
+    await expect(addRolePage.inOfficeExpectationSelect).toBeVisible();
     await expect(addRolePage.notesField).toBeVisible();
 
     // Expect the submit and cancel controls to be present

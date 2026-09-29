@@ -3,6 +3,12 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../../../helpers/db';
 import { db } from '../../../../lib/db';
+import {
+  VALID_STATUSES,
+  VALID_CANDIDACIES,
+  VALID_JOB_STUB_STATUSES,
+  VALID_IN_OFFICE_EXPECTATIONS,
+} from '../../../../lib/types';
 
 let sqlite: Database.Database;
 
@@ -22,10 +28,26 @@ describe('insertStub', () => {
     expect(id).toBeGreaterThan(0);
   });
 
-  test('defaults status to unscraped', () => {
+  test('defaults status to Stubbed', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
     const stub = db.jobStubs.getById(sqlite, id);
-    expect(stub?.status).toBe('unscraped');
+    expect(stub?.status).toBe('Stubbed');
+  });
+
+  test('defaults all parsed_* fields to null', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    const stub = db.jobStubs.getById(sqlite, id);
+    expect(stub?.parsed_company).toBeNull();
+    expect(stub?.parsed_title).toBeNull();
+    expect(stub?.parsed_description).toBeNull();
+    expect(stub?.parsed_salary_min).toBeNull();
+    expect(stub?.parsed_salary_max).toBeNull();
+    expect(stub?.parsed_candidacy).toBeNull();
+    expect(stub?.parsed_role_status).toBeNull();
+    expect(stub?.parsed_skip_reasons).toBeNull();
+    expect(stub?.parsed_termination_reasons).toBeNull();
+    expect(stub?.parsed_location).toBeNull();
+    expect(stub?.parsed_in_office_expectation).toBeNull();
   });
 
   test('sets created_at', () => {
@@ -131,6 +153,80 @@ describe('getAllByUrlPrefix', () => {
 
     expect(matches).toHaveLength(1);
     expect(matches[0].url).toBe(matchingUrl);
+  });
+});
+
+// ─── setRawContent ──────────────────────────────────────────────────
+
+describe('setRawContent', () => {
+  test('stores the raw content and advances status to Scraped', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    db.jobStubs.setRawContent(sqlite, id, 'Full posting text.');
+    const stub = db.jobStubs.getById(sqlite, id);
+    expect(stub?.raw_content).toBe('Full posting text.');
+    expect(stub?.status).toBe('Scraped');
+  });
+});
+
+// ─── job_stubs.status CHECK constraint ─────────────────────────────
+
+describe('status CHECK constraint', () => {
+  test('accepts every value in the status vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    for (const status of VALID_JOB_STUB_STATUSES) {
+      expect(() => db.jobStubs.updateStatus(sqlite, id, status)).not.toThrow();
+    }
+  });
+
+  test('rejects a value outside the status vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    expect(() => db.jobStubs.updateStatus(sqlite, id, 'unscraped')).toThrow();
+  });
+});
+
+// ─── parsed_candidacy / parsed_role_status CHECK constraints ────────
+
+describe('parsed_candidacy CHECK constraint', () => {
+  test('accepts every value in the candidacy vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    for (const candidacy of VALID_CANDIDACIES) {
+      expect(() => db.jobStubs.setParsedCandidacy(sqlite, id, candidacy)).not.toThrow();
+    }
+  });
+
+  test('rejects a value outside the candidacy vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    expect(() => db.jobStubs.setParsedCandidacy(sqlite, id, 'Not A Real Value')).toThrow();
+  });
+});
+
+describe('parsed_role_status CHECK constraint', () => {
+  test('accepts every value in the role_status vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    for (const status of VALID_STATUSES) {
+      expect(() => db.jobStubs.setParsedRoleStatus(sqlite, id, status)).not.toThrow();
+    }
+  });
+
+  test('rejects a value outside the role_status vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    expect(() => db.jobStubs.setParsedRoleStatus(sqlite, id, 'Not A Real Value')).toThrow();
+  });
+});
+
+describe('parsed_in_office_expectation CHECK constraint', () => {
+  test('accepts every value in the in-office-expectation vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    for (const option of VALID_IN_OFFICE_EXPECTATIONS) {
+      expect(() => db.jobStubs.setParsedInOfficeExpectation(sqlite, id, option)).not.toThrow();
+    }
+  });
+
+  test('rejects a value outside the in-office-expectation vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    expect(() =>
+      db.jobStubs.setParsedInOfficeExpectation(sqlite, id, 'Not A Real Value')
+    ).toThrow();
   });
 });
 

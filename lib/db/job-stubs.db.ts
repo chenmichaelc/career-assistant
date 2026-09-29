@@ -16,11 +16,21 @@ export function insertStub(sqlite: Database.Database, url: string): number {
   return Number(result.lastInsertRowid);
 }
 
+const JOB_STUB_COLUMNS = `
+  id, url, status, raw_content,
+  parsed_company, parsed_title, parsed_description,
+  parsed_salary_min, parsed_salary_max,
+  parsed_candidacy, parsed_role_status,
+  parsed_skip_reasons, parsed_termination_reasons,
+  parsed_location, parsed_in_office_expectation,
+  created_at
+`;
+
 export function getAll(sqlite: Database.Database): JobStubRow[] {
   return sqlite
     .prepare(
       `
-                SELECT id, url, status, raw_content, created_at
+                SELECT ${JOB_STUB_COLUMNS}
                 FROM job_stubs
                 ORDER BY id DESC
             `
@@ -32,7 +42,7 @@ export function getById(sqlite: Database.Database, id: number): JobStubRow | und
   return sqlite
     .prepare(
       `
-                SELECT id, url, status, raw_content, created_at
+                SELECT ${JOB_STUB_COLUMNS}
                 FROM job_stubs
                 WHERE id = ?
             `
@@ -44,7 +54,7 @@ export function getByUrl(sqlite: Database.Database, url: string): JobStubRow | u
   return sqlite
     .prepare(
       `
-                SELECT id, url, status, raw_content, created_at
+                SELECT ${JOB_STUB_COLUMNS}
                 FROM job_stubs
                 WHERE url = ?
             `
@@ -56,7 +66,7 @@ export function getAllByUrlPrefix(sqlite: Database.Database, urlPrefix: string):
   return sqlite
     .prepare(
       `
-                SELECT id, url, status, raw_content, created_at
+                SELECT ${JOB_STUB_COLUMNS}
                 FROM job_stubs
                 WHERE url LIKE @pattern ESCAPE '\\'
             `
@@ -75,11 +85,75 @@ export function setRawContent(
     .prepare(
       `
                 UPDATE job_stubs
-                SET raw_content = @raw_content, status = 'content_added'
+                SET raw_content = @raw_content, status = 'Scraped'
                 WHERE id = @id
             `
     )
     .run({ id, raw_content: rawContent });
+}
+
+export function updateStatus(
+  sqlite: Database.Database,
+  id: number,
+  status: string
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET status = @status
+                WHERE id = @id
+            `
+    )
+    .run({ id, status });
+}
+
+export function setParsedCandidacy(
+  sqlite: Database.Database,
+  id: number,
+  candidacy: string
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET parsed_candidacy = @candidacy
+                WHERE id = @id
+            `
+    )
+    .run({ id, candidacy });
+}
+
+export function setParsedRoleStatus(
+  sqlite: Database.Database,
+  id: number,
+  roleStatus: string
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET parsed_role_status = @role_status
+                WHERE id = @id
+            `
+    )
+    .run({ id, role_status: roleStatus });
+}
+
+export function setParsedInOfficeExpectation(
+  sqlite: Database.Database,
+  id: number,
+  inOfficeExpectation: string
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET parsed_in_office_expectation = @in_office_expectation
+                WHERE id = @id
+            `
+    )
+    .run({ id, in_office_expectation: inOfficeExpectation });
 }
 
 export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {

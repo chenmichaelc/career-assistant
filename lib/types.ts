@@ -42,6 +42,21 @@ export type Candidacy = 'Slam Dunk' | 'Competitive' | 'Reach' | 'Skip';
 
 export const VALID_CANDIDACIES: Candidacy[] = ['Slam Dunk', 'Competitive', 'Reach', 'Skip'];
 
+export type InOfficeExpectation = 'Remote' | 'Hybrid' | 'In-Office' | 'Unknown';
+
+export const VALID_IN_OFFICE_EXPECTATIONS: InOfficeExpectation[] = [
+  'Remote',
+  'Hybrid',
+  'In-Office',
+  'Unknown',
+];
+
+const VALID_IN_OFFICE_EXPECTATION_SET = new Set<string>(VALID_IN_OFFICE_EXPECTATIONS);
+
+export function isInOfficeExpectation(value: string): value is InOfficeExpectation {
+  return VALID_IN_OFFICE_EXPECTATION_SET.has(value);
+}
+
 export type SkipReasonType =
   | 'Wrong Industry'
   | 'Culture'
@@ -135,6 +150,8 @@ export interface RoleInput {
   applied_date?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
+  location?: string | null;
+  in_office_expectation?: InOfficeExpectation | null;
   notes?: string | null;
   jd: string;
   skip_reasons?: SkipReason[] | null;
@@ -154,6 +171,8 @@ export interface RoleRow {
   applied_date: string | null;
   salary_min: number | null;
   salary_max: number | null;
+  location: string | null;
+  in_office_expectation: InOfficeExpectation | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -163,12 +182,36 @@ export type { RoleSortKey } from './db/roles.db';
 
 // ─── Job stubs ──────────────────────────────────────────────────────────────
 
-export type JobStubStatus = 'unscraped' | 'content_added';
+export type JobStubStatus = 'Stubbed' | 'Scraped' | 'Parsed' | 'Ready to Promote';
+
+export const VALID_JOB_STUB_STATUSES: JobStubStatus[] = [
+  'Stubbed',
+  'Scraped',
+  'Parsed',
+  'Ready to Promote',
+];
+
+const VALID_JOB_STUB_STATUS_SET = new Set<string>(VALID_JOB_STUB_STATUSES);
+
+export function isJobStubStatus(value: string): value is JobStubStatus {
+  return VALID_JOB_STUB_STATUS_SET.has(value);
+}
 
 export interface JobStubRow {
   id: number;
   url: string;
   status: JobStubStatus;
   raw_content: string | null;
+  parsed_company: string | null;
+  parsed_title: string | null;
+  parsed_description: string | null;
+  parsed_salary_min: number | null;
+  parsed_salary_max: number | null;
+  parsed_candidacy: Candidacy | null;
+  parsed_role_status: RoleStatus | null;
+  parsed_skip_reasons: string | null;
+  parsed_termination_reasons: string | null;
+  parsed_location: string | null;
+  parsed_in_office_expectation: InOfficeExpectation | null;
   created_at: string;
 }

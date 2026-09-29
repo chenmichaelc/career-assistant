@@ -367,6 +367,30 @@ describe('GET /api/roles/:id', () => {
     expect(role.termination_reasons[0].reason).toEqual(closedRole.termination_reasons[0].reason);
   });
 
+  test('returns role with location', async () => {
+    const roleWithLocationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: { ...baseRole, location: 'Austin, TX' },
+    });
+    const { id } = roleWithLocationResponse.json();
+
+    const roleFetchResponse = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
+    expect(roleFetchResponse.json().location).toBe('Austin, TX');
+  });
+
+  test('returns role with in_office_expectation', async () => {
+    const roleWithInOfficeExpectationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: { ...baseRole, in_office_expectation: 'Hybrid' },
+    });
+    const { id } = roleWithInOfficeExpectationResponse.json();
+
+    const roleFetchResponse = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
+    expect(roleFetchResponse.json().in_office_expectation).toBe('Hybrid');
+  });
+
   test('returns 404 for unknown ID', async () => {
     const invalidRoleResponse = await app.inject({ method: 'GET', url: '/api/roles/99999' });
     expect(invalidRoleResponse.statusCode).toBe(404);

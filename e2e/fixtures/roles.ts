@@ -9,6 +9,8 @@ export interface RoleFixture {
   jd: string;
   salary_min?: string;
   salary_max?: string;
+  location?: string;
+  in_office_expectation?: string;
   notes?: string;
 }
 

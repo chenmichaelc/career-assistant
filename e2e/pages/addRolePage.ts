@@ -16,6 +16,8 @@ export class AddRolePage {
   readonly roleStatusSelect: Locator;
   readonly salaryMinimumField: Locator;
   readonly salaryMaximumField: Locator;
+  readonly locationField: Locator;
+  readonly inOfficeExpectationSelect: Locator;
   readonly notesField: Locator;
   readonly jobDescriptionField: Locator;
 
@@ -57,6 +59,14 @@ export class AddRolePage {
       .locator('#salary-maximum-region')
       .filter({ hasText: 'Salary Maximum' })
       .getByRole('spinbutton');
+    this.locationField = page
+      .locator('#location-region')
+      .filter({ hasText: 'Location' })
+      .getByRole('textbox');
+    this.inOfficeExpectationSelect = page
+      .locator('#in-office-expectation-region')
+      .filter({ hasText: 'In-Office Expectation' })
+      .getByRole('combobox');
     this.notesField = page
       .locator('#notes-region')
       .filter({ hasText: 'Notes' })
@@ -83,6 +93,8 @@ export class AddRolePage {
     role_status?: string;
     salaryMin?: string;
     salaryMax?: string;
+    location?: string;
+    in_office_expectation?: string;
     notes?: string;
     jd: string;
   }) {
@@ -97,6 +109,12 @@ export class AddRolePage {
     }
     if (fields.salaryMax) {
       await this.salaryMaximumField.fill(fields.salaryMax);
+    }
+    if (fields.location) {
+      await this.locationField.fill(fields.location);
+    }
+    if (fields.in_office_expectation) {
+      await this.inOfficeExpectationSelect.selectOption(fields.in_office_expectation);
     }
     if (fields.notes) {
       await this.notesField.fill(fields.notes);
