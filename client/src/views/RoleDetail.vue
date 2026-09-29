@@ -71,6 +71,17 @@
         >
         <div v-else class="font-mono text-sm text-dim">—</div>
       </div>
+      <div class="bg-panel border border-border rounded p-4" data-testid="location-card">
+        <div class="font-mono text-xs text-dim mb-1">location</div>
+        <div class="font-mono text-sm text-text">{{ role.location ?? '—' }}</div>
+      </div>
+      <div
+        class="bg-panel border border-border rounded p-4"
+        data-testid="in-office-expectation-card"
+      >
+        <div class="font-mono text-xs text-dim mb-1">in-office expectation</div>
+        <div class="font-mono text-sm text-text">{{ role.in_office_expectation ?? '—' }}</div>
+      </div>
     </div>
 
     <!-- Notes -->

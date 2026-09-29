@@ -15,6 +15,8 @@ export const VALID_STATUSES = [
   'Pending Triage',
 ] as const;
 
+export const VALID_IN_OFFICE_EXPECTATIONS = ['Remote', 'Hybrid', 'In-Office', 'Unknown'] as const;
+
 export const VALID_SKIP_REASONS = [
   'Wrong Industry',
   'Culture',

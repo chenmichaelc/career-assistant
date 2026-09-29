@@ -33,6 +33,19 @@
           <input v-model.number="form.salary_max" type="number" class="input w-full" />
         </div>
       </div>
+      <div id="location-region">
+        <label class="font-mono text-xs text-dim block mb-1">Location</label>
+        <input v-model="form.location" class="input w-full" />
+      </div>
+      <div id="in-office-expectation-region">
+        <label class="font-mono text-xs text-dim block mb-1">In-Office Expectation</label>
+        <select v-model="form.in_office_expectation" class="input w-full">
+          <option value="">—</option>
+          <option v-for="option in VALID_IN_OFFICE_EXPECTATIONS" :key="option" :value="option">
+            {{ option }}
+          </option>
+        </select>
+      </div>
       <div id="notes-region">
         <label class="font-mono text-xs text-dim block mb-1">Notes</label>
         <input v-model="form.notes" class="input w-full" />
@@ -72,7 +85,7 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiFetch } from '@/composables/useApi';
-import { VALID_STATUSES } from '@/constants';
+import { VALID_STATUSES, VALID_IN_OFFICE_EXPECTATIONS } from '@/constants';
 import { validateUrl } from '@/utils/validateUrl';
 
 const route = useRoute();
@@ -87,6 +100,8 @@ const form = ref({
   role_status: 'Pending Triage' as string,
   salary_min: null as number | null,
   salary_max: null as number | null,
+  location: '',
+  in_office_expectation: '',
   notes: '',
   jd: '',
 });
@@ -95,6 +110,8 @@ function buildRolePayload(formValue: typeof form.value) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shared RoleInput type not yet accessible from client; tracked in CAR-4
   const payload: any = { ...formValue };
   if (!payload.notes) delete payload.notes;
+  if (!payload.location) delete payload.location;
+  if (!payload.in_office_expectation) delete payload.in_office_expectation;
   if (!payload.salary_min) payload.salary_min = null;
   if (!payload.salary_max) payload.salary_max = null;
   return payload;

@@ -22,6 +22,8 @@ export class RoleDetailPage {
   readonly appliedDateCard: Locator;
   readonly salaryCard: Locator;
   readonly urlCard: Locator;
+  readonly locationCard: Locator;
+  readonly inOfficeExpectationCard: Locator;
 
   // ─── Status update ────────────────────────────────────────────────────────
 
@@ -106,6 +108,8 @@ export class RoleDetailPage {
     this.appliedDateCard = page.getByTestId('applied-card');
     this.salaryCard = page.getByTestId('salary-card');
     this.urlCard = page.getByTestId('url-card');
+    this.locationCard = page.getByTestId('location-card');
+    this.inOfficeExpectationCard = page.getByTestId('in-office-expectation-card');
 
     // Status update
     this.updateStatusCard = page.getByTestId('update-status-card');

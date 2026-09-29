@@ -46,6 +46,8 @@ describe('insertRole', () => {
     expect(role!.applied_date).toBeNull();
     expect(role!.salary_min).toBeNull();
     expect(role!.salary_max).toBeNull();
+    expect(role!.location).toBeNull();
+    expect(role!.in_office_expectation).toBeNull();
     expect(role!.notes).toBeNull();
   });
 
@@ -54,6 +56,8 @@ describe('insertRole', () => {
     const appliedDate = '2024-01-15';
     const salaryMin = 100000;
     const salaryMax = 130000;
+    const location = 'Austin, TX';
+    const inOfficeExpectation = 'Hybrid';
     const notes = 'Sample note';
 
     const id = db.roles.insertRole(sqlite, {
@@ -62,6 +66,8 @@ describe('insertRole', () => {
       applied_date: appliedDate,
       salary_min: salaryMin,
       salary_max: salaryMax,
+      location,
+      in_office_expectation: inOfficeExpectation,
       notes,
     });
     const role = db.roles.getById(sqlite, id);
@@ -70,7 +76,15 @@ describe('insertRole', () => {
     expect(role!.applied_date).toBe(appliedDate);
     expect(role!.salary_min).toBe(salaryMin);
     expect(role!.salary_max).toBe(salaryMax);
+    expect(role!.location).toBe(location);
+    expect(role!.in_office_expectation).toBe(inOfficeExpectation);
     expect(role!.notes).toBe(notes);
+  });
+
+  test('throws on invalid in_office_expectation — CHECK constraint', () => {
+    expect(() =>
+      db.roles.insertRole(sqlite, { ...baseRole, in_office_expectation: 'Not A Real Value' })
+    ).toThrow('CHECK constraint failed');
   });
 
   test('throws on invalid role_status — CHECK constraint', () => {
