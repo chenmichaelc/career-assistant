@@ -93,8 +93,8 @@
           </thead>
           <tbody>
             <tr
-              v-for="(row, i) in results"
-              :key="i"
+              v-for="(row, index) in results"
+              :key="index"
               class="border-b border-border hover:bg-panel transition-colors"
             >
               <td v-for="col in columns" :key="col" class="py-2 pr-4 text-text max-w-xs truncate">

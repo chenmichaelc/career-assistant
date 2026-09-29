@@ -49,12 +49,17 @@
           <!-- Options -->
           <div class="py-1 max-h-64 overflow-y-auto">
             <label
-              v-for="s in VALID_STATUSES"
-              :key="s"
+              v-for="status in VALID_STATUSES"
+              :key="status"
               class="flex items-center gap-2 px-3 py-1.5 hover:bg-surface cursor-pointer"
             >
-              <input type="checkbox" :value="s" v-model="filterStatuses" class="accent-accent" />
-              <span class="font-mono text-sm text-text">{{ s }}</span>
+              <input
+                type="checkbox"
+                :value="status"
+                v-model="filterStatuses"
+                class="accent-accent"
+              />
+              <span class="font-mono text-sm text-text">{{ status }}</span>
             </label>
           </div>
         </div>
@@ -170,7 +175,7 @@ import { apiFetch } from '@/composables/useApi';
 import { VALID_STATUSES } from '@/constants';
 
 const INACTIVE_STATUSES = ['Skipped', 'Closed'];
-const ACTIVE_STATUSES = VALID_STATUSES.filter((s) => !INACTIVE_STATUSES.includes(s));
+const ACTIVE_STATUSES = VALID_STATUSES.filter((status) => !INACTIVE_STATUSES.includes(status));
 const DEFAULT_STATUSES = [...VALID_STATUSES];
 
 const router = useRouter();
@@ -209,8 +214,8 @@ function selectActive() {
 
 // ─── Close dropdown on outside click ─────────────────────────────────────────
 
-function handleClickOutside(e: MouseEvent) {
-  if (statusDropdownRef.value && !statusDropdownRef.value.contains(e.target as Node)) {
+function handleClickOutside(event: MouseEvent) {
+  if (statusDropdownRef.value && !statusDropdownRef.value.contains(event.target as Node)) {
     showStatusDropdown.value = false;
   }
 }
@@ -232,7 +237,7 @@ async function load() {
   error.value = '';
   try {
     const params = new URLSearchParams();
-    filterStatuses.value.forEach((s) => params.append('status[]', s));
+    filterStatuses.value.forEach((status) => params.append('status[]', status));
     if (filterCompany.value) params.set('company', filterCompany.value);
     params.set('sort', sortColumn.value);
     params.set('order', sortOrder.value);

@@ -3,7 +3,12 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { createTestDb } from '../../../helpers/db';
 import { db } from '../../../../lib/db';
-import { VALID_STATUSES, VALID_CANDIDACIES, VALID_JOB_STUB_STATUSES } from '../../../../lib/types';
+import {
+  VALID_STATUSES,
+  VALID_CANDIDACIES,
+  VALID_JOB_STUB_STATUSES,
+  VALID_IN_OFFICE_EXPECTATIONS,
+} from '../../../../lib/types';
 
 let sqlite: Database.Database;
 
@@ -41,6 +46,8 @@ describe('insertStub', () => {
     expect(stub?.parsed_role_status).toBeNull();
     expect(stub?.parsed_skip_reasons).toBeNull();
     expect(stub?.parsed_termination_reasons).toBeNull();
+    expect(stub?.parsed_location).toBeNull();
+    expect(stub?.parsed_in_office_expectation).toBeNull();
   });
 
   test('sets created_at', () => {
@@ -66,7 +73,7 @@ describe('getAll', () => {
     const firstId = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
     const secondId = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/2');
     const all = db.jobStubs.getAll(sqlite);
-    expect(all.map((s) => s.id)).toEqual([secondId, firstId]);
+    expect(all.map((stub) => stub.id)).toEqual([secondId, firstId]);
   });
 });
 
@@ -112,7 +119,7 @@ describe('getAllByUrlPrefix', () => {
     const matches = db.jobStubs.getAllByUrlPrefix(sqlite, urlPrefix);
 
     expect(matches).toHaveLength(2);
-    expect(matches.map((s) => s.url).sort()).toEqual([chromiumUrl, firefoxUrl].sort());
+    expect(matches.map((stub) => stub.url).sort()).toEqual([chromiumUrl, firefoxUrl].sort());
   });
 
   test('returns an empty array when nothing matches', () => {
@@ -204,6 +211,22 @@ describe('parsed_role_status CHECK constraint', () => {
   test('rejects a value outside the role_status vocabulary', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
     expect(() => db.jobStubs.setParsedRoleStatus(sqlite, id, 'Not A Real Value')).toThrow();
+  });
+});
+
+describe('parsed_in_office_expectation CHECK constraint', () => {
+  test('accepts every value in the in-office-expectation vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    for (const option of VALID_IN_OFFICE_EXPECTATIONS) {
+      expect(() => db.jobStubs.setParsedInOfficeExpectation(sqlite, id, option)).not.toThrow();
+    }
+  });
+
+  test('rejects a value outside the in-office-expectation vocabulary', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    expect(() =>
+      db.jobStubs.setParsedInOfficeExpectation(sqlite, id, 'Not A Real Value')
+    ).toThrow();
   });
 });
 

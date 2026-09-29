@@ -22,6 +22,7 @@ const JOB_STUB_COLUMNS = `
   parsed_salary_min, parsed_salary_max,
   parsed_candidacy, parsed_role_status,
   parsed_skip_reasons, parsed_termination_reasons,
+  parsed_location, parsed_in_office_expectation,
   created_at
 `;
 
@@ -137,6 +138,22 @@ export function setParsedRoleStatus(
             `
     )
     .run({ id, role_status: roleStatus });
+}
+
+export function setParsedInOfficeExpectation(
+  sqlite: Database.Database,
+  id: number,
+  inOfficeExpectation: string
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET parsed_in_office_expectation = @in_office_expectation
+                WHERE id = @id
+            `
+    )
+    .run({ id, in_office_expectation: inOfficeExpectation });
 }
 
 export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {

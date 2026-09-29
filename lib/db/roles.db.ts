@@ -14,6 +14,8 @@ export interface RoleInsertData {
   applied_date?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
+  location?: string | null;
+  in_office_expectation?: string | null;
   notes?: string | null;
 }
 
@@ -23,8 +25,8 @@ export function insertRole(sqlite: Database.Database, data: RoleInsertData): num
   const result = sqlite
     .prepare(
       `
-            INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, notes)
-            VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @notes)
+            INSERT INTO roles (company, title, url, role_status, candidacy, applied_date, salary_min, salary_max, location, in_office_expectation, notes)
+            VALUES (@company, @title, @url, @role_status, @candidacy, @applied_date, @salary_min, @salary_max, @location, @in_office_expectation, @notes)
           `
     )
     .run({
@@ -36,6 +38,8 @@ export function insertRole(sqlite: Database.Database, data: RoleInsertData): num
       applied_date: data.applied_date ?? null,
       salary_min: data.salary_min ?? null,
       salary_max: data.salary_max ?? null,
+      location: data.location ?? null,
+      in_office_expectation: data.in_office_expectation ?? null,
       notes: data.notes ?? null,
     });
 
@@ -52,7 +56,8 @@ export function getAll(
 ): RoleRow[] {
   let query = `
     SELECT id, company, title, url, role_status, candidacy,
-           applied_date, salary_min, salary_max, notes, created_at, updated_at
+           applied_date, salary_min, salary_max, location, in_office_expectation, notes,
+           created_at, updated_at
     FROM roles
     WHERE 1=1
   `;
@@ -84,7 +89,8 @@ export function getById(sqlite: Database.Database, id: number): RoleRow | undefi
     .prepare(
       `
             SELECT id, company, title, url, role_status, candidacy, applied_date,
-                   salary_min, salary_max, notes, created_at, updated_at
+                   salary_min, salary_max, location, in_office_expectation, notes,
+                   created_at, updated_at
             FROM roles
             WHERE id = ?
           `

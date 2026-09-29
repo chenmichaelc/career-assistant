@@ -33,6 +33,13 @@ export const schema: string = `
     applied_date  TEXT,
     salary_min    INTEGER,
     salary_max    INTEGER,
+    location      TEXT,
+    in_office_expectation TEXT CHECK(in_office_expectation IN (
+                    'Remote',
+                    'Hybrid',
+                    'In-Office',
+                    'Unknown'
+                  )),
     notes         TEXT,
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
@@ -120,6 +127,13 @@ export const schema: string = `
                                 )),
     parsed_skip_reasons         TEXT,
     parsed_termination_reasons  TEXT,
+    parsed_location             TEXT,
+    parsed_in_office_expectation TEXT CHECK(parsed_in_office_expectation IN (
+                                  'Remote',
+                                  'Hybrid',
+                                  'In-Office',
+                                  'Unknown'
+                                )),
     created_at                  TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `;

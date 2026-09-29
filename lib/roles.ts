@@ -171,6 +171,8 @@ function insertRoleRow(sqlite: Database.Database, role: RoleInput): number {
     applied_date: role.applied_date ?? null,
     salary_min: role.salary_min ?? null,
     salary_max: role.salary_max ?? null,
+    location: role.location ?? null,
+    in_office_expectation: role.in_office_expectation ?? null,
     notes: role.notes ?? null,
   });
 }

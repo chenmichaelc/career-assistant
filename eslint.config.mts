@@ -154,8 +154,17 @@ export default defineConfig([
   // ─── No raw SQL outside lib/db/, no real personal email domains ──────────
 
   {
-    files: ['lib/**/*.ts', 'server/**/*.ts', 'client/**/*.ts', 'client/**/*.vue'],
-    ignores: ['lib/db/**/*.ts', 'server/routes/query.ts'],
+    files: ['lib/**/*.ts', 'server/**/*.ts', 'client/**/*.ts', 'client/**/*.vue', 'tests/**/*.ts'],
+    ignores: [
+      // the data-access layer itself — raw SQL is the point
+      'lib/db/**/*.ts',
+      // the SQL Query tool feature — executing user-supplied SQL is the point
+      'server/routes/query.ts',
+      // unit-tests lib/db/ directly; same reason as lib/db/ above
+      'tests/unit/lib/db/**/*.ts',
+      // SQL here is test input to the feature under test, not arrangement
+      'tests/integration/routes/query.test.ts',
+    ],
     rules: {
       'no-restricted-syntax': [
         'error',
@@ -225,6 +234,18 @@ export default defineConfig([
   //     ],
   //   },
   // },
+
+  // ─── No single-character identifiers ───────────────────────────────────────
+  //
+  // Checking for the anti-pattern for variables and objects which are not
+  // semantically named.
+
+  {
+    files: ['lib/**/*.ts', 'server/**/*.ts', 'client/**/*.{ts,vue}', 'tests/**/*.ts'],
+    rules: {
+      'id-length': ['error', { min: 2, exceptions: ['i'] }],
+    },
+  },
 
   // ─── Vue client ───────────────────────────────────────────────────────────
 

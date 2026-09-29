@@ -320,9 +320,9 @@ describe('GET /api/roles', () => {
     });
     const roles = roleList.json();
     expect(roles).toHaveLength(2);
-    expect(roles.map((r: { role_status: string }) => r.role_status)).toContain('Applied');
-    expect(roles.map((r: { role_status: string }) => r.role_status)).toContain('Skipped');
-    expect(roles.map((r: { role_status: string }) => r.role_status)).not.toContain(
+    expect(roles.map((role: { role_status: string }) => role.role_status)).toContain('Applied');
+    expect(roles.map((role: { role_status: string }) => role.role_status)).toContain('Skipped');
+    expect(roles.map((role: { role_status: string }) => role.role_status)).not.toContain(
       'Pending Triage'
     );
   });
@@ -365,6 +365,30 @@ describe('GET /api/roles/:id', () => {
     expect(role.termination_reasons).toHaveLength(1);
     expect(Array.isArray(role.termination_reasons)).toBe(true);
     expect(role.termination_reasons[0].reason).toEqual(closedRole.termination_reasons[0].reason);
+  });
+
+  test('returns role with location', async () => {
+    const roleWithLocationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: { ...baseRole, location: 'Austin, TX' },
+    });
+    const { id } = roleWithLocationResponse.json();
+
+    const roleFetchResponse = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
+    expect(roleFetchResponse.json().location).toBe('Austin, TX');
+  });
+
+  test('returns role with in_office_expectation', async () => {
+    const roleWithInOfficeExpectationResponse = await app.inject({
+      method: 'POST',
+      url: '/api/roles',
+      payload: { ...baseRole, in_office_expectation: 'Hybrid' },
+    });
+    const { id } = roleWithInOfficeExpectationResponse.json();
+
+    const roleFetchResponse = await app.inject({ method: 'GET', url: `/api/roles/${id}` });
+    expect(roleFetchResponse.json().in_office_expectation).toBe('Hybrid');
   });
 
   test('returns 404 for unknown ID', async () => {

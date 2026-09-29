@@ -4,6 +4,7 @@
   "description": "Local job search state management and career tooling.",
   "main": "index.js",
   "scripts": {
+    "car-225-migrate": "ts-node scripts/car-225-migrate.ts",
     "client": "cd client && npm run dev",
     "client:host": "cd client && npm run dev -- --host",
     "format": "prettier --write .",

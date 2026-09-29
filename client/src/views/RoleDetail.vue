@@ -71,6 +71,17 @@
         >
         <div v-else class="font-mono text-sm text-dim">—</div>
       </div>
+      <div class="bg-panel border border-border rounded p-4" data-testid="location-card">
+        <div class="font-mono text-xs text-dim mb-1">location</div>
+        <div class="font-mono text-sm text-text">{{ role.location ?? '—' }}</div>
+      </div>
+      <div
+        class="bg-panel border border-border rounded p-4"
+        data-testid="in-office-expectation-card"
+      >
+        <div class="font-mono text-xs text-dim mb-1">in-office expectation</div>
+        <div class="font-mono text-sm text-text">{{ role.in_office_expectation ?? '—' }}</div>
+      </div>
     </div>
 
     <!-- Notes -->
@@ -88,7 +99,9 @@
           class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent"
         >
           <option value="">select status...</option>
-          <option v-for="s in VALID_STATUSES" :key="s" :value="s">{{ s }}</option>
+          <option v-for="status in VALID_STATUSES" :key="status" :value="status">
+            {{ status }}
+          </option>
         </select>
         <button
           @click="handleStatusUpdate"
@@ -112,19 +125,21 @@
     >
       <div class="font-mono text-xs text-dim mb-3">skip reasons</div>
       <div
-        v-for="sr in role.skip_reasons"
-        :key="sr.id"
+        v-for="skipReason in role.skip_reasons"
+        :key="skipReason.id"
         class="flex items-center justify-between py-2 border-b border-border last:border-0"
       >
         <div>
-          <span class="font-mono text-sm text-text">{{ sr.reason }}</span>
-          <span v-if="sr.note" class="font-mono text-xs text-dim ml-2">— {{ sr.note }}</span>
+          <span class="font-mono text-sm text-text">{{ skipReason.reason }}</span>
+          <span v-if="skipReason.note" class="font-mono text-xs text-dim ml-2">
+            — {{ skipReason.note }}
+          </span>
         </div>
         <button
-          @click="deleteSkipReason(sr.id)"
+          @click="deleteSkipReason(skipReason.id)"
           class="font-mono text-xs text-danger hover:opacity-80 transition-opacity ml-4"
         >
-          [{{ sr.id }}] delete
+          [{{ skipReason.id }}] delete
         </button>
       </div>
     </div>
@@ -172,19 +187,21 @@
     >
       <div class="font-mono text-xs text-dim mb-3">termination reasons</div>
       <div
-        v-for="tr in role.termination_reasons"
-        :key="tr.id"
+        v-for="terminationReason in role.termination_reasons"
+        :key="terminationReason.id"
         class="flex items-center justify-between py-2 border-b border-border last:border-0"
       >
         <div>
-          <span class="font-mono text-sm text-text">{{ tr.reason }}</span>
-          <span v-if="tr.note" class="font-mono text-xs text-dim ml-2">— {{ tr.note }}</span>
+          <span class="font-mono text-sm text-text">{{ terminationReason.reason }}</span>
+          <span v-if="terminationReason.note" class="font-mono text-xs text-dim ml-2">
+            — {{ terminationReason.note }}
+          </span>
         </div>
         <button
-          @click="deleteTerminationReason(tr.id)"
+          @click="deleteTerminationReason(terminationReason.id)"
           class="font-mono text-xs text-danger hover:opacity-80 transition-opacity ml-4"
         >
-          [{{ tr.id }}] delete
+          [{{ terminationReason.id }}] delete
         </button>
       </div>
     </div>
@@ -265,7 +282,9 @@
           class="w-full bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent mb-4"
         >
           <option value="">select reason...</option>
-          <option v-for="r in modalReasonOptions" :key="r" :value="r">{{ r }}</option>
+          <option v-for="reason in modalReasonOptions" :key="reason" :value="reason">
+            {{ reason }}
+          </option>
         </select>
 
         <div class="font-mono text-xs text-dim mb-1">

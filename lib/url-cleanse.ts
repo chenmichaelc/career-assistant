@@ -73,7 +73,7 @@ function stripTrackingParams(parsed: URL): void {
       remainingParams.push([key, value]);
     }
   }
-  remainingParams.sort(([a], [b]) => a.localeCompare(b));
+  remainingParams.sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey));
 
   parsed.search = '';
   for (const [key, value] of remainingParams) {
