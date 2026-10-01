@@ -135,6 +135,54 @@ describe('POST /api/job-stubs', () => {
   });
 });
 
+describe('POST /api/job-stubs/:id/import', () => {
+  test('imports valid parsed fields and returns 200 with the updated stub', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const importResponse = await app.inject({
+      method: 'POST',
+      url: `/api/job-stubs/${id}/import`,
+      payload: { company: 'Acme', title: 'Eng', in_office_expectation: 'Hybrid' },
+    });
+
+    expect(importResponse.statusCode).toBe(200);
+    expect(importResponse.json().parsed_company).toBe('Acme');
+    expect(importResponse.json().status).toBe('Parsed');
+  });
+
+  test('an invalid enum value returns 400 with field-level issues', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const importResponse = await app.inject({
+      method: 'POST',
+      url: `/api/job-stubs/${id}/import`,
+      payload: { in_office_expectation: 'Not A Real Value' },
+    });
+
+    expect(importResponse.statusCode).toBe(400);
+    expect(importResponse.json().error).toContain('in_office_expectation');
+  });
+
+  test('a nonexistent stub id returns 404', async () => {
+    const importResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs/9999/import',
+      payload: {},
+    });
+    expect(importResponse.statusCode).toBe(404);
+  });
+});
+
 describe('DELETE /api/job-stubs/:id', () => {
   test('deletes an existing stub and returns 204', async () => {
     const createResponse = await app.inject({

@@ -156,6 +156,60 @@ export function setParsedInOfficeExpectation(
     .run({ id, in_office_expectation: inOfficeExpectation });
 }
 
+export interface ParsedFieldsUpdate {
+  parsed_company?: string | null;
+  parsed_title?: string | null;
+  parsed_description?: string | null;
+  parsed_salary_min?: number | null;
+  parsed_salary_max?: number | null;
+  parsed_candidacy?: string | null;
+  parsed_role_status?: string | null;
+  parsed_skip_reasons?: string | null;
+  parsed_termination_reasons?: string | null;
+  parsed_location?: string | null;
+  parsed_in_office_expectation?: string | null;
+}
+
+// eslint-disable-next-line max-lines-per-function -- single query-builder, one concern; see semantic-testing-rules.md's "max-lines-per-function false positive" section
+export function setParsedFields(
+  sqlite: Database.Database,
+  id: number,
+  data: ParsedFieldsUpdate
+): Database.RunResult {
+  return sqlite
+    .prepare(
+      `
+                UPDATE job_stubs
+                SET parsed_company = @parsed_company,
+                    parsed_title = @parsed_title,
+                    parsed_description = @parsed_description,
+                    parsed_salary_min = @parsed_salary_min,
+                    parsed_salary_max = @parsed_salary_max,
+                    parsed_candidacy = @parsed_candidacy,
+                    parsed_role_status = @parsed_role_status,
+                    parsed_skip_reasons = @parsed_skip_reasons,
+                    parsed_termination_reasons = @parsed_termination_reasons,
+                    parsed_location = @parsed_location,
+                    parsed_in_office_expectation = @parsed_in_office_expectation
+                WHERE id = @id
+            `
+    )
+    .run({
+      id,
+      parsed_company: data.parsed_company ?? null,
+      parsed_title: data.parsed_title ?? null,
+      parsed_description: data.parsed_description ?? null,
+      parsed_salary_min: data.parsed_salary_min ?? null,
+      parsed_salary_max: data.parsed_salary_max ?? null,
+      parsed_candidacy: data.parsed_candidacy ?? null,
+      parsed_role_status: data.parsed_role_status ?? null,
+      parsed_skip_reasons: data.parsed_skip_reasons ?? null,
+      parsed_termination_reasons: data.parsed_termination_reasons ?? null,
+      parsed_location: data.parsed_location ?? null,
+      parsed_in_office_expectation: data.parsed_in_office_expectation ?? null,
+    });
+}
+
 export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {
   return sqlite.prepare(`DELETE FROM job_stubs WHERE id = ?`).run(id);
 }

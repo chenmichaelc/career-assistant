@@ -2,7 +2,14 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import Database from 'better-sqlite3';
-import { addStub, DuplicateStubUrlError, DuplicateRoleUrlError } from '../../lib/job-stubs';
+import {
+  addStub,
+  importParsedFields,
+  DuplicateStubUrlError,
+  DuplicateRoleUrlError,
+  JobStubNotFoundError,
+  InvalidParsedFieldsError,
+} from '../../lib/job-stubs';
 import { InvalidUrlError } from '../../lib/url-cleanse';
 import { db } from '../../lib/db';
 
@@ -37,6 +44,26 @@ export async function jobStubsRouter(fastify: FastifyInstance, options: PluginOp
       }
       if (err instanceof DuplicateStubUrlError || err instanceof DuplicateRoleUrlError) {
         return reply.status(409).send({ error: (err as Error).message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── POST /api/job-stubs/:id/import ─────────────────────────────────────────
+
+  fastify.post('/:id/import', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const stubId = parseInt(id, 10);
+
+    try {
+      const stub = importParsedFields(sqlite, stubId, request.body);
+      return reply.status(200).send(stub);
+    } catch (err) {
+      if (err instanceof JobStubNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      if (err instanceof InvalidParsedFieldsError) {
+        return reply.status(400).send({ error: err.message });
       }
       return reply.status(400).send({ error: (err as Error).message });
     }
