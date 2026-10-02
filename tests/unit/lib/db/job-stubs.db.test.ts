@@ -159,12 +159,12 @@ describe('getAllByUrlPrefix', () => {
 // ─── setRawContent ──────────────────────────────────────────────────
 
 describe('setRawContent', () => {
-  test('stores the raw content and advances status to Scraped', () => {
+  test('stores the raw content without changing status', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
     db.jobStubs.setRawContent(sqlite, id, 'Full posting text.');
     const stub = db.jobStubs.getById(sqlite, id);
     expect(stub?.raw_content).toBe('Full posting text.');
-    expect(stub?.status).toBe('Scraped');
+    expect(stub?.status).toBe('Stubbed');
   });
 });
 

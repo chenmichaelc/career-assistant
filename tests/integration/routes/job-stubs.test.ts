@@ -333,6 +333,52 @@ describe('PATCH /api/job-stubs/:id/status', () => {
   });
 });
 
+describe('PATCH /api/job-stubs/:id/raw-content', () => {
+  test('updates the raw content and returns 200, without changing status', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const rawContentResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/job-stubs/${id}/raw-content`,
+      payload: { raw_content: 'Full posting text.' },
+    });
+
+    expect(rawContentResponse.statusCode).toBe(200);
+    expect(rawContentResponse.json().raw_content).toBe('Full posting text.');
+    expect(rawContentResponse.json().status).toBe('Stubbed');
+  });
+
+  test('missing raw_content returns 400', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const rawContentResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/job-stubs/${id}/raw-content`,
+      payload: {},
+    });
+    expect(rawContentResponse.statusCode).toBe(400);
+  });
+
+  test('a nonexistent stub id returns 404', async () => {
+    const rawContentResponse = await app.inject({
+      method: 'PATCH',
+      url: '/api/job-stubs/9999/raw-content',
+      payload: { raw_content: 'text' },
+    });
+    expect(rawContentResponse.statusCode).toBe(404);
+  });
+});
+
 describe('DELETE /api/job-stubs/:id', () => {
   test('deletes an existing stub and returns 204', async () => {
     const createResponse = await app.inject({

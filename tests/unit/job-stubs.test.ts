@@ -6,6 +6,7 @@ import {
   addStub,
   patchParsedFields,
   updateJobStubStatus,
+  updateRawContent,
   DuplicateStubUrlError,
   DuplicateRoleUrlError,
   JobStubNotFoundError,
@@ -104,5 +105,20 @@ describe('updateJobStubStatus', () => {
 
   test('throws JobStubNotFoundError for a nonexistent stub', () => {
     expect(() => updateJobStubStatus(sqlite, 9999, 'Parsed')).toThrow(JobStubNotFoundError);
+  });
+});
+
+// ─── updateRawContent ───────────────────────────────────────────────────
+
+describe('updateRawContent', () => {
+  test('updates the raw content without changing status', () => {
+    const id = addStub(sqlite, 'https://example.com/jobs/1');
+    const stub = updateRawContent(sqlite, id, 'Full posting text.');
+    expect(stub.raw_content).toBe('Full posting text.');
+    expect(stub.status).toBe('Stubbed');
+  });
+
+  test('throws JobStubNotFoundError for a nonexistent stub', () => {
+    expect(() => updateRawContent(sqlite, 9999, 'text')).toThrow(JobStubNotFoundError);
   });
 });

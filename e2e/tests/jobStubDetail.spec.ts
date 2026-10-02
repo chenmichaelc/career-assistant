@@ -107,6 +107,67 @@ test('Editing a parsed field and saving persists the change', async ({ page }, t
   });
 });
 
+test('Editing raw content and saving persists the change', async ({ page }, testInfo) => {
+  const jobStubDetailPage = new JobStubDetailPage(page);
+  const url = e2eStubUrl(testInfo);
+
+  await test.step('Arrange: Queue a stub and navigate to its detail page', async () => {
+    const response = await page.request.post('/api/job-stubs', { data: { url } });
+    await jobStubDetailPage.goto((await response.json()).id);
+  });
+
+  await test.step('Act: Edit the raw content and save', async () => {
+    await jobStubDetailPage.rawContentTextarea.fill('[E2E] Full posting text.');
+    await jobStubDetailPage.saveFieldsButton.click();
+  });
+
+  await test.step('Assert: The raw content persists after a reload', async () => {
+    await page.reload();
+    await expect(jobStubDetailPage.rawContentTextarea).toHaveValue('[E2E] Full posting text.');
+  });
+
+  await test.step('Assert: Saving a raw content edit does not advance status', async () => {
+    await expect(jobStubDetailPage.statusValue).toHaveText('Stubbed');
+  });
+});
+
+test('Adding and removing a skip reason persists the change', async ({ page }, testInfo) => {
+  const jobStubDetailPage = new JobStubDetailPage(page);
+  const url = e2eStubUrl(testInfo);
+
+  await test.step('Arrange: Queue a stub and navigate to its detail page', async () => {
+    const response = await page.request.post('/api/job-stubs', { data: { url } });
+    await jobStubDetailPage.goto((await response.json()).id);
+  });
+
+  await test.step('Act: Set role status to Skipped so the add-reason control appears', async () => {
+    await jobStubDetailPage.roleStatusSelect.selectOption('Skipped');
+    await expect(jobStubDetailPage.addSkipReasonSection).toBeVisible();
+  });
+
+  await test.step('Act: Add a skip reason and save', async () => {
+    await jobStubDetailPage.addSkipReasonSelect.selectOption({ index: 1 });
+    await jobStubDetailPage.addSkipReasonNoteInput.fill('[E2E] note');
+    await jobStubDetailPage.addSkipReasonButton.click();
+    await jobStubDetailPage.saveFieldsButton.click();
+  });
+
+  await test.step('Assert: The skip reason persists after a reload', async () => {
+    await page.reload();
+    await expect(jobStubDetailPage.skipReasonRows).toHaveCount(1);
+  });
+
+  await test.step('Act: Remove the skip reason and save', async () => {
+    await jobStubDetailPage.removeSkipReasonButtons.first().click();
+    await jobStubDetailPage.saveFieldsButton.click();
+  });
+
+  await test.step('Assert: The skip reason is gone after a reload', async () => {
+    await page.reload();
+    await expect(jobStubDetailPage.skipReasonRows).toHaveCount(0);
+  });
+});
+
 test('Updating status via the status control persists the change', async ({ page }, testInfo) => {
   const jobStubDetailPage = new JobStubDetailPage(page);
   const url = e2eStubUrl(testInfo);

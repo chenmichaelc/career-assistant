@@ -7,6 +7,7 @@ import {
   importParsedFields,
   patchParsedFields,
   updateJobStubStatus,
+  updateRawContent,
   DuplicateStubUrlError,
   DuplicateRoleUrlError,
   JobStubNotFoundError,
@@ -115,6 +116,28 @@ export async function jobStubsRouter(fastify: FastifyInstance, options: PluginOp
 
     try {
       const stub = updateJobStubStatus(sqlite, stubId, status);
+      return reply.status(200).send(stub);
+    } catch (err) {
+      if (err instanceof JobStubNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── PATCH /api/job-stubs/:id/raw-content ────────────────────────────────────
+
+  fastify.patch('/:id/raw-content', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const stubId = parseInt(id, 10);
+    const { raw_content: rawContent } = request.body as { raw_content?: string };
+
+    if (rawContent == null) {
+      return reply.status(400).send({ error: 'raw_content is required.' });
+    }
+
+    try {
+      const stub = updateRawContent(sqlite, stubId, rawContent);
       return reply.status(200).send(stub);
     } catch (err) {
       if (err instanceof JobStubNotFoundError) {

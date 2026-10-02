@@ -85,7 +85,7 @@ export function setRawContent(
     .prepare(
       `
                 UPDATE job_stubs
-                SET raw_content = @raw_content, status = 'Scraped'
+                SET raw_content = @raw_content
                 WHERE id = @id
             `
     )

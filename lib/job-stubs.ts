@@ -200,3 +200,13 @@ export function updateJobStubStatus(
   db.jobStubs.updateStatus(sqlite, stubId, status);
   return db.jobStubs.getById(sqlite, stubId)!;
 }
+
+export function updateRawContent(
+  sqlite: Database.Database,
+  stubId: number,
+  rawContent: string
+): JobStubRow {
+  requireStub(sqlite, stubId);
+  db.jobStubs.setRawContent(sqlite, stubId, rawContent);
+  return db.jobStubs.getById(sqlite, stubId)!;
+}
