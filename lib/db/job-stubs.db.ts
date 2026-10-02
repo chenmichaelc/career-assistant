@@ -85,7 +85,7 @@ export function setRawContent(
     .prepare(
       `
                 UPDATE job_stubs
-                SET raw_content = @raw_content, status = 'Scraped'
+                SET raw_content = @raw_content
                 WHERE id = @id
             `
     )
@@ -170,44 +170,36 @@ export interface ParsedFieldsUpdate {
   parsed_in_office_expectation?: string | null;
 }
 
-// eslint-disable-next-line max-lines-per-function -- single query-builder, one concern; see semantic-testing-rules.md's "max-lines-per-function false positive" section
 export function setParsedFields(
   sqlite: Database.Database,
   id: number,
   data: ParsedFieldsUpdate
-): Database.RunResult {
-  return sqlite
-    .prepare(
-      `
-                UPDATE job_stubs
-                SET parsed_company = @parsed_company,
-                    parsed_title = @parsed_title,
-                    parsed_description = @parsed_description,
-                    parsed_salary_min = @parsed_salary_min,
-                    parsed_salary_max = @parsed_salary_max,
-                    parsed_candidacy = @parsed_candidacy,
-                    parsed_role_status = @parsed_role_status,
-                    parsed_skip_reasons = @parsed_skip_reasons,
-                    parsed_termination_reasons = @parsed_termination_reasons,
-                    parsed_location = @parsed_location,
-                    parsed_in_office_expectation = @parsed_in_office_expectation
-                WHERE id = @id
-            `
-    )
-    .run({
-      id,
-      parsed_company: data.parsed_company ?? null,
-      parsed_title: data.parsed_title ?? null,
-      parsed_description: data.parsed_description ?? null,
-      parsed_salary_min: data.parsed_salary_min ?? null,
-      parsed_salary_max: data.parsed_salary_max ?? null,
-      parsed_candidacy: data.parsed_candidacy ?? null,
-      parsed_role_status: data.parsed_role_status ?? null,
-      parsed_skip_reasons: data.parsed_skip_reasons ?? null,
-      parsed_termination_reasons: data.parsed_termination_reasons ?? null,
-      parsed_location: data.parsed_location ?? null,
-      parsed_in_office_expectation: data.parsed_in_office_expectation ?? null,
-    });
+): Database.RunResult | null {
+  return patchParsedFields(sqlite, id, {
+    parsed_company: data.parsed_company ?? null,
+    parsed_title: data.parsed_title ?? null,
+    parsed_description: data.parsed_description ?? null,
+    parsed_salary_min: data.parsed_salary_min ?? null,
+    parsed_salary_max: data.parsed_salary_max ?? null,
+    parsed_candidacy: data.parsed_candidacy ?? null,
+    parsed_role_status: data.parsed_role_status ?? null,
+    parsed_skip_reasons: data.parsed_skip_reasons ?? null,
+    parsed_termination_reasons: data.parsed_termination_reasons ?? null,
+    parsed_location: data.parsed_location ?? null,
+    parsed_in_office_expectation: data.parsed_in_office_expectation ?? null,
+  });
+}
+
+export function patchParsedFields(
+  sqlite: Database.Database,
+  id: number,
+  data: ParsedFieldsUpdate
+): Database.RunResult | null {
+  const columns = Object.keys(data) as (keyof ParsedFieldsUpdate)[];
+  if (columns.length === 0) return null;
+
+  const setClause = columns.map((column) => `${column} = @${column}`).join(', ');
+  return sqlite.prepare(`UPDATE job_stubs SET ${setClause} WHERE id = @id`).run({ id, ...data });
 }
 
 export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {

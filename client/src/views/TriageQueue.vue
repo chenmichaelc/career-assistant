@@ -49,6 +49,12 @@
           {{ stub.url }}
         </a>
         <div class="flex items-center gap-3 shrink-0">
+          <router-link
+            :to="`/job-stubs/${stub.id}`"
+            class="border border-border text-dim font-mono text-sm px-4 py-1.5 rounded hover:text-text transition-colors"
+          >
+            view
+          </router-link>
           <button
             @click="promote(stub)"
             class="bg-accent text-surface font-mono text-sm px-4 py-1.5 rounded hover:opacity-90 transition-opacity"

@@ -17,6 +17,15 @@ export const VALID_STATUSES = [
 
 export const VALID_IN_OFFICE_EXPECTATIONS = ['Remote', 'Hybrid', 'In-Office', 'Unknown'] as const;
 
+export const VALID_CANDIDACIES = ['Slam Dunk', 'Competitive', 'Reach', 'Skip'] as const;
+
+export const VALID_JOB_STUB_STATUSES = [
+  'Stubbed',
+  'Scraped',
+  'Parsed',
+  'Ready to Promote',
+] as const;
+
 export const VALID_SKIP_REASONS = [
   'Wrong Industry',
   'Culture',
