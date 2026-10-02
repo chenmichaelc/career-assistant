@@ -171,11 +171,7 @@
             </button>
           </div>
 
-          <div
-            v-if="form.role_status === 'Skipped'"
-            class="flex gap-3 flex-wrap mt-2"
-            data-testid="add-skip-reason-section"
-          >
+          <div class="flex gap-3 flex-wrap mt-2" data-testid="add-skip-reason-section">
             <select
               v-model="addSkipReasonValue"
               class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent"
@@ -232,11 +228,7 @@
             </button>
           </div>
 
-          <div
-            v-if="form.role_status === 'Closed'"
-            class="flex gap-3 flex-wrap mt-2"
-            data-testid="add-termination-reason-section"
-          >
+          <div class="flex gap-3 flex-wrap mt-2" data-testid="add-termination-reason-section">
             <select
               v-model="addTerminationReasonValue"
               class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent"

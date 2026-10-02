@@ -140,12 +140,8 @@ test('Adding and removing a skip reason persists the change', async ({ page }, t
     await jobStubDetailPage.goto((await response.json()).id);
   });
 
-  await test.step('Act: Set role status to Skipped so the add-reason control appears', async () => {
-    await jobStubDetailPage.roleStatusSelect.selectOption('Skipped');
-    await expect(jobStubDetailPage.addSkipReasonSection).toBeVisible();
-  });
-
   await test.step('Act: Add a skip reason and save', async () => {
+    await expect(jobStubDetailPage.addSkipReasonSection).toBeVisible();
     await jobStubDetailPage.addSkipReasonSelect.selectOption({ index: 1 });
     await jobStubDetailPage.addSkipReasonNoteInput.fill('[E2E] note');
     await jobStubDetailPage.addSkipReasonButton.click();
