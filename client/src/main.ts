@@ -8,6 +8,7 @@ import RoleList from './views/RoleList.vue';
 import RoleDetail from './views/RoleDetail.vue';
 import AddRole from './views/AddRole.vue';
 import TriageQueue from './views/TriageQueue.vue';
+import JobStubDetail from './views/JobStubDetail.vue';
 import SqlQuery from './views/SqlQuery.vue';
 import DiffVisualizer from './views/DiffVisualizer.vue';
 import ResumeConverter from './views/ResumeConverter.vue';
@@ -19,6 +20,7 @@ const router = createRouter({
     { path: '/roles/:id', component: RoleDetail },
     { path: '/add', component: AddRole },
     { path: '/triage', component: TriageQueue },
+    { path: '/job-stubs/:id', component: JobStubDetail },
     { path: '/query', component: SqlQuery },
     { path: '/utilities/diff', component: DiffVisualizer },
     { path: '/utilities/resume-converter', component: ResumeConverter },

@@ -4,7 +4,6 @@
   "description": "Local job search state management and career tooling.",
   "main": "index.js",
   "scripts": {
-    "car-225-migrate": "ts-node scripts/car-225-migrate.ts",
     "client": "cd client && npm run dev",
     "client:host": "cd client && npm run dev -- --host",
     "format": "prettier --write .",
@@ -27,7 +26,8 @@
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "better-sqlite3": "^12.10.0",
-    "fastify": "^5.12.5"
+    "fastify": "^5.12.5",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
