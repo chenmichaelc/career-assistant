@@ -183,6 +183,156 @@ describe('POST /api/job-stubs/:id/import', () => {
   });
 });
 
+describe('GET /api/job-stubs/:id', () => {
+  test('returns the matching stub', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const getResponse = await app.inject({ method: 'GET', url: `/api/job-stubs/${id}` });
+    expect(getResponse.statusCode).toBe(200);
+    expect(getResponse.json().url).toBe('https://example.com/jobs/1');
+  });
+
+  test('a nonexistent id returns 404', async () => {
+    const getResponse = await app.inject({ method: 'GET', url: '/api/job-stubs/9999' });
+    expect(getResponse.statusCode).toBe(404);
+  });
+});
+
+describe('PATCH /api/job-stubs/:id/parsed-fields', () => {
+  test('patches only the provided fields and returns 200 with the updated stub', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+    await app.inject({
+      method: 'POST',
+      url: `/api/job-stubs/${id}/import`,
+      payload: { company: 'Acme', title: 'Eng' },
+    });
+
+    const patchResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/job-stubs/${id}/parsed-fields`,
+      payload: { company: 'Updated Co' },
+    });
+
+    expect(patchResponse.statusCode).toBe(200);
+    expect(patchResponse.json().parsed_company).toBe('Updated Co');
+    expect(patchResponse.json().parsed_title).toBe('Eng');
+  });
+
+  test('does not advance status', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const patchResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/job-stubs/${id}/parsed-fields`,
+      payload: { company: 'Acme' },
+    });
+
+    expect(patchResponse.json().status).toBe('Stubbed');
+  });
+
+  test('an invalid enum value returns 400', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const patchResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/job-stubs/${id}/parsed-fields`,
+      payload: { candidacy: 'Not A Real Value' },
+    });
+
+    expect(patchResponse.statusCode).toBe(400);
+  });
+
+  test('a nonexistent stub id returns 404', async () => {
+    const patchResponse = await app.inject({
+      method: 'PATCH',
+      url: '/api/job-stubs/9999/parsed-fields',
+      payload: { company: 'Acme' },
+    });
+    expect(patchResponse.statusCode).toBe(404);
+  });
+});
+
+describe('PATCH /api/job-stubs/:id/status', () => {
+  test('updates the status and returns 200 with the updated stub', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const statusResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/job-stubs/${id}/status`,
+      payload: { status: 'Ready to Promote' },
+    });
+
+    expect(statusResponse.statusCode).toBe(200);
+    expect(statusResponse.json().status).toBe('Ready to Promote');
+  });
+
+  test('missing status returns 400', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const statusResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/job-stubs/${id}/status`,
+      payload: {},
+    });
+    expect(statusResponse.statusCode).toBe(400);
+  });
+
+  test('an invalid status value returns 400', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'https://example.com/jobs/1' },
+    });
+    const { id } = createResponse.json();
+
+    const statusResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/job-stubs/${id}/status`,
+      payload: { status: 'Not A Real Value' },
+    });
+    expect(statusResponse.statusCode).toBe(400);
+  });
+
+  test('a nonexistent stub id returns 404', async () => {
+    const statusResponse = await app.inject({
+      method: 'PATCH',
+      url: '/api/job-stubs/9999/status',
+      payload: { status: 'Parsed' },
+    });
+    expect(statusResponse.statusCode).toBe(404);
+  });
+});
+
 describe('DELETE /api/job-stubs/:id', () => {
   test('deletes an existing stub and returns 204', async () => {
     const createResponse = await app.inject({

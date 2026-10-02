@@ -262,6 +262,40 @@ describe('setParsedFields', () => {
   });
 });
 
+// ─── patchParsedFields ──────────────────────────────────────────────
+
+describe('patchParsedFields', () => {
+  test('writes only the provided columns, leaving the rest untouched', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    db.jobStubs.setParsedFields(sqlite, id, { parsed_company: 'Acme', parsed_title: 'Eng' });
+
+    db.jobStubs.patchParsedFields(sqlite, id, { parsed_company: 'Updated Co' });
+
+    const stub = db.jobStubs.getById(sqlite, id);
+    expect(stub?.parsed_company).toBe('Updated Co');
+    expect(stub?.parsed_title).toBe('Eng');
+  });
+
+  test('a call with no keys is a no-op', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    db.jobStubs.setParsedFields(sqlite, id, { parsed_company: 'Acme' });
+
+    const result = db.jobStubs.patchParsedFields(sqlite, id, {});
+
+    expect(result).toBeNull();
+    expect(db.jobStubs.getById(sqlite, id)?.parsed_company).toBe('Acme');
+  });
+
+  test('an explicit null clears a field rather than leaving it untouched', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    db.jobStubs.setParsedFields(sqlite, id, { parsed_company: 'Acme' });
+
+    db.jobStubs.patchParsedFields(sqlite, id, { parsed_company: null });
+
+    expect(db.jobStubs.getById(sqlite, id)?.parsed_company).toBeNull();
+  });
+});
+
 // ─── deleteById ─────────────────────────────────────────────────────
 
 describe('deleteById', () => {

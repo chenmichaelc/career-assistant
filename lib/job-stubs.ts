@@ -2,7 +2,7 @@
 
 import Database from 'better-sqlite3';
 import { z } from 'zod';
-import { db } from './db';
+import { db, ParsedFieldsUpdate } from './db';
 import { cleanseUrl } from './url-cleanse';
 import {
   JobStubRow,
@@ -11,6 +11,8 @@ import {
   VALID_SKIP_REASONS,
   VALID_TERMINATION_REASONS,
   VALID_IN_OFFICE_EXPECTATIONS,
+  VALID_JOB_STUB_STATUSES,
+  isJobStubStatus,
 } from './types';
 
 export class DuplicateStubUrlError extends Error {
@@ -93,14 +95,7 @@ function requireStub(sqlite: Database.Database, stubId: number): void {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function -- flat field-by-field mapping, one concern; see semantic-testing-rules.md's "max-lines-per-function false positive" section
-export function importParsedFields(
-  sqlite: Database.Database,
-  stubId: number,
-  rawJson: unknown
-): JobStubRow {
-  requireStub(sqlite, stubId);
-
+function validateParsedFields(rawJson: unknown): ParsedJobStubFields {
   const result = ParsedJobStubFieldsSchema.safeParse(rawJson);
   if (!result.success) {
     const issues = result.error.issues.map(
@@ -108,29 +103,100 @@ export function importParsedFields(
     );
     throw new InvalidParsedFieldsError(issues);
   }
+  return result.data;
+}
 
-  const fields = result.data;
+function toParsedFieldsUpdate(fields: ParsedJobStubFields): ParsedFieldsUpdate {
+  return {
+    parsed_company: fields.company ?? null,
+    parsed_title: fields.title ?? null,
+    parsed_description: fields.description ?? null,
+    parsed_salary_min: fields.salary_min ?? null,
+    parsed_salary_max: fields.salary_max ?? null,
+    parsed_candidacy: fields.candidacy ?? null,
+    parsed_role_status: fields.role_status ?? null,
+    parsed_skip_reasons: fields.skip_reasons ? JSON.stringify(fields.skip_reasons) : null,
+    parsed_termination_reasons: fields.termination_reasons
+      ? JSON.stringify(fields.termination_reasons)
+      : null,
+    parsed_location: fields.location ?? null,
+    parsed_in_office_expectation: fields.in_office_expectation ?? null,
+  };
+}
+
+const JSON_FIELD_TO_COLUMN: Record<string, keyof ParsedFieldsUpdate> = {
+  company: 'parsed_company',
+  title: 'parsed_title',
+  description: 'parsed_description',
+  salary_min: 'parsed_salary_min',
+  salary_max: 'parsed_salary_max',
+  candidacy: 'parsed_candidacy',
+  role_status: 'parsed_role_status',
+  skip_reasons: 'parsed_skip_reasons',
+  termination_reasons: 'parsed_termination_reasons',
+  location: 'parsed_location',
+  in_office_expectation: 'parsed_in_office_expectation',
+};
+
+export function importParsedFields(
+  sqlite: Database.Database,
+  stubId: number,
+  rawJson: unknown
+): JobStubRow {
+  requireStub(sqlite, stubId);
+  const fields = validateParsedFields(rawJson);
 
   const run = sqlite.transaction(() => {
-    db.jobStubs.setParsedFields(sqlite, stubId, {
-      parsed_company: fields.company ?? null,
-      parsed_title: fields.title ?? null,
-      parsed_description: fields.description ?? null,
-      parsed_salary_min: fields.salary_min ?? null,
-      parsed_salary_max: fields.salary_max ?? null,
-      parsed_candidacy: fields.candidacy ?? null,
-      parsed_role_status: fields.role_status ?? null,
-      parsed_skip_reasons: fields.skip_reasons ? JSON.stringify(fields.skip_reasons) : null,
-      parsed_termination_reasons: fields.termination_reasons
-        ? JSON.stringify(fields.termination_reasons)
-        : null,
-      parsed_location: fields.location ?? null,
-      parsed_in_office_expectation: fields.in_office_expectation ?? null,
-    });
+    db.jobStubs.setParsedFields(sqlite, stubId, toParsedFieldsUpdate(fields));
     db.jobStubs.updateStatus(sqlite, stubId, 'Parsed');
   });
-
   run();
 
+  return db.jobStubs.getById(sqlite, stubId)!;
+}
+
+export function patchParsedFields(
+  sqlite: Database.Database,
+  stubId: number,
+  rawJson: unknown
+): JobStubRow {
+  requireStub(sqlite, stubId);
+  const fields = validateParsedFields(rawJson);
+
+  if (typeof rawJson !== 'object' || rawJson === null) {
+    throw new InvalidParsedFieldsError(['(root): must be a JSON object.']);
+  }
+  const providedKeys = rawJson as Record<string, unknown>;
+
+  const fullUpdate = toParsedFieldsUpdate(fields);
+  const update: ParsedFieldsUpdate = {};
+  for (const [jsonField, column] of Object.entries(JSON_FIELD_TO_COLUMN)) {
+    if (jsonField in providedKeys) {
+      // Same key on both sides by construction (column comes from
+      // fullUpdate's own type) — the dynamic keyof index is what defeats
+      // TS's narrowing here, not an actual type mismatch.
+      (update as Record<string, unknown>)[column] = fullUpdate[column];
+    }
+  }
+
+  db.jobStubs.patchParsedFields(sqlite, stubId, update);
+
+  return db.jobStubs.getById(sqlite, stubId)!;
+}
+
+export function updateJobStubStatus(
+  sqlite: Database.Database,
+  stubId: number,
+  status: string
+): JobStubRow {
+  requireStub(sqlite, stubId);
+
+  if (!isJobStubStatus(status)) {
+    throw new Error(
+      `Invalid status: "${status}". Valid values: ${VALID_JOB_STUB_STATUSES.join(', ')}.`
+    );
+  }
+
+  db.jobStubs.updateStatus(sqlite, stubId, status);
   return db.jobStubs.getById(sqlite, stubId)!;
 }

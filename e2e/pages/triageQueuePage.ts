@@ -60,6 +60,10 @@ export class TriageQueuePage {
     return this.page.getByTestId('stub-row').filter({ hasText: url });
   }
 
+  viewLink(url: string): Locator {
+    return this.stubRow(url).getByRole('link', { name: 'view' });
+  }
+
   promoteButton(url: string): Locator {
     return this.stubRow(url).getByRole('button', { name: 'promote' });
   }

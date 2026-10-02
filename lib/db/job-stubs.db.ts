@@ -210,6 +210,18 @@ export function setParsedFields(
     });
 }
 
+export function patchParsedFields(
+  sqlite: Database.Database,
+  id: number,
+  data: ParsedFieldsUpdate
+): Database.RunResult | null {
+  const columns = Object.keys(data) as (keyof ParsedFieldsUpdate)[];
+  if (columns.length === 0) return null;
+
+  const setClause = columns.map((column) => `${column} = @${column}`).join(', ');
+  return sqlite.prepare(`UPDATE job_stubs SET ${setClause} WHERE id = @id`).run({ id, ...data });
+}
+
 export function deleteById(sqlite: Database.Database, id: number): Database.RunResult {
   return sqlite.prepare(`DELETE FROM job_stubs WHERE id = ?`).run(id);
 }
