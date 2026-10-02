@@ -94,7 +94,7 @@ test('Editing a parsed field and saving persists the change', async ({ page }, t
 
   await test.step('Act: Edit the company field and save', async () => {
     await jobStubDetailPage.companyInput.fill('[E2E] Manually Edited Co');
-    await jobStubDetailPage.saveFieldsButton.click();
+    await jobStubDetailPage.save();
   });
 
   await test.step('Assert: The field persists after a reload', async () => {
@@ -118,7 +118,7 @@ test('Editing raw content and saving persists the change', async ({ page }, test
 
   await test.step('Act: Edit the raw content and save', async () => {
     await jobStubDetailPage.rawContentTextarea.fill('[E2E] Full posting text.');
-    await jobStubDetailPage.saveFieldsButton.click();
+    await jobStubDetailPage.save();
   });
 
   await test.step('Assert: The raw content persists after a reload', async () => {
@@ -145,7 +145,7 @@ test('Adding and removing a skip reason persists the change', async ({ page }, t
     await jobStubDetailPage.addSkipReasonSelect.selectOption({ index: 1 });
     await jobStubDetailPage.addSkipReasonNoteInput.fill('[E2E] note');
     await jobStubDetailPage.addSkipReasonButton.click();
-    await jobStubDetailPage.saveFieldsButton.click();
+    await jobStubDetailPage.save();
   });
 
   await test.step('Assert: The skip reason persists after a reload', async () => {
@@ -155,7 +155,7 @@ test('Adding and removing a skip reason persists the change', async ({ page }, t
 
   await test.step('Act: Remove the skip reason and save', async () => {
     await jobStubDetailPage.removeSkipReasonButtons.first().click();
-    await jobStubDetailPage.saveFieldsButton.click();
+    await jobStubDetailPage.save();
   });
 
   await test.step('Assert: The skip reason is gone after a reload', async () => {

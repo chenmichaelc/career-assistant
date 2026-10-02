@@ -1,6 +1,6 @@
 // e2e/pages/jobStubDetailPage.ts
 
-import { type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export class JobStubDetailPage {
   readonly page: Page;
@@ -35,6 +35,7 @@ export class JobStubDetailPage {
   readonly roleStatusSelect: Locator;
   readonly saveFieldsButton: Locator;
   readonly saveError: Locator;
+  readonly saveSuccess: Locator;
 
   // ─── Skip / termination reasons ──────────────────────────────────────────
 
@@ -77,6 +78,7 @@ export class JobStubDetailPage {
     this.roleStatusSelect = this.parsedFieldsSection.getByTestId('parsed-role-status-select');
     this.saveFieldsButton = this.parsedFieldsSection.getByTestId('save-fields-button');
     this.saveError = this.parsedFieldsSection.getByTestId('save-error');
+    this.saveSuccess = this.parsedFieldsSection.getByTestId('save-success');
 
     this.skipReasonRows = this.parsedFieldsSection.getByTestId('skip-reason-row');
     this.addSkipReasonSection = this.parsedFieldsSection.getByTestId('add-skip-reason-section');
@@ -99,6 +101,12 @@ export class JobStubDetailPage {
     this.removeTerminationReasonButtons = this.parsedFieldsSection.getByTestId(
       'remove-termination-reason-button'
     );
+  }
+
+  // Waits for the save to finish so a following reload can't abort the in-flight request.
+  async save() {
+    await this.saveFieldsButton.click();
+    await expect(this.saveSuccess).toBeVisible();
   }
 
   async goto(id: number) {

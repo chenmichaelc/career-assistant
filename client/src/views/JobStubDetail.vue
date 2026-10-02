@@ -272,7 +272,13 @@
       <div v-if="saveError" class="font-mono text-danger text-xs mt-2" data-testid="save-error">
         {{ saveError }}
       </div>
-      <div v-if="saveSuccess" class="font-mono text-success text-xs mt-2">{{ saveSuccess }}</div>
+      <div
+        v-if="saveSuccess"
+        class="font-mono text-success text-xs mt-2"
+        data-testid="save-success"
+      >
+        {{ saveSuccess }}
+      </div>
     </div>
   </div>
 </template>
