@@ -19,3 +19,4 @@ export type { RoleInsertData } from './roles.db';
 export type { SkipReasonRow } from './skip-reasons.db';
 export type { TerminationReasonRow } from './termination-reasons.db';
 export type { JobDescriptionRow } from './job-descriptions.db';
+export type { ParsedFieldsUpdate } from './job-stubs.db';

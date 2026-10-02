@@ -159,12 +159,12 @@ describe('getAllByUrlPrefix', () => {
 // ─── setRawContent ──────────────────────────────────────────────────
 
 describe('setRawContent', () => {
-  test('stores the raw content and advances status to Scraped', () => {
+  test('stores the raw content without changing status', () => {
     const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
     db.jobStubs.setRawContent(sqlite, id, 'Full posting text.');
     const stub = db.jobStubs.getById(sqlite, id);
     expect(stub?.raw_content).toBe('Full posting text.');
-    expect(stub?.status).toBe('Scraped');
+    expect(stub?.status).toBe('Stubbed');
   });
 });
 
@@ -259,6 +259,40 @@ describe('setParsedFields', () => {
     const stub = db.jobStubs.getById(sqlite, id);
     expect(stub?.parsed_company).toBe('Only Company');
     expect(stub?.parsed_title).toBeNull();
+  });
+});
+
+// ─── patchParsedFields ──────────────────────────────────────────────
+
+describe('patchParsedFields', () => {
+  test('writes only the provided columns, leaving the rest untouched', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    db.jobStubs.setParsedFields(sqlite, id, { parsed_company: 'Acme', parsed_title: 'Eng' });
+
+    db.jobStubs.patchParsedFields(sqlite, id, { parsed_company: 'Updated Co' });
+
+    const stub = db.jobStubs.getById(sqlite, id);
+    expect(stub?.parsed_company).toBe('Updated Co');
+    expect(stub?.parsed_title).toBe('Eng');
+  });
+
+  test('a call with no keys is a no-op', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    db.jobStubs.setParsedFields(sqlite, id, { parsed_company: 'Acme' });
+
+    const result = db.jobStubs.patchParsedFields(sqlite, id, {});
+
+    expect(result).toBeNull();
+    expect(db.jobStubs.getById(sqlite, id)?.parsed_company).toBe('Acme');
+  });
+
+  test('an explicit null clears a field rather than leaving it untouched', () => {
+    const id = db.jobStubs.insertStub(sqlite, 'https://example.com/jobs/1');
+    db.jobStubs.setParsedFields(sqlite, id, { parsed_company: 'Acme' });
+
+    db.jobStubs.patchParsedFields(sqlite, id, { parsed_company: null });
+
+    expect(db.jobStubs.getById(sqlite, id)?.parsed_company).toBeNull();
   });
 });
 

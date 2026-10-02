@@ -5,6 +5,9 @@ import Database from 'better-sqlite3';
 import {
   addStub,
   importParsedFields,
+  patchParsedFields,
+  updateJobStubStatus,
+  updateRawContent,
   DuplicateStubUrlError,
   DuplicateRoleUrlError,
   JobStubNotFoundError,
@@ -49,6 +52,17 @@ export async function jobStubsRouter(fastify: FastifyInstance, options: PluginOp
     }
   });
 
+  // ─── GET /api/job-stubs/:id ──────────────────────────────────────────────────
+
+  fastify.get('/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const stub = db.jobStubs.getById(sqlite, parseInt(id, 10));
+    if (stub == null) {
+      return reply.status(404).send({ error: `No job stub found with id ${id}.` });
+    }
+    return stub;
+  });
+
   // ─── POST /api/job-stubs/:id/import ─────────────────────────────────────────
 
   fastify.post('/:id/import', async (request, reply) => {
@@ -64,6 +78,70 @@ export async function jobStubsRouter(fastify: FastifyInstance, options: PluginOp
       }
       if (err instanceof InvalidParsedFieldsError) {
         return reply.status(400).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── PATCH /api/job-stubs/:id/parsed-fields ──────────────────────────────────
+
+  fastify.patch('/:id/parsed-fields', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const stubId = parseInt(id, 10);
+
+    try {
+      const stub = patchParsedFields(sqlite, stubId, request.body);
+      return reply.status(200).send(stub);
+    } catch (err) {
+      if (err instanceof JobStubNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      if (err instanceof InvalidParsedFieldsError) {
+        return reply.status(400).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── PATCH /api/job-stubs/:id/status ─────────────────────────────────────────
+
+  fastify.patch('/:id/status', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const stubId = parseInt(id, 10);
+    const { status } = request.body as { status?: string };
+
+    if (status == null || status.trim() === '') {
+      return reply.status(400).send({ error: 'status is required.' });
+    }
+
+    try {
+      const stub = updateJobStubStatus(sqlite, stubId, status);
+      return reply.status(200).send(stub);
+    } catch (err) {
+      if (err instanceof JobStubNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // ─── PATCH /api/job-stubs/:id/raw-content ────────────────────────────────────
+
+  fastify.patch('/:id/raw-content', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const stubId = parseInt(id, 10);
+    const { raw_content: rawContent } = request.body as { raw_content?: string };
+
+    if (rawContent == null) {
+      return reply.status(400).send({ error: 'raw_content is required.' });
+    }
+
+    try {
+      const stub = updateRawContent(sqlite, stubId, rawContent);
+      return reply.status(200).send(stub);
+    } catch (err) {
+      if (err instanceof JobStubNotFoundError) {
+        return reply.status(404).send({ error: err.message });
       }
       return reply.status(400).send({ error: (err as Error).message });
     }
