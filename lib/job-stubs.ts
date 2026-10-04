@@ -36,6 +36,13 @@ export class JobStubNotFoundError extends Error {
   }
 }
 
+export class EmptyRawContentError extends Error {
+  constructor() {
+    super('raw_content must not be empty.');
+    this.name = 'EmptyRawContentError';
+  }
+}
+
 export class InvalidParsedFieldsError extends Error {
   public readonly issues: string[];
 
@@ -48,8 +55,13 @@ export class InvalidParsedFieldsError extends Error {
 
 // ─── addStub ──────────────────────────────────────────────────────────────────
 
-export function addStub(sqlite: Database.Database, rawUrl: string): number {
+// A stub created with raw content starts at Scraped; a URL-only stub stays Stubbed.
+export function addStub(sqlite: Database.Database, rawUrl: string, rawContent?: string): number {
   const url = cleanseUrl(rawUrl);
+
+  if (rawContent !== undefined && rawContent.trim() === '') {
+    throw new EmptyRawContentError();
+  }
 
   const existingStub = db.jobStubs.getByUrl(sqlite, url);
   if (existingStub != null) {
@@ -61,7 +73,20 @@ export function addStub(sqlite: Database.Database, rawUrl: string): number {
     throw new DuplicateRoleUrlError(url);
   }
 
-  return db.jobStubs.insertStub(sqlite, url);
+  if (rawContent === undefined) {
+    return db.jobStubs.insertStub(sqlite, url);
+  }
+  return insertScrapedStub(sqlite, url, rawContent);
+}
+
+function insertScrapedStub(sqlite: Database.Database, url: string, rawContent: string): number {
+  const run = sqlite.transaction(() => {
+    const stubId = db.jobStubs.insertStub(sqlite, url);
+    db.jobStubs.setRawContent(sqlite, stubId, rawContent);
+    db.jobStubs.updateStatus(sqlite, stubId, 'Scraped');
+    return stubId;
+  });
+  return run();
 }
 
 // ─── importParsedFields ─────────────────────────────────────────────────────

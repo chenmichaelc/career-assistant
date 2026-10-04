@@ -6,19 +6,27 @@
     </div>
 
     <!-- Quick-add stub -->
-    <div class="flex gap-3 mb-4" data-testid="quick-add-stub">
-      <input
-        v-model="stubUrl"
-        @keyup.enter="queueStub"
-        placeholder="paste a job posting URL to queue for triage"
-        class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded flex-1 focus:outline-none focus:border-accent"
-      />
+    <div class="flex gap-3 mb-4">
+      <div class="flex gap-3 flex-1" data-testid="quick-add-stub">
+        <input
+          v-model="stubUrl"
+          @keyup.enter="queueStub"
+          placeholder="paste a job posting URL to queue for triage"
+          class="bg-panel border border-border text-text font-mono text-sm px-3 py-2 rounded flex-1 focus:outline-none focus:border-accent"
+        />
+        <button
+          @click="queueStub"
+          :disabled="queueing || !stubUrl"
+          class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
+        >
+          {{ queueing ? 'queuing...' : 'queue' }}
+        </button>
+      </div>
       <button
-        @click="queueStub"
-        :disabled="queueing || !stubUrl"
-        class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
+        @click="showQueueWithRawContent = true"
+        class="border border-border text-dim font-mono text-sm px-4 py-2 rounded hover:text-text transition-colors"
       >
-        {{ queueing ? 'queuing...' : 'queue' }}
+        queue with raw content
       </button>
     </div>
 
@@ -79,6 +87,12 @@
       </div>
     </div>
 
+    <QueueWithRawContentModal
+      :isOpen="showQueueWithRawContent"
+      @saved="load"
+      @close="showQueueWithRawContent = false"
+    />
+
     <ConfirmModal
       :isOpen="confirmModal.isOpen.value"
       :title="confirmModal.title.value"
@@ -96,6 +110,7 @@ import { useRouter } from 'vue-router';
 import { apiFetch } from '@/composables/useApi';
 import { useConfirmModal } from '@/composables/useConfirmModal';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import QueueWithRawContentModal from '@/components/QueueWithRawContentModal.vue';
 import { validateUrl } from '@/utils/validateUrl';
 import { deriveStubIndicators, StubIndicators, StubStage } from '../../../lib/job-stub-indicators';
 
@@ -133,6 +148,7 @@ const error = ref('');
 const confirmModal = useConfirmModal();
 const stubUrl = ref('');
 const queueing = ref(false);
+const showQueueWithRawContent = ref(false);
 
 onMounted(load);
 

@@ -257,3 +257,126 @@ test('Each stub shows one stage indicator reflecting how far along it is, indepe
     );
   });
 });
+
+test('Queue with Raw Content creates a Scraped stub with raw content and closes the modal', async ({
+  page,
+}, testInfo) => {
+  const triageQueuePage = new TriageQueuePage(page);
+  const stubUrl = e2eStubUrl(testInfo);
+
+  await test.step('Arrange: Navigate to Triage and open the modal', async () => {
+    await triageQueuePage.goto();
+    await triageQueuePage.queueWithRawContentButton.click();
+    await expect(triageQueuePage.queueWithRawContentModal).toBeVisible();
+  });
+
+  await test.step('Act: Enter a URL and raw content, then save', async () => {
+    await triageQueuePage.queueModalUrlField.fill(stubUrl);
+    await triageQueuePage.queueModalRawContentField.fill('[E2E] Full posting text.');
+    await triageQueuePage.queueModalSaveButton.click();
+  });
+
+  await test.step('Assert: The modal closes', async () => {
+    await expect(triageQueuePage.queueWithRawContentModal).toBeHidden();
+  });
+
+  await test.step('Assert: The stub is queued as Scraped with raw content', async () => {
+    await expect(triageQueuePage.stubRow(stubUrl)).toBeVisible();
+    await expect(triageQueuePage.statusBadge(stubUrl, 'Scraped')).toBeVisible();
+    await expect(triageQueuePage.stageIndicator(stubUrl)).toHaveAccessibleName(
+      'Raw content present, no parsed fields'
+    );
+  });
+});
+
+test('With Create Another Stub checked, the modal stays open and ready for the next stub', async ({
+  page,
+}, testInfo) => {
+  const triageQueuePage = new TriageQueuePage(page);
+  const firstStubUrl = `${e2eStubUrl(testInfo)}/first`;
+  const secondStubUrl = `${e2eStubUrl(testInfo)}/second`;
+
+  await test.step('Arrange: Open the modal with Create Another Stub checked', async () => {
+    await triageQueuePage.goto();
+    await triageQueuePage.queueWithRawContentButton.click();
+    await triageQueuePage.queueModalCreateAnotherCheckbox.check();
+  });
+
+  await test.step('Act: Save a first stub', async () => {
+    await triageQueuePage.queueModalUrlField.fill(firstStubUrl);
+    await triageQueuePage.queueModalRawContentField.fill('[E2E] First posting.');
+    await triageQueuePage.queueModalSaveButton.click();
+  });
+
+  await test.step('Assert: The modal stays open, cleared, with focus back on the URL field', async () => {
+    await expect(triageQueuePage.stubRow(firstStubUrl)).toBeVisible();
+    await expect(triageQueuePage.queueWithRawContentModal).toBeVisible();
+    await expect(triageQueuePage.queueModalUrlField).toHaveValue('');
+    await expect(triageQueuePage.queueModalRawContentField).toHaveValue('');
+    await expect(triageQueuePage.queueModalUrlField).toBeFocused();
+  });
+
+  await test.step('Act: Save a second stub, then close the modal', async () => {
+    await triageQueuePage.queueModalUrlField.fill(secondStubUrl);
+    await triageQueuePage.queueModalRawContentField.fill('[E2E] Second posting.');
+    await triageQueuePage.queueModalSaveButton.click();
+    await expect(triageQueuePage.stubRow(secondStubUrl)).toBeVisible();
+    await triageQueuePage.queueModalCancelButton.click();
+  });
+
+  await test.step('Assert: Both stubs are queued and the modal is closed', async () => {
+    await expect(triageQueuePage.queueWithRawContentModal).toBeHidden();
+    await expect(triageQueuePage.stubRow(firstStubUrl)).toBeVisible();
+    await expect(triageQueuePage.stubRow(secondStubUrl)).toBeVisible();
+  });
+});
+
+test('Queue with Raw Content shows inline errors without closing or losing input', async ({
+  page,
+}, testInfo) => {
+  const triageQueuePage = new TriageQueuePage(page);
+  const existingStubUrl = e2eStubUrl(testInfo);
+  const postingText = '[E2E] Full posting text.';
+
+  await test.step('Arrange: Queue a stub via the API and open the modal', async () => {
+    const existingStubCreationResponse = await page.request.post('/api/job-stubs', {
+      data: { url: existingStubUrl },
+    });
+    expect(existingStubCreationResponse.status()).toBe(201);
+
+    await triageQueuePage.goto();
+    await triageQueuePage.queueWithRawContentButton.click();
+  });
+
+  await test.step('Act: Save with a URL but no raw content', async () => {
+    await triageQueuePage.queueModalUrlField.fill(existingStubUrl);
+    await triageQueuePage.queueModalSaveButton.click();
+  });
+
+  await test.step('Assert: Missing raw content is reported and the modal stays open', async () => {
+    await expect(triageQueuePage.queueModalError).toHaveText('Raw content is required.');
+    await expect(triageQueuePage.queueWithRawContentModal).toBeVisible();
+  });
+
+  await test.step('Act: Save an already-queued URL with raw content', async () => {
+    await triageQueuePage.queueModalRawContentField.fill(postingText);
+    await triageQueuePage.queueModalSaveButton.click();
+  });
+
+  await test.step('Assert: The duplicate is reported and the input is kept', async () => {
+    await expect(triageQueuePage.queueModalError).toContainText('already exists');
+    await expect(triageQueuePage.queueWithRawContentModal).toBeVisible();
+    await expect(triageQueuePage.queueModalUrlField).toHaveValue(existingStubUrl);
+    await expect(triageQueuePage.queueModalRawContentField).toHaveValue(postingText);
+  });
+
+  await test.step('Act: Save an invalid URL', async () => {
+    await triageQueuePage.queueModalUrlField.fill('not a url');
+    await triageQueuePage.queueModalSaveButton.click();
+  });
+
+  await test.step('Assert: The invalid URL is reported and the modal stays open', async () => {
+    await expect(triageQueuePage.queueModalError).toBeVisible();
+    await expect(triageQueuePage.queueWithRawContentModal).toBeVisible();
+  });
+});
