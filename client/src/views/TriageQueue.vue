@@ -35,7 +35,7 @@
 
     <div v-else class="space-y-2" data-testid="stub-list">
       <div
-        v-for="stub in stubs"
+        v-for="{ stub, indicators } in stubRows"
         :key="stub.id"
         class="bg-panel border border-border rounded px-4 py-3 flex items-center justify-between gap-4"
         data-testid="stub-row"
@@ -49,6 +49,14 @@
           {{ stub.url }}
         </a>
         <div class="flex items-center gap-3 shrink-0">
+          <span class="font-mono text-xs text-dim w-28 text-right">{{ stub.status }}</span>
+          <span
+            role="img"
+            :aria-label="stageLabel(indicators)"
+            :title="stageLabel(indicators)"
+            :class="STAGE_DOT_CLASS[indicators.stage]"
+            class="inline-block w-2.5 h-2.5 rounded-full"
+          />
           <router-link
             :to="`/job-stubs/${stub.id}`"
             class="border border-border text-dim font-mono text-sm px-4 py-1.5 rounded hover:text-text transition-colors"
@@ -83,18 +91,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiFetch } from '@/composables/useApi';
 import { useConfirmModal } from '@/composables/useConfirmModal';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import { validateUrl } from '@/utils/validateUrl';
+import { deriveStubIndicators, StubIndicators, StubStage } from '../../../lib/job-stub-indicators';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- job stub shape not yet shared with client; tracked in CAR-4
 type Stub = any;
 
+const STAGE_DOT_CLASS: Record<StubStage, string> = {
+  'url-only': 'bg-gray-300',
+  'raw-content-only': 'bg-orange-500',
+  'parsed-partial': 'bg-yellow-400',
+  'parsed-complete': 'bg-success',
+};
+
+function stageLabel(indicators: StubIndicators): string {
+  const rawContentNote = indicators.hasRawContent ? 'Raw content present.' : 'No raw content.';
+  switch (indicators.stage) {
+    case 'url-only':
+      return 'URL only: no raw content and no parsed fields';
+    case 'raw-content-only':
+      return 'Raw content present, no parsed fields';
+    case 'parsed-partial':
+      return `Parsed fields partially populated. Missing: ${indicators.missingEssentialFields.join(', ')}. ${rawContentNote}`;
+    case 'parsed-complete':
+      return `Parsed fields: company, title and description all present. ${rawContentNote}`;
+  }
+}
+
 const router = useRouter();
 const stubs = ref<Stub[]>([]);
+const stubRows = computed(() =>
+  stubs.value.map((stub) => ({ stub, indicators: deriveStubIndicators(stub) }))
+);
 const loading = ref(false);
 const error = ref('');
 const confirmModal = useConfirmModal();

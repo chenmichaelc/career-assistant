@@ -60,6 +60,14 @@ export class TriageQueuePage {
     return this.page.getByTestId('stub-row').filter({ hasText: url });
   }
 
+  statusBadge(url: string, status: string): Locator {
+    return this.stubRow(url).getByText(status, { exact: true });
+  }
+
+  stageIndicator(url: string): Locator {
+    return this.stubRow(url).getByRole('img');
+  }
+
   viewLink(url: string): Locator {
     return this.stubRow(url).getByRole('link', { name: 'view' });
   }
