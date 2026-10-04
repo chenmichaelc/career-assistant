@@ -20,6 +20,17 @@ export class TriageQueuePage {
   readonly quickAddUrlField: Locator;
   readonly quickAddButton: Locator;
 
+  // ─── Queue with raw content modal ────────────────────────────────────────
+
+  readonly queueWithRawContentButton: Locator;
+  readonly queueWithRawContentModal: Locator;
+  readonly queueModalUrlField: Locator;
+  readonly queueModalRawContentField: Locator;
+  readonly queueModalCreateAnotherCheckbox: Locator;
+  readonly queueModalSaveButton: Locator;
+  readonly queueModalCancelButton: Locator;
+  readonly queueModalError: Locator;
+
   // ─── Confirm modal (shared component) ────────────────────────────────────
 
   readonly confirmModal: Locator;
@@ -38,6 +49,23 @@ export class TriageQueuePage {
     this.quickAddSection = page.getByTestId('quick-add-stub');
     this.quickAddUrlField = this.quickAddSection.getByRole('textbox');
     this.quickAddButton = this.quickAddSection.getByRole('button', { name: 'queue' });
+
+    this.queueWithRawContentButton = page.getByRole('button', { name: 'queue with raw content' });
+    this.queueWithRawContentModal = page.getByTestId('queue-with-raw-content-modal');
+    this.queueModalUrlField = this.queueWithRawContentModal.getByLabel('URL', { exact: true });
+    this.queueModalRawContentField = this.queueWithRawContentModal.getByLabel('Raw content', {
+      exact: true,
+    });
+    this.queueModalCreateAnotherCheckbox = this.queueWithRawContentModal.getByRole('checkbox', {
+      name: 'Create Another Stub',
+    });
+    this.queueModalSaveButton = this.queueWithRawContentModal.getByRole('button', {
+      name: 'save',
+    });
+    this.queueModalCancelButton = this.queueWithRawContentModal.getByRole('button', {
+      name: 'cancel',
+    });
+    this.queueModalError = this.queueWithRawContentModal.getByRole('alert');
 
     this.confirmModal = page.getByTestId('confirm-modal');
     this.confirmModalConfirmButton = this.confirmModal.getByRole('button', { name: 'delete' });

@@ -84,7 +84,8 @@ career-assistant/
 │       ├── App.vue                 # Root component — nav bar, admin dropdown, router view
 │       ├── constants.ts            # Frontend vocabulary constants
 │       ├── components/
-│       │   └── ConfirmModal.vue    # Reusable confirm modal
+│       │   ├── ConfirmModal.vue    # Reusable confirm modal
+│       │   └── QueueWithRawContentModal.vue  # Triage — queue a stub with URL + raw content
 │       ├── composables/
 │       │   ├── useApi.ts           # Typed fetch wrapper with error handling
 │       │   ├── useConfirmModal.ts  # Promise-based modal state composable
@@ -97,7 +98,7 @@ career-assistant/
 │           ├── RoleList.vue        # Role list with multi-select filter + column sort
 │           ├── RoleDetail.vue      # Role detail, status updates, reason management
 │           ├── AddRole.vue         # Role creation form — prefillable via ?url= query param
-│           ├── TriageQueue.vue     # Job stub queue — promote, delete, quick-add
+│           ├── TriageQueue.vue     # Job stub queue — stage indicators, promote, delete, quick-add, queue with raw content
 │           ├── SqlQuery.vue        # Raw SQL interface with CSV export
 │           ├── DiffVisualizer.vue  # Utilities — text diff visualizer
 │           └── ResumeConverter.vue # Utilities — resume-to-docx converter

@@ -9,6 +9,7 @@ import {
   updateRawContent,
   DuplicateStubUrlError,
   DuplicateRoleUrlError,
+  EmptyRawContentError,
   JobStubNotFoundError,
   InvalidParsedFieldsError,
 } from '../../lib/job-stubs';
@@ -52,6 +53,58 @@ describe('addStub', () => {
     };
     addRole(sqlite, role);
     expect(() => addStub(sqlite, role.url)).toThrow(DuplicateRoleUrlError);
+  });
+});
+
+describe('addStub with raw content', () => {
+  const stubUrl = 'https://example.com/jobs/1';
+  const postingText = 'Full posting text.';
+
+  test('creates the stub with its raw content and status Scraped', () => {
+    const stubId = addStub(sqlite, stubUrl, postingText);
+    const stub = db.jobStubs.getById(sqlite, stubId);
+    expect(stub?.raw_content).toBe(postingText);
+    expect(stub?.status).toBe('Scraped');
+  });
+
+  test('a URL-only stub has no raw content and stays Stubbed', () => {
+    const stubId = addStub(sqlite, stubUrl);
+    const stub = db.jobStubs.getById(sqlite, stubId);
+    expect(stub?.raw_content).toBeNull();
+    expect(stub?.status).toBe('Stubbed');
+  });
+
+  test.each([
+    ['an empty string', ''],
+    ['whitespace only', '  \n\t '],
+  ])('%s is rejected and no stub is created', (_description, rawContent) => {
+    expect(() => addStub(sqlite, stubUrl, rawContent)).toThrow(EmptyRawContentError);
+    expect(db.jobStubs.getAll(sqlite)).toHaveLength(0);
+  });
+
+  test('a duplicate URL is rejected and leaves the existing stub untouched', () => {
+    const existingStubId = addStub(sqlite, stubUrl);
+    expect(() => addStub(sqlite, stubUrl, postingText)).toThrow(DuplicateStubUrlError);
+
+    const existingStub = db.jobStubs.getById(sqlite, existingStubId);
+    expect(existingStub?.raw_content).toBeNull();
+    expect(existingStub?.status).toBe('Stubbed');
+  });
+
+  test('a failure while finishing creation leaves no stub behind (rollback)', () => {
+    // The trigger is only a deterministic way to fail after the INSERT has
+    // already run; any failure inside the transaction exercises the rollback.
+    sqlite.exec(`
+      CREATE TRIGGER fail_scraped_status
+      BEFORE UPDATE OF status ON job_stubs
+      WHEN NEW.status = 'Scraped'
+      BEGIN
+        SELECT RAISE(ABORT, 'forced failure');
+      END
+    `);
+
+    expect(() => addStub(sqlite, stubUrl, postingText)).toThrow('forced failure');
+    expect(db.jobStubs.getAll(sqlite)).toHaveLength(0);
   });
 });
 

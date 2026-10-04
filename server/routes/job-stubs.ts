@@ -32,14 +32,20 @@ export async function jobStubsRouter(fastify: FastifyInstance, options: PluginOp
   // ─── POST /api/job-stubs ────────────────────────────────────────────────────
 
   fastify.post('/', async (request, reply) => {
-    const { url } = request.body as { url?: string };
+    const { url, raw_content: rawContent } = request.body as {
+      url?: string;
+      raw_content?: unknown;
+    };
 
     if (url == null || url.trim() === '') {
       return reply.status(400).send({ error: 'url is required.' });
     }
+    if (rawContent != null && typeof rawContent !== 'string') {
+      return reply.status(400).send({ error: 'raw_content must be a string.' });
+    }
 
     try {
-      const id = addStub(sqlite, url);
+      const id = addStub(sqlite, url, rawContent ?? undefined);
       return reply.status(201).send({ id });
     } catch (err) {
       if (err instanceof InvalidUrlError) {

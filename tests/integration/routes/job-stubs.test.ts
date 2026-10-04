@@ -135,6 +135,77 @@ describe('POST /api/job-stubs', () => {
   });
 });
 
+describe('POST /api/job-stubs with raw_content', () => {
+  const stubUrl = 'https://example.com/jobs/1';
+  const postingText = 'Full posting text.';
+
+  test('creates the stub with its raw content and status Scraped', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: stubUrl, raw_content: postingText },
+    });
+    expect(createResponse.statusCode).toBe(201);
+
+    const stubResponse = await app.inject({
+      method: 'GET',
+      url: `/api/job-stubs/${createResponse.json().id}`,
+    });
+    expect(stubResponse.json().raw_content).toBe(postingText);
+    expect(stubResponse.json().status).toBe('Scraped');
+  });
+
+  test('a URL-only request is unchanged: no raw content, status Stubbed', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: stubUrl },
+    });
+    const stubResponse = await app.inject({
+      method: 'GET',
+      url: `/api/job-stubs/${createResponse.json().id}`,
+    });
+    expect(stubResponse.json().raw_content).toBeNull();
+    expect(stubResponse.json().status).toBe('Stubbed');
+  });
+
+  test('a duplicate URL returns 409', async () => {
+    await app.inject({ method: 'POST', url: '/api/job-stubs', payload: { url: stubUrl } });
+    const duplicateResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: stubUrl, raw_content: postingText },
+    });
+    expect(duplicateResponse.statusCode).toBe(409);
+  });
+
+  test('an invalid URL returns 400', async () => {
+    const invalidUrlResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: 'not a url', raw_content: postingText },
+    });
+    expect(invalidUrlResponse.statusCode).toBe(400);
+  });
+
+  test.each([
+    ['empty', ''],
+    ['whitespace-only', '   \n '],
+    ['not a string', 42],
+  ])('%s raw_content returns 400 and creates no stub', async (_description, rawContent) => {
+    const rejectedResponse = await app.inject({
+      method: 'POST',
+      url: '/api/job-stubs',
+      payload: { url: stubUrl, raw_content: rawContent },
+    });
+    expect(rejectedResponse.statusCode).toBe(400);
+    expect(rejectedResponse.json().error).toBeTruthy();
+
+    const listResponse = await app.inject({ method: 'GET', url: '/api/job-stubs' });
+    expect(listResponse.json()).toHaveLength(0);
+  });
+});
+
 describe('POST /api/job-stubs/:id/import', () => {
   test('imports valid parsed fields and returns 200 with the updated stub', async () => {
     const createResponse = await app.inject({
