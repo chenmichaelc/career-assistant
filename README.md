@@ -27,6 +27,8 @@ The system is organized around four modules:
 
 **Job role data** — the core data layer. Roles are imported in bulk from a plain-text format or added individually via JSON. Each role carries a job description, candidacy assessment, salary range, and vocabulary-constrained classification labels designed for downstream analysis.
 
+Alongside it, a **triage queue of job stubs** captures raw postings before they become roles.
+
 **Job market intelligence** _(planned)_ — bulk ingestion of job postings at scale, LLM-based classification by role subtype and skill requirements, and market analysis via cloud and local LLMs. Answers questions about market trends, compensation ranges, emerging skill demand, and career trajectory. The role data layer provides ground-truth signal from real market data.
 
 **Career opportunity identification and mapping** _(planned)_ — skills gap analysis against a personal profile, career path recommendations driven by market data, and guidance on high-value areas of investment given current market conditions.
@@ -47,7 +49,7 @@ career-assistant is built to serve three interrelated purposes:
 
 The feature set is intentionally modest relative to the engineering investment. The primary subject of evaluation here is the **methodology**, not the application:
 
-- A three-layer test pyramid (unit, integration, E2E) with real constraint enforcement rather than mocks
+- A layered test strategy — static analysis, semantic rules for conventions no linter can express, unit, integration, and E2E tests — with real constraint enforcement rather than mocks
 - A layered validation architecture (syntactic, semantic, persistence) that catches different failure modes at each layer
 - A CI/CD pipeline with quality gates — linting, formatting, and automated test enforcement — that runs on every push, every pull request, and every local commit
 - Documentation maintained as a living record of _why_ decisions were made, including decisions that were later reversed, and why
@@ -55,6 +57,12 @@ The feature set is intentionally modest relative to the engineering investment. 
 ---
 
 ## Currently working on
+
+**[CAR-225] Job stubs — raw content capture and manual LLM-assisted parsing**
+
+Delivered so far: parsed-field columns and a status lifecycle on `job_stubs`, location and in-office-expectation fields on roles and stubs, JSON import of LLM output into a stub's parsed fields, a stub detail/edit page, and the stage indicator on the triage list. In progress: queueing a stub with raw content from a modal (CAR-292). Remaining: promoting a stub's parsed fields into a full role.
+
+---
 
 **[CAR-5] Data layer refactor — orchestration layer cleanup**
 
@@ -129,6 +137,7 @@ npm run test:e2e      # Playwright E2E
 ### Linting and formatting
 
 ```bash
+npm run typecheck     # tsc for root, e2e, and client (vue-tsc)
 npm run lint          # ESLint — code quality rules
 npm run format        # Prettier — code formatting, whole codebase
 ```
@@ -139,29 +148,30 @@ Formatting and a full non-interactive test run are also enforced automatically o
 
 ## Milestones
 
-| Milestone                                                              | Status      |
-| ---------------------------------------------------------------------- | ----------- |
-| SQLite schema, seed import, CLI data layer                             | Done        |
-| TypeScript migration, Vitest test suite                                | Done        |
-| Full CLI tooling (import, export, update, delete)                      | Done        |
-| Layered validation architecture                                        | Done        |
-| Unit and integration test suite                                        | Done        |
-| Vue 3 frontend + Fastify REST API                                      | Done        |
-| Frontend stabilization and bug fixes (CAR-2)                           | Done        |
-| Rename e2e → integration tests (CAR-14)                                | Done        |
-| Node.js upgrade to v24 (CAR-31)                                        | Done        |
-| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15)  | Done        |
-| GitHub merge gate (CAR-56)                                             | Done        |
-| ESLint implementation across full codebase (CAR-37)                    | Done        |
-| Single-table data layer modules — `lib/db/` (CAR-20)                   | Done        |
-| Prettier formatting + automatic pre-commit enforcement (CAR-52)        | Done        |
-| CI/CD quality gates — lint as a merge gate (CAR-145)                   | Done        |
-| Data layer refactor — lib/ orchestrates from lib/db/ (CAR-21)          | Done        |
-| CAR-173 — Removal of legacy CLI data access layer                      | Done        |
-| ESLint layer boundary and test quality rules (CAR-193)                 | Done        |
-| Utilities section — Text Diff Visualizer (CAR-210)                     | Done        |
-| Utilities section — Resume Text-to-DOCX Converter (CAR-214)            | Done        |
-| Playwright E2E — POM foundation + initial behavioral coverage (CAR-63) | In Progress |
+| Milestone                                                               | Status      |
+| ----------------------------------------------------------------------- | ----------- |
+| SQLite schema, seed import, CLI data layer                              | Done        |
+| TypeScript migration, Vitest test suite                                 | Done        |
+| Full CLI tooling (import, export, update, delete)                       | Done        |
+| Layered validation architecture                                         | Done        |
+| Unit and integration test suite                                         | Done        |
+| Vue 3 frontend + Fastify REST API                                       | Done        |
+| Frontend stabilization and bug fixes (CAR-2)                            | Done        |
+| Rename e2e → integration tests (CAR-14)                                 | Done        |
+| Node.js upgrade to v24 (CAR-31)                                         | Done        |
+| Playwright E2E setup — structure, smoke test, POM foundation (CAR-15)   | Done        |
+| GitHub merge gate (CAR-56)                                              | Done        |
+| ESLint implementation across full codebase (CAR-37)                     | Done        |
+| Single-table data layer modules — `lib/db/` (CAR-20)                    | Done        |
+| Prettier formatting + automatic pre-commit enforcement (CAR-52)         | Done        |
+| CI/CD quality gates — lint as a merge gate (CAR-145)                    | Done        |
+| Data layer refactor — lib/ orchestrates from lib/db/ (CAR-21)           | Done        |
+| CAR-173 — Removal of legacy CLI data access layer                       | Done        |
+| ESLint layer boundary and test quality rules (CAR-193)                  | Done        |
+| Utilities section — Text Diff Visualizer (CAR-210)                      | Done        |
+| Utilities section — Resume Text-to-DOCX Converter (CAR-214)             | Done        |
+| Playwright E2E — POM foundation + initial behavioral coverage (CAR-63)  | In Progress |
+| Job stubs — raw content capture + manual LLM-assisted parsing (CAR-225) | In Progress |
 
 ---
 
@@ -174,6 +184,9 @@ Test database isolation via DB_PATH environment variable (CAR-16) to enable clea
 
 **Data layer refactor (CAR-5)** _(In Progress)_
 Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21 — done), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167, CAR-168). CAR-173 is complete — `UpdateArgs` is gone, `lib/args/` is deleted, and `lib/roles.ts` now accepts the caller-agnostic `UpdateRoleInput`. CAR-178's vocabulary-validation goal is done — it lives in the orchestration layer, one implementation reused across role creation, reason creation, reason editing, and status updates (CAR-178 itself stays open pending related subtasks — see Jira). `lib/` is now organized as one file per aggregate rather than per verb (CAR-267 — done): `lib/roles.ts` covers the whole Role aggregate; `lib/updates.ts` and `lib/deletes.ts` no longer exist. Remaining work: fill one-to-many test coverage gaps (CAR-22 subtasks). CAR-172 (`url` nullability) closed as Won't Do — see CAR-230 for the actual, since-surfaced requirement it was superseded by.
+
+**Job stubs — raw content and LLM-assisted parsing (CAR-225)** _(In Progress)_
+Stubs carry raw posting text and AI-parsed fields behind a human-controlled status lifecycle (Stubbed, Scraped, Parsed, Ready to Promote). Import, detail/edit, and the triage-list stage indicator are done; the queue-with-raw-content modal (CAR-292) is in development. Remaining: promoting a stub's parsed fields into a full role through the existing transactional role-creation path. Automated LLM calls and a rule-based parser are explicitly out of scope for this epic. Parking-lot idea: deriving the stored status from the data instead of keeping it human-set.
 
 **Observability — error logging and persistence (CAR-139)**
 Audit existing error handling across the codebase first (CAR-141), then implement consistent logging on the client (CAR-140) and server (CAR-72). Persist server logs to disk via Pino file transport (CAR-142). A full-stack persistent error store, spanning both client and server, is deferred until cloud migration planning begins (CAR-143).
@@ -212,7 +225,7 @@ Pre-built aggregate queries and analytics view.
 Role can simultaneously have skip and termination reasons (CAR-53). `request.body as any` on POST /api/roles, suppressed pending CAR-44 (CAR-61, CAR-148). `ref<any>` in Vue components, suppressed pending CAR-4 (CAR-62, CAR-147). POST reason endpoints pass role ID as string (CAR-103). Backup route blocks event loop with sync fs calls (CAR-104). Backup failure toast renders in success colours (CAR-138).
 
 **Ideas under consideration (Backlog)**
-Runtime schema validation — Zod / TypeBox / Valibot (CAR-44). Contract testing — Pact / OpenAPI (CAR-45). Deprecate raw SQL query endpoint before non-local deployment (CAR-71). Persistent error store spanning client and server, ahead of cloud migration (CAR-143). Automated job post scraping (CAR-93). Resume storage and analysis (CAR-94). Custom resume builder (CAR-95).
+Broader runtime schema validation (CAR-44) — Zod is already used for the job stub import contract, so the open question is extending it to other request bodies. Contract testing — Pact / OpenAPI (CAR-45). Deprecate raw SQL query endpoint before non-local deployment (CAR-71). Persistent error store spanning client and server, ahead of cloud migration (CAR-143). Automated job post scraping (CAR-93). Resume storage and analysis (CAR-94). Custom resume builder (CAR-95).
 
 ---
 
