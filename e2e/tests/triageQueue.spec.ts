@@ -166,3 +166,94 @@ test('Canceling the delete confirmation leaves the stub in the queue', async ({
     await expect(triageQueuePage.stubRow(url)).toBeVisible();
   });
 });
+
+test('Each stub shows one stage indicator reflecting how far along it is, independent of its stored status', async ({
+  page,
+}, testInfo) => {
+  const triageQueuePage = new TriageQueuePage(page);
+  const baseUrl = e2eStubUrl(testInfo);
+  const urlOnlyStubUrl = `${baseUrl}/url-only`;
+  const rawContentStubUrl = `${baseUrl}/raw-content`;
+  const partialStubUrl = `${baseUrl}/partial`;
+  const completeStubUrl = `${baseUrl}/complete`;
+  const rawContentText = '[E2E] Full posting text.';
+  const partialParsedFields = { title: '[E2E] Partial Title' };
+  const completeParsedFields = {
+    company: '[E2E] Co',
+    title: '[E2E] Title',
+    description: '[E2E] Description',
+  };
+
+  async function queueStub(stubUrl: string): Promise<number> {
+    const stubCreationResponse = await page.request.post('/api/job-stubs', {
+      data: { url: stubUrl },
+    });
+    expect(stubCreationResponse.status()).toBe(201);
+    return (await stubCreationResponse.json()).id;
+  }
+
+  await test.step('Arrange: Queue stubs at each stage via the API', async () => {
+    await queueStub(urlOnlyStubUrl);
+
+    const rawContentStubId = await queueStub(rawContentStubUrl);
+    const rawContentUpdateResponse = await page.request.patch(
+      `/api/job-stubs/${rawContentStubId}/raw-content`,
+      { data: { raw_content: rawContentText } }
+    );
+    expect(rawContentUpdateResponse.status()).toBe(200);
+
+    const partialStubId = await queueStub(partialStubUrl);
+    const partialUpdateResponse = await page.request.patch(
+      `/api/job-stubs/${partialStubId}/parsed-fields`,
+      { data: partialParsedFields }
+    );
+    expect(partialUpdateResponse.status()).toBe(200);
+
+    const completeStubId = await queueStub(completeStubUrl);
+    const completeRawContentResponse = await page.request.patch(
+      `/api/job-stubs/${completeStubId}/raw-content`,
+      { data: { raw_content: rawContentText } }
+    );
+    expect(completeRawContentResponse.status()).toBe(200);
+    const completeParsedFieldsResponse = await page.request.patch(
+      `/api/job-stubs/${completeStubId}/parsed-fields`,
+      { data: completeParsedFields }
+    );
+    expect(completeParsedFieldsResponse.status()).toBe(200);
+  });
+
+  await test.step('Act: Navigate to Triage', async () => {
+    await triageQueuePage.goto();
+  });
+
+  await test.step('Assert: A URL-only stub is flagged as having nothing yet', async () => {
+    await expect(triageQueuePage.stageIndicator(urlOnlyStubUrl)).toHaveAccessibleName(
+      'URL only: no raw content and no parsed fields'
+    );
+  });
+
+  await test.step('Assert: A stub with raw content shows it, and its status is not inferred', async () => {
+    await expect(triageQueuePage.stageIndicator(rawContentStubUrl)).toHaveAccessibleName(
+      'Raw content present, no parsed fields'
+    );
+    await expect(triageQueuePage.statusBadge(rawContentStubUrl, 'Stubbed')).toBeVisible();
+  });
+
+  await test.step('Assert: A partially parsed stub names exactly the missing essential fields', async () => {
+    const expectedLabel =
+      'Parsed fields partially populated. Missing: company, description. No raw content.';
+    await expect(triageQueuePage.stageIndicator(partialStubUrl)).toHaveAccessibleName(
+      expectedLabel
+    );
+    await expect(triageQueuePage.stageIndicator(partialStubUrl)).toHaveAttribute(
+      'title',
+      expectedLabel
+    );
+  });
+
+  await test.step('Assert: A fully parsed stub shows parsed state over raw content, and still reports raw content', async () => {
+    await expect(triageQueuePage.stageIndicator(completeStubUrl)).toHaveAccessibleName(
+      'Parsed fields: company, title and description all present. Raw content present.'
+    );
+  });
+});
