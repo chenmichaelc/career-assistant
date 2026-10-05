@@ -101,7 +101,7 @@ test('Promoting a stub prefills Add Role, creates the role, and removes the stub
   });
 
   await test.step('Assert: Navigated to Add Role with the URL prefilled', async () => {
-    await expect(page).toHaveURL(/\/add\?url=/);
+    await expect(page).toHaveURL(/\/add/);
     await expect(addRolePage.postingUrlField).toHaveValue(url);
   });
 
@@ -378,5 +378,90 @@ test('Queue with Raw Content shows inline errors without closing or losing input
   await test.step('Assert: The invalid URL is reported and the modal stays open', async () => {
     await expect(triageQueuePage.queueModalError).toBeVisible();
     await expect(triageQueuePage.queueWithRawContentModal).toBeVisible();
+  });
+});
+
+test('Promoting a parsed stub prefills Add Role with its parsed fields and creates the full role', async ({
+  page,
+}, testInfo) => {
+  const triageQueuePage = new TriageQueuePage(page);
+  const addRolePage = new AddRolePage(page);
+  const roleDetailPage = new RoleDetailPage(page);
+  const stubUrl = e2eStubUrl(testInfo);
+  const parsedFields = {
+    company: '[E2E] Triage Test Co',
+    title: `Promoted Parsed Role ${testInfo.project.name} ${testInfo.testId}`,
+    description: '[E2E] Parsed job description.',
+    salary_min: 120000,
+    salary_max: 160000,
+    candidacy: 'Competitive',
+    role_status: 'Skipped',
+    skip_reasons: [{ reason: 'Location', note: '[E2E] Onsite only' }],
+    location: 'Austin, TX',
+    in_office_expectation: 'Hybrid',
+  };
+
+  await test.step('Arrange: Queue a stub with raw content and parsed fields via the API', async () => {
+    const stubCreationResponse = await page.request.post('/api/job-stubs', {
+      data: { url: stubUrl },
+    });
+    expect(stubCreationResponse.status()).toBe(201);
+    const stubId = (await stubCreationResponse.json()).id;
+
+    const rawContentResponse = await page.request.patch(`/api/job-stubs/${stubId}/raw-content`, {
+      data: { raw_content: '[E2E] Raw posting text that is discarded on promotion.' },
+    });
+    expect(rawContentResponse.status()).toBe(200);
+
+    const parsedFieldsResponse = await page.request.patch(
+      `/api/job-stubs/${stubId}/parsed-fields`,
+      { data: parsedFields }
+    );
+    expect(parsedFieldsResponse.status()).toBe(200);
+  });
+
+  await test.step('Act: Navigate to Triage and click promote', async () => {
+    await triageQueuePage.goto();
+    await triageQueuePage.promoteButton(stubUrl).click();
+  });
+
+  await test.step('Assert: Add Role is prefilled with the stub and its parsed fields', async () => {
+    await expect(addRolePage.postingUrlField).toHaveValue(stubUrl);
+    await expect(addRolePage.companyNameField).toHaveValue(parsedFields.company);
+    await expect(addRolePage.jobTitleField).toHaveValue(parsedFields.title);
+    await expect(addRolePage.jobDescriptionField).toHaveValue(parsedFields.description);
+    await expect(addRolePage.roleStatusSelect).toHaveValue(parsedFields.role_status);
+    await expect(addRolePage.candidacySelect).toHaveValue(parsedFields.candidacy);
+    await expect(addRolePage.salaryMinimumField).toHaveValue(String(parsedFields.salary_min));
+    await expect(addRolePage.salaryMaximumField).toHaveValue(String(parsedFields.salary_max));
+    await expect(addRolePage.locationField).toHaveValue(parsedFields.location);
+    await expect(addRolePage.inOfficeExpectationSelect).toHaveValue(
+      parsedFields.in_office_expectation
+    );
+    await expect(addRolePage.skipReasonRows).toHaveCount(1);
+    await expect(addRolePage.skipReasonRows).toContainText(parsedFields.skip_reasons[0].reason);
+  });
+
+  await test.step('Act: Submit the prefilled form without changes', async () => {
+    await addRolePage.addRoleButton.click();
+  });
+
+  await test.step('Assert: The role carries the parsed fields, including candidacy and skip reason', async () => {
+    await expect(roleDetailPage.companyNameHeading).toHaveText(parsedFields.company);
+    await expect(roleDetailPage.roleNameText).toHaveText(parsedFields.title);
+    await expect(roleDetailPage.roleStatusBadge.getByText(parsedFields.role_status)).toBeVisible();
+    await expect(roleDetailPage.candidacyCard.getByText(parsedFields.candidacy)).toBeVisible();
+    await expect(roleDetailPage.locationCard.getByText(parsedFields.location)).toBeVisible();
+    await expect(
+      roleDetailPage.jobDescriptionSection.getByText(parsedFields.description)
+    ).toBeVisible();
+    await expect(
+      roleDetailPage.skipReasonsSection.getByText(parsedFields.skip_reasons[0].reason)
+    ).toBeVisible();
+  });
+
+  await test.step('Assert: The stub no longer appears in the Triage queue', async () => {
+    await triageQueuePage.goto();
+    await expect(triageQueuePage.stubRow(stubUrl)).toHaveCount(0);
   });
 });

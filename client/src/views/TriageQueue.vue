@@ -190,7 +190,7 @@ async function queueStub() {
 }
 
 function promote(stub: Stub) {
-  router.push({ path: '/add', query: { url: stub.url } });
+  router.push({ path: '/add', query: { stubId: String(stub.id) } });
 }
 
 async function requestDelete(stub: Stub) {

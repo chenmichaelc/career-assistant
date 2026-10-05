@@ -95,9 +95,9 @@ eleven values `skip_reasons.reason` accepts elsewhere in this app (see
 An array, not a single object, since a posting can be disqualified for more than one
 reason at once.
 
-Only meaningful alongside `role_status: "Skipped"` — see "What happens on success"
-below for how promotion-time validation (not this import step) will eventually treat
-the two together.
+Only meaningful alongside `role_status: "Skipped"`. This import step does not enforce
+that pairing; it is enforced when the stub is promoted (see below), where `addRole()`
+requires at least one skip reason for a `Skipped` role.
 
 **Failure mode:** any entry's `reason` outside the valid list → rejected, naming the
 specific array index (e.g. `skip_reasons.0.reason`) and listing the valid values.
@@ -153,7 +153,11 @@ resubmit rather than iterating field-by-field.
 ## Explicitly out of scope for this contract
 
 - **Promoting a stub into a full `roles` entry.** This document only covers writing
-  into `job_stubs.parsed_*`; the promotion step (still part of CAR-225's own remaining
-  scope) is separate, has its own validation, and is not built yet.
+  into `job_stubs.parsed_*`. Promotion is a separate, human-reviewed step: "promote" on
+  the Triage list opens Add Role (`/add?stubId=<id>`) prefilled from the stub's parsed
+  fields, including candidacy and skip/termination reasons. The person reviews, edits,
+  and submits the normal role form, so `addRole()` is the only validator, and creating
+  the role deletes the stub. `raw_content` is not carried over; it is discarded with
+  the stub.
 - **Bulk/multi-stub import.** This is a single-stub operation — one JSON payload, one
   `job_stub.id`. Confirmed explicitly out of scope for this ticket (CAR-287).

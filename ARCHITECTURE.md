@@ -85,7 +85,8 @@ career-assistant/
 │       ├── constants.ts            # Frontend vocabulary constants
 │       ├── components/
 │       │   ├── ConfirmModal.vue    # Reusable confirm modal
-│       │   └── QueueWithRawContentModal.vue  # Triage — queue a stub with URL + raw content
+│       │   ├── QueueWithRawContentModal.vue  # Triage — queue a stub with URL + raw content
+│       │   └── ReasonListEditor.vue          # Add/remove skip or termination reasons (Add Role, stub detail)
 │       ├── composables/
 │       │   ├── useApi.ts           # Typed fetch wrapper with error handling
 │       │   ├── useConfirmModal.ts  # Promise-based modal state composable
@@ -93,11 +94,13 @@ career-assistant/
 │       ├── utils/
 │       │   ├── parseResumeText.ts  # Plain-text resume → structured intermediate rep
 │       │   ├── buildResumeDocx.ts  # Structured resume → docx.Document matching reference template
-│       │   └── validateUrl.ts      # URL format check, wraps lib/url-cleanse.ts's cleanseUrl()
+│       │   ├── validateUrl.ts      # URL format check, wraps lib/url-cleanse.ts's cleanseUrl()
+│       │   ├── stubToRoleForm.ts   # Maps a job stub's parsed fields onto the Add Role form (promotion prefill)
+│       │   └── storedReasons.ts    # Parses a stub's stored JSON reason text into entries
 │       └── views/
 │           ├── RoleList.vue        # Role list with multi-select filter + column sort
 │           ├── RoleDetail.vue      # Role detail, status updates, reason management
-│           ├── AddRole.vue         # Role creation form — prefillable via ?url= query param
+│           ├── AddRole.vue         # Role creation form — prefilled from a stub via ?stubId= (promotion)
 │           ├── TriageQueue.vue     # Job stub queue — stage indicators, promote, delete, quick-add, queue with raw content
 │           ├── SqlQuery.vue        # Raw SQL interface with CSV export
 │           ├── DiffVisualizer.vue  # Utilities — text diff visualizer

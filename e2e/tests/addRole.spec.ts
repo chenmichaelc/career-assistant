@@ -91,3 +91,33 @@ test('Top Menu Bar Add option takes user to Add page', async ({ page }) => {
     await expect(addRolePage.heading).toBeVisible();
   });
 });
+
+test('A role can be created with a candidacy and a skip reason', async ({ page }) => {
+  const addRolePage = new AddRolePage(page);
+  const roleDetailPage = new RoleDetailPage(page);
+  const skippedRole = { ...baseRole, role_status: 'Skipped' };
+  const candidacy = 'Reach';
+  const skipReason = 'Location';
+  const skipReasonNote = '[E2E] Onsite only';
+
+  await test.step('Arrange: Fill the form, choose a candidacy, and add a skip reason', async () => {
+    await addRolePage.goto();
+    await addRolePage.populateFieldsAndAddRole(skippedRole);
+    await addRolePage.candidacySelect.selectOption(candidacy);
+    await addRolePage.addSkipReasonSelect.selectOption(skipReason);
+    await addRolePage.addSkipReasonNoteInput.fill(skipReasonNote);
+    await addRolePage.addSkipReasonButton.click();
+    await expect(addRolePage.skipReasonRows).toHaveCount(1);
+  });
+
+  await test.step('Act: Submit the role', async () => {
+    await addRolePage.addRoleButton.click();
+  });
+
+  await test.step('Assert: The role page shows the status, candidacy, and skip reason', async () => {
+    await expect(roleDetailPage.roleStatusBadge.getByText(skippedRole.role_status)).toBeVisible();
+    await expect(roleDetailPage.candidacyCard.getByText(candidacy)).toBeVisible();
+    await expect(roleDetailPage.skipReasonsSection.getByText(skipReason)).toBeVisible();
+    await expect(roleDetailPage.skipReasonsSection.getByText(skipReasonNote)).toBeVisible();
+  });
+});

@@ -21,6 +21,20 @@ export class AddRolePage {
   readonly notesField: Locator;
   readonly jobDescriptionField: Locator;
 
+  // ─── Candidacy and reasons ────────────────────────────────────────────────
+
+  readonly candidacySelect: Locator;
+  readonly skipReasonsEditor: Locator;
+  readonly skipReasonRows: Locator;
+  readonly addSkipReasonSelect: Locator;
+  readonly addSkipReasonNoteInput: Locator;
+  readonly addSkipReasonButton: Locator;
+  readonly terminationReasonsEditor: Locator;
+  readonly terminationReasonRows: Locator;
+  readonly addTerminationReasonSelect: Locator;
+  readonly addTerminationReasonNoteInput: Locator;
+  readonly addTerminationReasonButton: Locator;
+
   // ─── Actions ──────────────────────────────────────────────────────────────
 
   readonly addRoleButton: Locator;
@@ -75,6 +89,30 @@ export class AddRolePage {
       .locator('#job-description-region')
       .filter({ hasText: 'Job Description' })
       .getByRole('textbox');
+
+    this.candidacySelect = page
+      .locator('#candidacy-region')
+      .filter({ hasText: 'Candidacy' })
+      .getByRole('combobox');
+
+    this.skipReasonsEditor = page.getByTestId('skip-reasons-editor');
+    this.skipReasonRows = this.skipReasonsEditor.getByTestId('skip-reason-row');
+    const addSkipReasonSection = this.skipReasonsEditor.getByTestId('add-skip-reason-section');
+    this.addSkipReasonSelect = addSkipReasonSection.getByRole('combobox');
+    this.addSkipReasonNoteInput = addSkipReasonSection.getByRole('textbox');
+    this.addSkipReasonButton = addSkipReasonSection.getByRole('button', { name: 'add' });
+
+    this.terminationReasonsEditor = page.getByTestId('termination-reasons-editor');
+    this.terminationReasonRows =
+      this.terminationReasonsEditor.getByTestId('termination-reason-row');
+    const addTerminationReasonSection = this.terminationReasonsEditor.getByTestId(
+      'add-termination-reason-section'
+    );
+    this.addTerminationReasonSelect = addTerminationReasonSection.getByRole('combobox');
+    this.addTerminationReasonNoteInput = addTerminationReasonSection.getByRole('textbox');
+    this.addTerminationReasonButton = addTerminationReasonSection.getByRole('button', {
+      name: 'add',
+    });
 
     this.addRoleButton = page.getByRole('button', { name: 'add role' });
     this.cancelLink = page.getByRole('link', { name: 'cancel' });

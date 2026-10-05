@@ -144,119 +144,19 @@
           </select>
         </div>
 
-        <!-- Skip Reasons -->
-        <div>
-          <label class="font-mono text-xs text-dim block mb-1">Skip Reasons</label>
-          <div v-if="form.skip_reasons.length === 0" class="font-mono text-xs text-dim">
-            None recorded.
-          </div>
-          <div
-            v-for="(skipReason, index) in form.skip_reasons"
-            :key="index"
-            class="flex items-center justify-between py-2 border-b border-border last:border-0"
-            data-testid="skip-reason-row"
-          >
-            <div>
-              <span class="font-mono text-sm text-text">{{ skipReason.reason }}</span>
-              <span v-if="skipReason.note" class="font-mono text-xs text-dim ml-2">
-                — {{ skipReason.note }}
-              </span>
-            </div>
-            <button
-              @click="form.skip_reasons.splice(index, 1)"
-              class="font-mono text-xs text-danger hover:opacity-80 transition-opacity ml-4"
-              data-testid="remove-skip-reason-button"
-            >
-              delete
-            </button>
-          </div>
+        <ReasonListEditor
+          v-model="form.skip_reasons"
+          kind="skip"
+          label="Skip Reasons"
+          :options="VALID_SKIP_REASONS"
+        />
 
-          <div class="flex gap-3 flex-wrap mt-2" data-testid="add-skip-reason-section">
-            <select
-              v-model="addSkipReasonValue"
-              class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent"
-            >
-              <option value="">select reason...</option>
-              <option
-                v-for="skipReason in VALID_SKIP_REASONS"
-                :key="skipReason"
-                :value="skipReason"
-              >
-                {{ skipReason }}
-              </option>
-            </select>
-            <input
-              v-model="addSkipReasonNote"
-              placeholder="note (optional)"
-              class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent flex-1"
-            />
-            <button
-              @click="submitAddSkipReason"
-              :disabled="!addSkipReasonValue"
-              class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
-              data-testid="add-skip-reason-button"
-            >
-              add
-            </button>
-          </div>
-        </div>
-
-        <!-- Termination Reasons -->
-        <div>
-          <label class="font-mono text-xs text-dim block mb-1">Termination Reasons</label>
-          <div v-if="form.termination_reasons.length === 0" class="font-mono text-xs text-dim">
-            None recorded.
-          </div>
-          <div
-            v-for="(terminationReason, index) in form.termination_reasons"
-            :key="index"
-            class="flex items-center justify-between py-2 border-b border-border last:border-0"
-            data-testid="termination-reason-row"
-          >
-            <div>
-              <span class="font-mono text-sm text-text">{{ terminationReason.reason }}</span>
-              <span v-if="terminationReason.note" class="font-mono text-xs text-dim ml-2">
-                — {{ terminationReason.note }}
-              </span>
-            </div>
-            <button
-              @click="form.termination_reasons.splice(index, 1)"
-              class="font-mono text-xs text-danger hover:opacity-80 transition-opacity ml-4"
-              data-testid="remove-termination-reason-button"
-            >
-              delete
-            </button>
-          </div>
-
-          <div class="flex gap-3 flex-wrap mt-2" data-testid="add-termination-reason-section">
-            <select
-              v-model="addTerminationReasonValue"
-              class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent"
-            >
-              <option value="">select reason...</option>
-              <option
-                v-for="terminationReason in VALID_TERMINATION_REASONS"
-                :key="terminationReason"
-                :value="terminationReason"
-              >
-                {{ terminationReason }}
-              </option>
-            </select>
-            <input
-              v-model="addTerminationReasonNote"
-              placeholder="note (optional)"
-              class="bg-surface border border-border text-text font-mono text-sm px-3 py-2 rounded focus:outline-none focus:border-accent flex-1"
-            />
-            <button
-              @click="submitAddTerminationReason"
-              :disabled="!addTerminationReasonValue"
-              class="bg-accent text-surface font-mono text-sm px-4 py-2 rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
-              data-testid="add-termination-reason-button"
-            >
-              add
-            </button>
-          </div>
-        </div>
+        <ReasonListEditor
+          v-model="form.termination_reasons"
+          kind="termination"
+          label="Termination Reasons"
+          :options="VALID_TERMINATION_REASONS"
+        />
       </div>
 
       <div class="flex gap-3 mt-4">
@@ -287,6 +187,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { apiFetch } from '@/composables/useApi';
+import ReasonListEditor from '@/components/ReasonListEditor.vue';
+import { ReasonEntry, parseStoredReasons } from '@/utils/storedReasons';
 import {
   VALID_STATUSES,
   VALID_CANDIDACIES,
@@ -302,11 +204,6 @@ const route = useRoute();
 const stub = ref<any>(null);
 const loading = ref(false);
 const loadError = ref('');
-
-interface ReasonEntry {
-  reason: string;
-  note: string | null;
-}
 
 interface JobStubForm {
   raw_content: string;
@@ -351,13 +248,6 @@ const importText = ref('');
 const importing = ref(false);
 const importError = ref('');
 
-// ─── Add reason controls ──────────────────────────────────────────────────────
-
-const addSkipReasonValue = ref('');
-const addSkipReasonNote = ref('');
-const addTerminationReasonValue = ref('');
-const addTerminationReasonNote = ref('');
-
 // ─── Save parsed fields ───────────────────────────────────────────────────────
 
 const saving = ref(false);
@@ -367,15 +257,6 @@ const saveSuccess = ref('');
 const hasChanges = computed(() => JSON.stringify(form.value) !== JSON.stringify(original.value));
 
 // ─── Load ─────────────────────────────────────────────────────────────────────
-
-function parseReasons(raw: string | null): ReasonEntry[] {
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- job stub shape not yet shared with client; tracked in CAR-4
 function toForm(loadedStub: any): JobStubForm {
@@ -390,8 +271,8 @@ function toForm(loadedStub: any): JobStubForm {
     role_status: loadedStub.parsed_role_status ?? '',
     location: loadedStub.parsed_location ?? '',
     in_office_expectation: loadedStub.parsed_in_office_expectation ?? '',
-    skip_reasons: parseReasons(loadedStub.parsed_skip_reasons ?? null),
-    termination_reasons: parseReasons(loadedStub.parsed_termination_reasons ?? null),
+    skip_reasons: parseStoredReasons(loadedStub.parsed_skip_reasons ?? null),
+    termination_reasons: parseStoredReasons(loadedStub.parsed_termination_reasons ?? null),
   };
 }
 
@@ -452,28 +333,6 @@ async function handleImport() {
   } finally {
     importing.value = false;
   }
-}
-
-// ─── Add reason ───────────────────────────────────────────────────────────────
-
-function submitAddSkipReason() {
-  if (!addSkipReasonValue.value) return;
-  form.value.skip_reasons.push({
-    reason: addSkipReasonValue.value,
-    note: addSkipReasonNote.value || null,
-  });
-  addSkipReasonValue.value = '';
-  addSkipReasonNote.value = '';
-}
-
-function submitAddTerminationReason() {
-  if (!addTerminationReasonValue.value) return;
-  form.value.termination_reasons.push({
-    reason: addTerminationReasonValue.value,
-    note: addTerminationReasonNote.value || null,
-  });
-  addTerminationReasonValue.value = '';
-  addTerminationReasonNote.value = '';
 }
 
 // ─── Save parsed fields ───────────────────────────────────────────────────────

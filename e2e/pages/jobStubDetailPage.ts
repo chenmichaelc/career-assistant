@@ -82,25 +82,23 @@ export class JobStubDetailPage {
 
     this.skipReasonRows = this.parsedFieldsSection.getByTestId('skip-reason-row');
     this.addSkipReasonSection = this.parsedFieldsSection.getByTestId('add-skip-reason-section');
-    this.addSkipReasonSelect = this.addSkipReasonSection.locator('select');
-    this.addSkipReasonNoteInput = this.addSkipReasonSection.locator('input');
-    this.addSkipReasonButton = this.addSkipReasonSection.getByTestId('add-skip-reason-button');
-    this.removeSkipReasonButtons = this.parsedFieldsSection.getByTestId(
-      'remove-skip-reason-button'
-    );
+    this.addSkipReasonSelect = this.addSkipReasonSection.getByRole('combobox');
+    this.addSkipReasonNoteInput = this.addSkipReasonSection.getByRole('textbox');
+    this.addSkipReasonButton = this.addSkipReasonSection.getByRole('button', { name: 'add' });
+    this.removeSkipReasonButtons = this.skipReasonRows.getByRole('button', { name: 'delete' });
 
     this.terminationReasonRows = this.parsedFieldsSection.getByTestId('termination-reason-row');
     this.addTerminationReasonSection = this.parsedFieldsSection.getByTestId(
       'add-termination-reason-section'
     );
-    this.addTerminationReasonSelect = this.addTerminationReasonSection.locator('select');
-    this.addTerminationReasonNoteInput = this.addTerminationReasonSection.locator('input');
-    this.addTerminationReasonButton = this.addTerminationReasonSection.getByTestId(
-      'add-termination-reason-button'
-    );
-    this.removeTerminationReasonButtons = this.parsedFieldsSection.getByTestId(
-      'remove-termination-reason-button'
-    );
+    this.addTerminationReasonSelect = this.addTerminationReasonSection.getByRole('combobox');
+    this.addTerminationReasonNoteInput = this.addTerminationReasonSection.getByRole('textbox');
+    this.addTerminationReasonButton = this.addTerminationReasonSection.getByRole('button', {
+      name: 'add',
+    });
+    this.removeTerminationReasonButtons = this.terminationReasonRows.getByRole('button', {
+      name: 'delete',
+    });
   }
 
   // Waits for the save to finish so a following reload can't abort the in-flight request.

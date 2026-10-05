@@ -23,6 +23,15 @@
           </option>
         </select>
       </div>
+      <div id="candidacy-region">
+        <label class="font-mono text-xs text-dim block mb-1">Candidacy</label>
+        <select v-model="form.candidacy" class="input w-full">
+          <option value="">—</option>
+          <option v-for="option in VALID_CANDIDACIES" :key="option" :value="option">
+            {{ option }}
+          </option>
+        </select>
+      </div>
       <div class="grid grid-cols-2 gap-4">
         <div id="salary-minimum-region">
           <label class="font-mono text-xs text-dim block mb-1">Salary Minimum</label>
@@ -50,6 +59,18 @@
         <label class="font-mono text-xs text-dim block mb-1">Notes</label>
         <input v-model="form.notes" class="input w-full" />
       </div>
+      <ReasonListEditor
+        v-model="form.skip_reasons"
+        kind="skip"
+        label="Skip Reasons"
+        :options="VALID_SKIP_REASONS"
+      />
+      <ReasonListEditor
+        v-model="form.termination_reasons"
+        kind="termination"
+        label="Termination Reasons"
+        :options="VALID_TERMINATION_REASONS"
+      />
       <div id="job-description-region">
         <label class="font-mono text-xs text-dim block mb-1">Job Description *</label>
         <textarea v-model="form.jd" class="input w-full h-64 resize-y" />
@@ -82,36 +103,51 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiFetch } from '@/composables/useApi';
-import { VALID_STATUSES, VALID_IN_OFFICE_EXPECTATIONS } from '@/constants';
+import {
+  VALID_STATUSES,
+  VALID_CANDIDACIES,
+  VALID_IN_OFFICE_EXPECTATIONS,
+  VALID_SKIP_REASONS,
+  VALID_TERMINATION_REASONS,
+} from '@/constants';
+import ReasonListEditor from '@/components/ReasonListEditor.vue';
 import { validateUrl } from '@/utils/validateUrl';
+import { RoleFormValues, emptyRoleForm, buildRoleFormFromStub } from '@/utils/stubToRoleForm';
+import type { JobStubRow } from '../../../lib/types';
 
 const route = useRoute();
 const router = useRouter();
 const error = ref('');
 const submitting = ref(false);
 
-const form = ref({
-  company: '',
-  title: '',
-  url: typeof route.query.url === 'string' ? route.query.url : '',
-  role_status: 'Pending Triage' as string,
-  salary_min: null as number | null,
-  salary_max: null as number | null,
-  location: '',
-  in_office_expectation: '',
-  notes: '',
-  jd: '',
+const form = ref<RoleFormValues>(emptyRoleForm());
+
+// Promoting a stub opens this page with ?stubId=; the stub's parsed fields prefill the form.
+async function prefillFromStub(stubId: string) {
+  try {
+    const stub = await apiFetch<JobStubRow>(`/api/job-stubs/${stubId}`);
+    form.value = buildRoleFormFromStub(stub);
+  } catch (err) {
+    error.value = `Could not load the stub to prefill from: ${(err as Error).message}`;
+  }
+}
+
+onMounted(() => {
+  if (typeof route.query.stubId === 'string') {
+    prefillFromStub(route.query.stubId);
+  }
 });
 
-function buildRolePayload(formValue: typeof form.value) {
+function buildRolePayload(formValue: RoleFormValues) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shared RoleInput type not yet accessible from client; tracked in CAR-4
   const payload: any = { ...formValue };
   if (!payload.notes) delete payload.notes;
   if (!payload.location) delete payload.location;
   if (!payload.in_office_expectation) delete payload.in_office_expectation;
+  if (!payload.candidacy) delete payload.candidacy;
   if (!payload.salary_min) payload.salary_min = null;
   if (!payload.salary_max) payload.salary_max = null;
   return payload;

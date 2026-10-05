@@ -58,9 +58,9 @@ The feature set is intentionally modest relative to the engineering investment. 
 
 ## Currently working on
 
-**[CAR-225] Job stubs — raw content capture and manual LLM-assisted parsing**
+**[CAR-293] Promote a job stub's parsed fields into a full role**
 
-Delivered so far: parsed-field columns and a status lifecycle on `job_stubs`, location and in-office-expectation fields on roles and stubs, JSON import of LLM output into a stub's parsed fields, a stub detail/edit page, and the stage indicator on the triage list. In progress: queueing a stub with raw content from a modal (CAR-292). Remaining: promoting a stub's parsed fields into a full role.
+The last step of the job stub workflow (epic CAR-225, otherwise complete: parsed-field columns and status lifecycle, location and in-office-expectation fields, JSON import of LLM output, the stub detail/edit page, the triage stage indicator, and queueing a stub with raw content). "Promote" opens Add Role prefilled from the stub's parsed fields; Add Role gained a candidacy select and skip/termination reason editors so nothing parsed is dropped. Raw content is discarded when the role replaces the stub.
 
 ---
 
@@ -171,7 +171,7 @@ Formatting and a full non-interactive test run are also enforced automatically o
 | Utilities section — Text Diff Visualizer (CAR-210)                      | Done        |
 | Utilities section — Resume Text-to-DOCX Converter (CAR-214)             | Done        |
 | Playwright E2E — POM foundation + initial behavioral coverage (CAR-63)  | In Progress |
-| Job stubs — raw content capture + manual LLM-assisted parsing (CAR-225) | In Progress |
+| Job stubs — raw content capture + manual LLM-assisted parsing (CAR-225) | Done        |
 
 ---
 
@@ -185,8 +185,8 @@ Test database isolation via DB_PATH environment variable (CAR-16) to enable clea
 **Data layer refactor (CAR-5)** _(In Progress)_
 Single-table `lib/db/` modules are complete (CAR-20). The `lib/` orchestration layer now composes from these modules (CAR-21 — done), raw SQL has been eliminated from `server/routes/roles.ts` alongside the N+1 query fix (CAR-164), and the CLI scripts layer has been retired in favour of HTTP-level integration tests (CAR-165, CAR-166, CAR-167, CAR-168). CAR-173 is complete — `UpdateArgs` is gone, `lib/args/` is deleted, and `lib/roles.ts` now accepts the caller-agnostic `UpdateRoleInput`. CAR-178's vocabulary-validation goal is done — it lives in the orchestration layer, one implementation reused across role creation, reason creation, reason editing, and status updates (CAR-178 itself stays open pending related subtasks — see Jira). `lib/` is now organized as one file per aggregate rather than per verb (CAR-267 — done): `lib/roles.ts` covers the whole Role aggregate; `lib/updates.ts` and `lib/deletes.ts` no longer exist. Remaining work: fill one-to-many test coverage gaps (CAR-22 subtasks). CAR-172 (`url` nullability) closed as Won't Do — see CAR-230 for the actual, since-surfaced requirement it was superseded by.
 
-**Job stubs — raw content and LLM-assisted parsing (CAR-225)** _(In Progress)_
-Stubs carry raw posting text and AI-parsed fields behind a human-controlled status lifecycle (Stubbed, Scraped, Parsed, Ready to Promote). Import, detail/edit, and the triage-list stage indicator are done; the queue-with-raw-content modal (CAR-292) is in development. Remaining: promoting a stub's parsed fields into a full role through the existing transactional role-creation path. Automated LLM calls and a rule-based parser are explicitly out of scope for this epic. Parking-lot idea: deriving the stored status from the data instead of keeping it human-set.
+**Job stubs — promotion (CAR-293)** _(In Progress)_
+Stubs carry raw posting text and AI-parsed fields behind a human-controlled status lifecycle (Stubbed, Scraped, Parsed, Ready to Promote). Capture, import, detail/edit, the triage stage indicator, and queue-with-raw-content are done (epic CAR-225). Promotion goes through the Add Role form, prefilled from the stub, so `addRole()` stays the single validator. Automated LLM calls and a rule-based parser remain out of scope. Parking-lot idea: deriving the stored status from the data instead of keeping it human-set.
 
 **Observability — error logging and persistence (CAR-139)**
 Audit existing error handling across the codebase first (CAR-141), then implement consistent logging on the client (CAR-140) and server (CAR-72). Persist server logs to disk via Pino file transport (CAR-142). A full-stack persistent error store, spanning both client and server, is deferred until cloud migration planning begins (CAR-143).
